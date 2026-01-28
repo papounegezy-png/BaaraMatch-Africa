@@ -68,8 +68,8 @@ export default function RegisterPage() {
       const response = await apiRequest("POST", "/api/auth/register", registerData);
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    onSuccess: (userData) => {
+      queryClient.setQueryData(["/api/auth/me"], userData);
       toast({
         title: "Inscription réussie",
         description: "Votre compte a été créé avec succès !",

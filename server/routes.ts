@@ -6,7 +6,9 @@ import { storage } from "./storage";
 import { pool } from "./db";
 import { insertUserSchema, loginSchema, insertJobPostingSchema, insertApplicationSchema, type UserType } from "@shared/schema";
 import { z } from "zod";
-import { createHash } from "crypto";
+import bcrypt from "bcrypt";
+
+const BCRYPT_SALT_ROUNDS = 12;
 
 declare module "express-session" {
   interface SessionData {
@@ -15,8 +17,12 @@ declare module "express-session" {
   }
 }
 
-function hashPassword(password: string): string {
-  return createHash("sha256").update(password).digest("hex");
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
 }
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -64,6 +70,7 @@ export async function registerRoutes(
         secure: process.env.NODE_ENV === "production",
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
+        sameSite: "lax",
       },
     })
   );
@@ -78,7 +85,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Cet email est déjà utilisé" });
       }
 
-      const hashedPassword = hashPassword(validatedData.password);
+      const hashedPassword = await hashPassword(validatedData.password);
       const user = await storage.createUser({
         ...validatedData,
         password: hashedPassword,
@@ -142,8 +149,8 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Email ou mot de passe incorrect" });
       }
 
-      const hashedPassword = hashPassword(validatedData.password);
-      if (user.password !== hashedPassword) {
+      const isValidPassword = await verifyPassword(validatedData.password, user.password);
+      if (!isValidPassword) {
         return res.status(401).json({ message: "Email ou mot de passe incorrect" });
       }
 

@@ -9,10 +9,11 @@ BaaraMatch Africa is a professional job matching platform designed for the Afric
 ## Tech Stack
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Express.js + TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
 - **Styling**: Tailwind CSS with custom African-inspired design tokens
 - **State Management**: TanStack Query
-- **Storage**: In-memory storage (MemStorage)
-- **Session**: Express session with memory store
+- **Authentication**: Session-based with bcrypt password hashing
+- **Session**: PostgreSQL-backed sessions (connect-pg-simple)
 
 ## Project Structure
 ```
@@ -93,22 +94,37 @@ The application uses an African-inspired warm color palette:
 - Dark mode support with automatic theme detection
 
 ## Recent Changes (Jan 2026)
-- Integrated express-session middleware for authentication
-- Connected AuthProvider context to App.tsx for global auth state
-- Updated login/register pages to invalidate auth cache after successful auth
-- Jobs page now fetches data from /api/jobs with loading states
-- Navbar displays user status and logout functionality
+- Migrated from in-memory storage to PostgreSQL with Drizzle ORM
+- Implemented bcrypt password hashing (12 salt rounds) for security
+- PostgreSQL-backed session storage with connect-pg-simple
+- Role-based access control with requireAuth and requireRole middleware
+- Three distinct registration flows with type-specific fields:
+  - Candidates: WhatsApp notification preferences
+  - Agencies: APDP compliance verification requirements
+  - Companies: B2B profile with SIRET/VAT fields
+- Role-protected dashboard API endpoints (/api/dashboard/candidate, /api/dashboard/agency, /api/dashboard/company)
+- Enhanced user-type-specific schema fields
 
 ## Development
 ```bash
-npm run dev
+npm run dev      # Start dev server
+npm run db:push  # Push schema changes to database
 ```
 This starts both the Vite dev server and Express backend on port 5000.
 
 ## Security Notes
 - SESSION_SECRET is required in production (will throw error if missing)
-- Passwords are currently hashed with SHA-256 (consider bcrypt for production)
-- Session uses memory store (not persistent across restarts)
+- Passwords hashed with bcrypt (12 salt rounds)
+- Session cookies configured with httpOnly, secure (in prod), and sameSite: lax
+- PostgreSQL sessions persist across restarts (table: user_sessions)
+- Role-based middleware protects sensitive endpoints
+
+## Authentication Flow
+1. User selects account type (candidate/agency/company)
+2. Registration form shows type-specific requirements
+3. Password hashed with bcrypt before storage
+4. Session created with userId and userType
+5. Dashboard routes protected by role middleware
 
 ## Mobile Export
 The application is designed to be responsive and can be exported as a native mobile app using Capacitor. The viewport meta tags and CSS are optimized for mobile devices.
