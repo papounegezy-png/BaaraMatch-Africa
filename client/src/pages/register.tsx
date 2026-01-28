@@ -5,32 +5,36 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { registerSchema, type UserType } from "@shared/schema";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, Users, Building2, Handshake, Loader2, ArrowLeft } from "lucide-react";
+import { Briefcase, Users, Building2, Handshake, Loader2, ArrowLeft, MessageCircle, FileCheck, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-const userTypeLabels: Record<UserType, { label: string; description: string; icon: React.ComponentType<{ className?: string }> }> = {
+const userTypeLabels: Record<UserType, { label: string; description: string; icon: React.ComponentType<{ className?: string }>; features: string[] }> = {
   candidate: {
     label: "Candidat",
     description: "Je recherche un emploi",
     icon: Users,
+    features: ["Notifications WhatsApp", "CV en ligne", "Matching intelligent"],
   },
   agency: {
     label: "Agence de Placement",
     description: "Je place des candidats",
     icon: Handshake,
+    features: ["Vérification APDP", "Gestion des candidats", "Accès entreprises"],
   },
   company: {
     label: "Entreprise",
     description: "Je recrute des talents",
     icon: Building2,
+    features: ["Profil B2B", "Gestion des offres", "Tableau de bord RH"],
   },
 };
 
@@ -116,20 +120,29 @@ export default function RegisterPage() {
         {step === "type" ? (
           <div className="grid gap-4">
             {(Object.entries(userTypeLabels) as [UserType, typeof userTypeLabels[UserType]][]).map(
-              ([type, { label, description, icon: Icon }]) => (
+              ([type, { label, description, icon: Icon, features }]) => (
                 <Card
                   key={type}
                   className="hover-elevate cursor-pointer"
                   onClick={() => handleTypeSelect(type)}
                   data-testid={`card-type-${type}`}
                 >
-                  <CardContent className="p-6 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Icon className="h-6 w-6 text-primary" />
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{label}</h3>
+                        <p className="text-sm text-muted-foreground">{description}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{label}</h3>
-                      <p className="text-sm text-muted-foreground">{description}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {features.map((feature) => (
+                        <span key={feature} className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                          {feature}
+                        </span>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
@@ -281,6 +294,68 @@ export default function RegisterPage() {
                       </FormItem>
                     )}
                   />
+
+                  {selectedType === "candidate" && (
+                    <Card className="bg-muted/50 border-dashed">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <MessageCircle className="h-4 w-4 text-green-600" />
+                          Intégration WhatsApp
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Recevez les alertes d'offres directement sur WhatsApp. 
+                          Assurez-vous que votre numéro de téléphone est lié à WhatsApp.
+                        </p>
+                        <div className="flex items-center gap-2 pt-2">
+                          <Checkbox id="whatsapp-consent" defaultChecked data-testid="checkbox-whatsapp-consent" />
+                          <label htmlFor="whatsapp-consent" className="text-xs text-muted-foreground cursor-pointer">
+                            J'accepte de recevoir des notifications WhatsApp
+                          </label>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {selectedType === "agency" && (
+                    <Card className="bg-muted/50 border-dashed">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <ShieldCheck className="h-4 w-4 text-blue-600" />
+                          Conformité APDP requise
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Pour opérer en tant qu'agence de placement, vous devrez fournir :
+                        </p>
+                        <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+                          <li>Certificat d'enregistrement APDP</li>
+                          <li>Registre de commerce (RCCM)</li>
+                          <li>Numéro de licence de placement</li>
+                        </ul>
+                        <p className="text-xs text-muted-foreground italic pt-1">
+                          Ces documents seront demandés après l'inscription pour vérification.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {selectedType === "company" && (
+                    <Card className="bg-muted/50 border-dashed">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <FileCheck className="h-4 w-4 text-primary" />
+                          Profil Entreprise B2B
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Informations optionnelles pour la facturation (à compléter après inscription) :
+                        </p>
+                        <ul className="text-xs text-muted-foreground list-disc list-inside space-y-1">
+                          <li>Numéro SIRET / NINEA</li>
+                          <li>Numéro de TVA intracommunautaire</li>
+                          <li>Adresse de facturation</li>
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   <FormField
                     control={form.control}

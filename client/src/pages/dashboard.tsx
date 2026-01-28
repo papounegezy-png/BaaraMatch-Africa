@@ -1,10 +1,11 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Briefcase,
   Users,
@@ -21,22 +22,13 @@ import {
   Plus,
   ArrowRight,
   MapPin,
+  ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import type { User, UserType } from "@shared/schema";
-
-const mockUser: User = {
-  id: "1",
-  email: "john.doe@email.com",
-  password: "",
-  userType: "candidate",
-  fullName: "John Doe",
-  phone: "+221 77 000 00 00",
-  city: "Dakar",
-  country: "Sénégal",
-  avatarUrl: null,
-  isVerified: true,
-};
+import { useEffect } from "react";
 
 const mockStats = {
   candidate: [
@@ -80,7 +72,53 @@ const statusConfig = {
 };
 
 export default function DashboardPage() {
-  const user = mockUser;
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setLocation("/login");
+    }
+  }, [user, isLoading, setLocation]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col lg:flex-row gap-8">
+            <aside className="lg:w-80 space-y-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center space-y-4">
+                    <Skeleton className="h-20 w-20 rounded-full mx-auto" />
+                    <Skeleton className="h-6 w-32 mx-auto" />
+                    <Skeleton className="h-4 w-24 mx-auto" />
+                  </div>
+                </CardContent>
+              </Card>
+            </aside>
+            <main className="flex-1 space-y-6">
+              <Skeleton className="h-8 w-48" />
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <Skeleton className="h-12 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   const stats = mockStats[user.userType];
 
   const getInitials = (name: string) => {

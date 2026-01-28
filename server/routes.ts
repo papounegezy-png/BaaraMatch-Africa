@@ -121,6 +121,7 @@ export async function registerRoutes(
       }
 
       req.session.userId = user.id;
+      req.session.userType = user.userType;
       const { password: _, ...userWithoutPassword } = user;
       res.status(201).json(userWithoutPassword);
     } catch (error) {
@@ -147,6 +148,7 @@ export async function registerRoutes(
       }
 
       req.session.userId = user.id;
+      req.session.userType = user.userType;
       const { password: _, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
@@ -471,6 +473,91 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating application:", error);
       res.status(500).json({ message: "Erreur lors de la mise à jour de la candidature" });
+    }
+  });
+
+  app.get("/api/dashboard/candidate", requireRole("candidate"), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+
+      const profile = await storage.getCandidateProfile(user.id);
+      const applications = await storage.getApplicationsByCandidate(user.id);
+      const jobs = await storage.getAllJobPostings();
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({
+        user: userWithoutPassword,
+        profile,
+        applications,
+        recommendedJobs: jobs.slice(0, 5),
+        stats: {
+          applicationsSent: applications.length,
+          interviewsScheduled: applications.filter(a => a.status === "interview").length,
+          acceptedApplications: applications.filter(a => a.status === "accepted").length,
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching candidate dashboard:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération du tableau de bord" });
+    }
+  });
+
+  app.get("/api/dashboard/agency", requireRole("agency"), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+
+      const profile = await storage.getAgencyProfile(user.id);
+      const candidates = await storage.getAllCandidates();
+      const jobs = await storage.getJobPostingsByAgency(user.id);
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({
+        user: userWithoutPassword,
+        profile,
+        managedCandidates: candidates.length,
+        activeJobs: jobs.filter(j => j.isActive).length,
+        totalPlacements: profile?.candidatesPlaced || 0,
+        verificationStatus: profile?.verificationStatus || "pending",
+      });
+    } catch (error) {
+      console.error("Error fetching agency dashboard:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération du tableau de bord" });
+    }
+  });
+
+  app.get("/api/dashboard/company", requireRole("company"), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "Utilisateur non trouvé" });
+      }
+
+      const profile = await storage.getCompanyProfile(user.id);
+      const jobs = await storage.getJobPostingsByCompany(user.id);
+      
+      let totalApplications = 0;
+      for (const job of jobs) {
+        const applications = await storage.getApplicationsByJob(job.id);
+        totalApplications += applications.length;
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({
+        user: userWithoutPassword,
+        profile,
+        activeJobs: jobs.filter(j => j.isActive).length,
+        totalJobs: jobs.length,
+        totalApplicationsReceived: totalApplications,
+      });
+    } catch (error) {
+      console.error("Error fetching company dashboard:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération du tableau de bord" });
     }
   });
 
