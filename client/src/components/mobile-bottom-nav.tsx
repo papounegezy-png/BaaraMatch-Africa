@@ -39,7 +39,7 @@ export function MobileBottomNav({ userType }: BottomNavProps) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom)] lg:hidden">
-      <div className="flex items-center justify-around h-16 px-2">
+      <div className="flex items-center justify-around py-2 px-1">
         {navItems.map((item) => {
           const isActive = location === item.href || 
             (item.href !== "/dashboard" && location.startsWith(item.href));
@@ -48,7 +48,8 @@ export function MobileBottomNav({ userType }: BottomNavProps) {
             <Link key={item.href} href={item.href}>
               <Button
                 variant="ghost"
-                className={`flex flex-col items-center justify-center gap-0.5 min-h-14 px-3 ${
+                size="lg"
+                className={`flex flex-col items-center justify-center gap-0.5 ${
                   isActive ? "bg-primary/10" : ""
                 }`}
                 data-testid={`nav-${item.label.toLowerCase()}`}

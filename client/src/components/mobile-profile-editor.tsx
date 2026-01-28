@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,6 +27,7 @@ import {
 import {
   Camera,
   Mic,
+  MicOff,
   Phone,
   MapPin,
   Briefcase,
@@ -36,6 +37,12 @@ import {
   Save,
   ChevronRight,
   CheckCircle2,
+  Play,
+  Pause,
+  Trash2,
+  Upload,
+  FileText,
+  StopCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { User, CandidateProfile } from "@shared/schema";
@@ -66,6 +73,34 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
   const [skills, setSkills] = useState<string[]>(profile?.skills || []);
   const [newSkill, setNewSkill] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [hasVoiceCV, setHasVoiceCV] = useState(!!profile?.voiceCvUrl);
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const [cvFileName, setCvFileName] = useState<string | null>(null);
+  const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (isRecording) {
+      recordingInterval.current = setInterval(() => {
+        setRecordingTime((prev) => {
+          if (prev >= 60) {
+            handleStopRecording();
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } else {
+      if (recordingInterval.current) {
+        clearInterval(recordingInterval.current);
+      }
+    }
+    return () => {
+      if (recordingInterval.current) {
+        clearInterval(recordingInterval.current);
+      }
+    };
+  }, [isRecording]);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -114,17 +149,63 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
     setSkills(skills.filter((s) => s !== skillToRemove));
   };
 
-  const handleVoiceCV = () => {
-    setIsRecording(!isRecording);
-    if (!isRecording) {
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleStartRecording = () => {
+    setIsRecording(true);
+    setRecordingTime(0);
+    toast({
+      title: "Enregistrement démarré",
+      description: "Présentez-vous en quelques phrases (max 1 min)...",
+    });
+  };
+
+  const handleStopRecording = () => {
+    setIsRecording(false);
+    if (recordingTime > 5) {
+      setHasVoiceCV(true);
       toast({
-        title: "Enregistrement démarré",
-        description: "Présentez-vous en quelques phrases...",
+        title: "CV Vocal enregistré !",
+        description: `Durée: ${formatTime(recordingTime)}`,
       });
     } else {
+      setRecordingTime(0);
       toast({
-        title: "Enregistrement terminé",
-        description: "Votre CV vocal a été enregistré.",
+        title: "Enregistrement trop court",
+        description: "Votre présentation doit durer au moins 5 secondes.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteVoiceCV = () => {
+    setHasVoiceCV(false);
+    setRecordingTime(0);
+    toast({
+      title: "CV Vocal supprimé",
+      description: "Vous pouvez en enregistrer un nouveau.",
+    });
+  };
+
+  const handleCVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: "La taille maximum est de 5 Mo.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCvFileName(file.name);
+      toast({
+        title: "CV uploadé",
+        description: file.name,
       });
     }
   };
@@ -183,31 +264,163 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
         </CardContent>
       </Card>
 
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+          <CardTitle className="text-base flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+              <Mic className="h-4 w-4 text-white" />
+            </div>
+            CV Vocal WhatsApp
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <p className="text-sm text-muted-foreground">
+            Enregistrez une courte présentation audio (style message vocal) pour vous démarquer.
+          </p>
+
+          {!hasVoiceCV && !isRecording && (
+            <div className="flex flex-col items-center py-6 space-y-4">
+              <Button
+                onClick={handleStartRecording}
+                className="rounded-full bg-green-500 shadow-lg"
+                size="lg"
+                data-testid="button-start-recording"
+              >
+                <Mic className="h-6 w-6 mr-2" />
+                Enregistrer
+              </Button>
+              <p className="text-sm text-muted-foreground">Appuyez pour enregistrer</p>
+            </div>
+          )}
+
+          {isRecording && (
+            <div className="flex flex-col items-center py-6 space-y-4">
+              <Button
+                onClick={handleStopRecording}
+                variant="destructive"
+                size="lg"
+                className="rounded-full shadow-lg"
+                data-testid="button-stop-recording"
+              >
+                <StopCircle className="h-6 w-6 mr-2" />
+                Arrêter
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-0.5">
+                  {[...Array(12)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-1 bg-red-500 rounded-full animate-pulse"
+                      style={{
+                        height: `${8 + Math.random() * 16}px`,
+                        animationDelay: `${i * 0.1}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className="font-mono text-lg font-semibold text-destructive">
+                  {formatTime(recordingTime)}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">Enregistrement en cours...</p>
+            </div>
+          )}
+
+          {hasVoiceCV && !isRecording && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                <Button
+                  onClick={() => setIsPlayingVoice(!isPlayingVoice)}
+                  size="icon"
+                  className="rounded-full bg-green-500 shrink-0"
+                  data-testid="button-play-voice"
+                >
+                  {isPlayingVoice ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Play className="h-5 w-5 ml-0.5" />
+                  )}
+                </Button>
+                <div className="flex-1">
+                  <div className="flex gap-0.5 items-center h-8">
+                    {[...Array(30)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-1 bg-green-500/60 rounded-full"
+                        style={{ height: `${4 + Math.random() * 20}px` }}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatTime(recordingTime || 45)} • CV vocal enregistré
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDeleteVoiceCV}
+                  className="text-destructive"
+                  data-testid="button-delete-voice"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={handleStartRecording}
+                data-testid="button-rerecord"
+              >
+                <Mic className="h-4 w-4" />
+                Réenregistrer
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Mic className="h-4 w-4 text-primary" />
-            CV Vocal WhatsApp
+            <FileText className="h-4 w-4 text-primary" />
+            CV Document
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Enregistrez une courte présentation audio pour vous démarquer auprès des recruteurs.
+            Uploadez votre CV au format PDF ou Word (max 5 Mo).
           </p>
-          <Button 
-            variant={isRecording ? "destructive" : "outline"} 
-            className="w-full gap-2"
-            onClick={handleVoiceCV}
-            data-testid="button-record-voice-cv"
-          >
-            <Mic className={`h-4 w-4 ${isRecording ? "animate-pulse" : ""}`} />
-            {isRecording ? "Arrêter l'enregistrement" : "Enregistrer mon CV vocal"}
-          </Button>
-          {profile?.voiceCvUrl && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-green-600 dark:text-green-400">CV vocal enregistré</span>
+          {cvFileName ? (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <FileText className="h-8 w-8 text-primary" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{cvFileName}</p>
+                <p className="text-xs text-muted-foreground">Document uploadé</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCvFileName(null)}
+                className="text-destructive shrink-0"
+                data-testid="button-delete-cv"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
+          ) : (
+            <label className="block cursor-pointer">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={handleCVUpload}
+                data-testid="input-cv-upload"
+              />
+              <div className="flex items-center justify-center gap-2 p-8 rounded-xl border-2 border-dashed border-muted-foreground/30 hover-elevate">
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Cliquez pour uploader</span>
+              </div>
+            </label>
           )}
         </CardContent>
       </Card>
@@ -374,16 +587,18 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="gap-1 pr-1">
+                    <Badge key={skill} variant="secondary" className="gap-1 pr-0.5">
                       {skill}
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => removeSkill(skill)}
-                        className="ml-1 hover:text-destructive"
+                        className="ml-1 shrink-0"
                         data-testid={`button-remove-skill-${skill}`}
                       >
                         <X className="h-3 w-3" />
-                      </button>
+                      </Button>
                     </Badge>
                   ))}
                 </div>
@@ -477,8 +692,9 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
           </Card>
 
           <Button 
-            type="submit" 
-            className="w-full gap-2 h-12"
+            type="submit"
+            size="lg"
+            className="w-full gap-2"
             data-testid="button-save-profile"
           >
             <Save className="h-4 w-4" />

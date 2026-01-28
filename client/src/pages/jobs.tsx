@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search,
   MapPin,
@@ -24,7 +25,12 @@ import {
   Share2,
   X,
   Loader2,
+  Navigation,
+  Sparkles,
 } from "lucide-react";
+import { LandmarkSearch } from "@/components/landmark-search";
+import { useAuth } from "@/lib/auth";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import type { JobPosting } from "@shared/schema";
 
 const jobCategories = [
@@ -56,11 +62,14 @@ const experienceLevels = [
 ];
 
 export default function JobsPage() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"search" | "landmarks">("search");
+  const [selectedLandmark, setSelectedLandmark] = useState<any>(null);
 
   const { data: jobs = [], isLoading, error } = useQuery<JobPosting[]>({
     queryKey: ["/api/jobs"],
@@ -185,7 +194,157 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="bg-card border-b py-8">
+      <div className="lg:hidden pb-24">
+        <header className="sticky top-0 z-40 bg-background border-b">
+          <div className="p-4">
+            <h1 className="text-xl font-bold" data-testid="text-jobs-page-title-mobile">
+              Rechercher un emploi
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {filteredJobs.length} offres disponibles à Bamako
+            </p>
+          </div>
+          <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as any)} className="px-4 pb-2">
+            <TabsList className="w-full">
+              <TabsTrigger value="search" className="flex-1 gap-1" data-testid="tab-search">
+                <Search className="h-3.5 w-3.5" />
+                Recherche
+              </TabsTrigger>
+              <TabsTrigger value="landmarks" className="flex-1 gap-1" data-testid="tab-landmarks">
+                <Navigation className="h-3.5 w-3.5" />
+                Par repères
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </header>
+
+        <div className="p-4 space-y-4">
+          {mobileTab === "search" ? (
+            <>
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Poste, entreprise..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    data-testid="input-job-search-mobile"
+                  />
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  <Button 
+                    variant={selectedTypes.length === 0 ? "default" : "outline"} 
+                    size="sm" 
+                    onClick={() => setSelectedTypes([])}
+                    className="shrink-0"
+                  >
+                    Tous
+                  </Button>
+                  {jobTypes.map((type) => (
+                    <Button
+                      key={type.value}
+                      variant={selectedTypes.includes(type.value) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleType(type.value)}
+                      className="shrink-0"
+                      data-testid={`filter-type-${type.value}`}
+                    >
+                      {type.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredJobs.map((job) => (
+                    <Card key={job.id} className="overflow-hidden" data-testid={`job-card-mobile-${job.id}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Building2 className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold truncate">{job.title}</h3>
+                              <p className="text-sm text-muted-foreground truncate">{job.companyId}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full px-2.5 py-1 shrink-0">
+                            <Sparkles className="h-3.5 w-3.5 text-primary" />
+                            <span className="font-bold text-xs">{Math.floor(70 + Math.random() * 25)}%</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <MapPin className="h-3 w-3" />
+                            {job.location}
+                          </Badge>
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <Briefcase className="h-3 w-3" />
+                            {job.jobType}
+                          </Badge>
+                          {job.salaryRange && (
+                            <Badge variant="outline" className="text-xs">
+                              {job.salaryRange}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                          <span className="text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 inline mr-1" />
+                            Il y a 2 jours
+                          </span>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="icon" data-testid={`button-save-${job.id}`}>
+                              <Heart className="h-4 w-4" />
+                            </Button>
+                            <Link href={`/jobs/${job.id}`}>
+                              <Button size="sm" data-testid={`button-apply-${job.id}`}>
+                                Postuler
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {filteredJobs.length === 0 && !isLoading && (
+                <div className="text-center py-12">
+                  <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+                  <h3 className="font-medium text-lg">Aucune offre trouvée</h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Essayez de modifier vos critères de recherche
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <LandmarkSearch
+              selectedLandmark={selectedLandmark}
+              onSelect={(landmark) => {
+                setSelectedLandmark(landmark);
+                setLocationQuery(landmark.neighborhood);
+                setMobileTab("search");
+              }}
+            />
+          )}
+        </div>
+
+        {user && <MobileBottomNav userType={user.userType} />}
+      </div>
+
+      <div className="hidden lg:block bg-card border-b py-8">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="text-center space-y-2">
@@ -231,9 +390,9 @@ export default function JobsPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="hidden lg:block container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="hidden lg:block lg:w-72 flex-shrink-0">
+          <aside className="lg:w-72 flex-shrink-0">
             <Card className="sticky top-20">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg flex items-center gap-2">

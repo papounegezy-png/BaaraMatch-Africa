@@ -16,6 +16,7 @@ import JobsPage from "@/pages/jobs";
 import CandidatesPage from "@/pages/candidates";
 import AgenciesPage from "@/pages/agencies";
 import AgencyDashboardPage from "@/pages/agency-dashboard";
+import NotificationsPage from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -42,6 +43,7 @@ function PublicRouter() {
         <Route path="/jobs" component={JobsPage} />
         <Route path="/candidates" component={CandidatesPage} />
         <Route path="/agencies" component={AgenciesPage} />
+        <Route path="/notifications" component={NotificationsPage} />
         <Route component={NotFound} />
       </Switch>
     </PublicLayout>

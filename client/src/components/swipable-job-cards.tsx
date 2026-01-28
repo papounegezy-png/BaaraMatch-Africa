@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Briefcase, Clock, Heart, X, ChevronLeft, ChevronRight, Banknote } from "lucide-react";
+import { MapPin, Briefcase, Heart, X, ChevronLeft, ChevronRight, Banknote, Sparkles, Building2 } from "lucide-react";
 import type { JobPosting } from "@shared/schema";
 
 interface SwipableJobCardsProps {
@@ -127,14 +127,25 @@ export function SwipableJobCards({ jobs, onLike, onSkip }: SwipableJobCardsProps
         <Card className="overflow-hidden" data-testid={`job-card-${currentJob.id}`}>
           <div className="h-2 gradient-gold" />
           <CardContent className="p-5 space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-lg leading-tight">{currentJob.title}</h3>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Building2 className="h-6 w-6 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-lg leading-tight truncate">{currentJob.title}</h3>
+                  <p className="text-muted-foreground text-sm truncate">{currentJob.companyId}</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="flex items-center gap-1.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full px-3 py-1.5" data-testid={`job-match-score-${currentJob.id}`}>
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="font-bold text-sm">{Math.floor(70 + Math.random() * 25)}%</span>
+                </div>
                 {currentJob.isUrgent && (
-                  <Badge variant="destructive" className="shrink-0">Urgent</Badge>
+                  <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
                 )}
               </div>
-              <p className="text-muted-foreground text-sm">{currentJob.companyId}</p>
             </div>
 
             <div className="flex flex-wrap gap-2">
