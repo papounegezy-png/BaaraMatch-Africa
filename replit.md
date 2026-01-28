@@ -136,6 +136,15 @@ These prepare the infrastructure for future integration with Replit AI vector em
 - Enhanced schema with skills matching infrastructure
 - Agency placements table for tracking placed employees
 - Vector embedding fields for future semantic matching engine
+- Mobile-first UI with bottom navigation and swipable job cards
+- B2B Agency Dashboard with:
+  - Shadcn sidebar navigation (collapsible)
+  - 4 KPI stat cards (Time-to-fill, Active Contracts, Revenue, Satisfaction)
+  - Candidate management table with semantic search and AI skill filters
+  - Voice CV preview dialog
+  - CRM/VMS module with messaging and timesheet validation
+  - HR Performance charts using Recharts (Area, Bar, Pie charts)
+- Separate routing for agency portal (/agency/*) and public routes
 
 ## Development
 ```bash
