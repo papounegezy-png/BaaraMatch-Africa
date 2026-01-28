@@ -93,17 +93,49 @@ The application uses an African-inspired warm color palette:
 - **Accent**: Forest green
 - Dark mode support with automatic theme detection
 
+## Database Schema
+
+### Core Tables
+- **users**: Base user accounts with authentication
+- **candidate_profiles**: Extended candidate info (voice CV, skills, embedding)
+- **agency_profiles**: Agency info with APDP verification status
+- **company_profiles**: Company info with B2B fields (SIRET/VAT)
+
+### Skills & Matching
+- **skills**: Master skills catalog with vector embeddings for semantic matching
+- **candidate_skills**: Junction table linking candidates to skills with proficiency
+- **job_required_skills**: Junction table linking jobs to required skills with weights
+- **matching_results**: Stores semantic matching scores between candidates and jobs
+
+### Jobs & Applications
+- **job_postings**: Enhanced with required/preferred skills, salary ranges, experience levels
+- **applications**: Application tracking with status history, match scores, interview dates
+
+### Agency Placements
+- **agency_placements**: Tracks placed employees with contract details, commissions, ratings
+
+### Vector Embeddings (Future Semantic Matching)
+The schema includes `real[]` embedding columns on:
+- `skills.embedding` - Skill semantic vectors
+- `candidate_profiles.profile_embedding` - Candidate profile vectors
+- `job_postings.job_embedding` - Job posting vectors
+- `company_profiles.company_embedding` - Company profile vectors
+
+These prepare the infrastructure for future integration with Replit AI vector embeddings.
+
 ## Recent Changes (Jan 2026)
 - Migrated from in-memory storage to PostgreSQL with Drizzle ORM
 - Implemented bcrypt password hashing (12 salt rounds) for security
 - PostgreSQL-backed session storage with connect-pg-simple
 - Role-based access control with requireAuth and requireRole middleware
 - Three distinct registration flows with type-specific fields:
-  - Candidates: WhatsApp notification preferences
+  - Candidates: WhatsApp notification preferences and voice CV support
   - Agencies: APDP compliance verification requirements
   - Companies: B2B profile with SIRET/VAT fields
-- Role-protected dashboard API endpoints (/api/dashboard/candidate, /api/dashboard/agency, /api/dashboard/company)
-- Enhanced user-type-specific schema fields
+- Role-protected dashboard API endpoints
+- Enhanced schema with skills matching infrastructure
+- Agency placements table for tracking placed employees
+- Vector embedding fields for future semantic matching engine
 
 ## Development
 ```bash
