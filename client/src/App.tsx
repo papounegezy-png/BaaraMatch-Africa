@@ -11,6 +11,7 @@ import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
 import DashboardPage from "@/pages/dashboard";
+import ProfilePage from "@/pages/profile";
 import JobsPage from "@/pages/jobs";
 import CandidatesPage from "@/pages/candidates";
 import AgenciesPage from "@/pages/agencies";
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       <Route path="/dashboard" component={DashboardPage} />
+      <Route path="/profile" component={ProfilePage} />
       <Route path="/jobs" component={JobsPage} />
       <Route path="/candidates" component={CandidatesPage} />
       <Route path="/agencies" component={AgenciesPage} />
