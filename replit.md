@@ -114,14 +114,32 @@ The application uses an African-inspired warm color palette:
 ### Agency Placements
 - **agency_placements**: Tracks placed employees with contract details, commissions, ratings
 
-### Vector Embeddings (Future Semantic Matching)
-The schema includes `real[]` embedding columns on:
+### Semantic Matching Engine
+The application includes a complete semantic matching engine using OpenAI embeddings:
+
+**API Endpoints:**
+- `POST /api/embeddings/job/:id` - Generate embedding for a job posting
+- `POST /api/embeddings/candidate` - Generate embedding for candidate profile
+- `POST /api/embeddings/jobs/batch` - Batch generate embeddings for all jobs
+- `GET /api/matching/job/:jobId/candidates` - Get matched candidates for a job with scores
+- `GET /api/matching/candidate/jobs` - Get matched jobs for a candidate
+- `POST /api/matching/results` - Store matching result
+- `GET /api/matching/job/:jobId/results` - Get stored matching results
+
+**Technology:**
+- OpenAI `text-embedding-3-small` model (1536 dimensions)
+- PostgreSQL with `pgvector` extension for vector storage
+- Cosine similarity function for matching scores
+- Hybrid filtering: semantic + availability + location + salary + skills
+
+**Vector Embedding Columns:**
 - `skills.embedding` - Skill semantic vectors
 - `candidate_profiles.profile_embedding` - Candidate profile vectors
 - `job_postings.job_embedding` - Job posting vectors
 - `company_profiles.company_embedding` - Company profile vectors
 
-These prepare the infrastructure for future integration with Replit AI vector embeddings.
+**Environment Variables:**
+- `OPENAI_API_KEY` - Required for semantic matching (text-embedding-3-small)
 
 ## Recent Changes (Jan 2026)
 - Migrated from in-memory storage to PostgreSQL with Drizzle ORM

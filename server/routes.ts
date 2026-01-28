@@ -7,6 +7,15 @@ import { pool } from "./db";
 import { insertUserSchema, loginSchema, insertJobPostingSchema, insertApplicationSchema, type UserType } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import { 
+  generateJobEmbedding, 
+  generateCandidateEmbedding, 
+  cosineSimilarity, 
+  similarityToPercentage,
+  applyHybridFilters,
+  type MatchingFilters 
+} from "./embeddings";
+import { findMatchingCandidatesSQL, findMatchingJobsSQL } from "./init-pgvector";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -503,7 +512,7 @@ export async function registerRoutes(
         stats: {
           applicationsSent: applications.length,
           interviewsScheduled: applications.filter(a => a.status === "interview").length,
-          acceptedApplications: applications.filter(a => a.status === "accepted").length,
+          acceptedApplications: applications.filter(a => a.status === "hired").length,
         }
       });
     } catch (error) {
@@ -565,6 +574,252 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching company dashboard:", error);
       res.status(500).json({ message: "Erreur lors de la récupération du tableau de bord" });
+    }
+  });
+
+  // ============================================
+  // SEMANTIC MATCHING API ENDPOINTS
+  // ============================================
+
+  // Generate embedding for a job posting
+  app.post("/api/embeddings/job/:id", requireRole("agency", "company"), async (req, res) => {
+    try {
+      const job = await storage.getJobPosting(req.params.id as string);
+      if (!job) {
+        return res.status(404).json({ message: "Offre non trouvée" });
+      }
+
+      // Check authorization
+      if (job.companyId !== req.session.userId && job.agencyId !== req.session.userId) {
+        return res.status(403).json({ message: "Non autorisé" });
+      }
+
+      const embedding = await generateJobEmbedding(job);
+      await storage.updateJobPosting(job.id, { jobEmbedding: embedding });
+
+      res.json({ message: "Embedding généré avec succès", jobId: job.id });
+    } catch (error) {
+      console.error("Error generating job embedding:", error);
+      res.status(500).json({ message: "Erreur lors de la génération de l'embedding" });
+    }
+  });
+
+  // Generate embedding for a candidate profile
+  app.post("/api/embeddings/candidate", requireRole("candidate"), async (req, res) => {
+    try {
+      const profile = await storage.getCandidateProfile(req.session.userId!);
+      if (!profile) {
+        return res.status(404).json({ message: "Profil non trouvé" });
+      }
+
+      const embedding = await generateCandidateEmbedding(profile);
+      await storage.updateCandidateProfile(req.session.userId!, { profileEmbedding: embedding });
+
+      res.json({ message: "Embedding généré avec succès" });
+    } catch (error) {
+      console.error("Error generating candidate embedding:", error);
+      res.status(500).json({ message: "Erreur lors de la génération de l'embedding" });
+    }
+  });
+
+  // Generate embeddings for all jobs (agency/admin batch operation)
+  app.post("/api/embeddings/jobs/batch", requireRole("agency"), async (req, res) => {
+    try {
+      const jobs = await storage.getAllJobPostings();
+      const results: { jobId: string; success: boolean; error?: string }[] = [];
+
+      for (const job of jobs) {
+        try {
+          if (!job.jobEmbedding) {
+            const embedding = await generateJobEmbedding(job);
+            await storage.updateJobPosting(job.id, { jobEmbedding: embedding });
+            results.push({ jobId: job.id, success: true });
+          } else {
+            results.push({ jobId: job.id, success: true });
+          }
+        } catch (err) {
+          results.push({ jobId: job.id, success: false, error: String(err) });
+        }
+      }
+
+      res.json({ 
+        message: "Batch embedding terminé", 
+        processed: results.length,
+        successful: results.filter(r => r.success).length,
+        failed: results.filter(r => !r.success).length,
+      });
+    } catch (error) {
+      console.error("Error in batch job embeddings:", error);
+      res.status(500).json({ message: "Erreur lors de la génération batch" });
+    }
+  });
+
+  // Semantic search: Find matching candidates for a job (SQL-based with pgvector)
+  app.get("/api/matching/job/:jobId/candidates", requireRole("agency", "company"), async (req, res) => {
+    try {
+      const job = await storage.getJobPosting(req.params.jobId as string);
+      if (!job) {
+        return res.status(404).json({ message: "Offre non trouvée" });
+      }
+
+      // Generate job embedding if not exists
+      let jobEmbedding = job.jobEmbedding;
+      if (!jobEmbedding) {
+        try {
+          jobEmbedding = await generateJobEmbedding(job);
+          await storage.updateJobPosting(job.id, { jobEmbedding });
+        } catch (err) {
+          console.error("Could not generate job embedding:", err);
+        }
+      }
+
+      // Build filter parameters
+      const sqlFilters = {
+        city: req.query.location as string || req.query.landmark as string,
+        experienceMin: req.query.experienceMin ? parseInt(req.query.experienceMin as string) : undefined,
+        experienceMax: req.query.experienceMax ? parseInt(req.query.experienceMax as string) : undefined,
+        skills: req.query.skills ? (req.query.skills as string).split(",") : undefined,
+      };
+
+      // Use SQL-based matching with pgvector if embedding available
+      if (jobEmbedding) {
+        const matchedCandidates = await findMatchingCandidatesSQL(jobEmbedding, sqlFilters);
+        
+        const candidates = matchedCandidates.map(c => ({
+          id: c.userId,
+          user: {
+            id: c.userId,
+            email: c.email,
+            fullName: c.fullName,
+            phone: c.phone,
+            city: c.city,
+            avatarUrl: c.avatarUrl,
+          },
+          profile: {
+            skills: c.skills,
+            experienceYears: c.experienceYears,
+            salaryExpectation: c.salaryExpectation,
+            voiceCvUrl: c.voiceCvUrl,
+          },
+          matchScore: c.matchScore,
+        }));
+
+        res.json({
+          jobId: job.id,
+          jobTitle: job.title,
+          candidates,
+          totalMatches: candidates.length,
+          filtersApplied: Object.fromEntries(
+            Object.entries(sqlFilters).filter(([_, v]) => v !== undefined)
+          ),
+          matchingMethod: "pgvector-sql",
+        });
+      } else {
+        // Fallback to JS-based matching without embeddings
+        const candidates = await storage.getAllCandidates();
+        const candidatesWithProfiles = await Promise.all(
+          candidates.map(async (candidate) => {
+            const profile = await storage.getCandidateProfile(candidate.id);
+            const { password: _, ...userWithoutPassword } = candidate;
+            return {
+              id: candidate.id,
+              user: userWithoutPassword,
+              profile,
+              matchScore: 50, // Default score when no embedding
+            };
+          })
+        );
+
+        res.json({
+          jobId: job.id,
+          jobTitle: job.title,
+          candidates: candidatesWithProfiles.filter(c => c.profile),
+          totalMatches: candidatesWithProfiles.length,
+          filtersApplied: {},
+          matchingMethod: "fallback-no-embedding",
+        });
+      }
+    } catch (error) {
+      console.error("Error finding matching candidates:", error);
+      res.status(500).json({ message: "Erreur lors de la recherche de candidats" });
+    }
+  });
+
+  // Semantic search: Find matching jobs for a candidate (SQL-based with pgvector)
+  app.get("/api/matching/candidate/jobs", requireRole("candidate"), async (req, res) => {
+    try {
+      const profile = await storage.getCandidateProfile(req.session.userId!);
+      if (!profile) {
+        return res.status(404).json({ message: "Profil non trouvé" });
+      }
+
+      // Generate candidate embedding if not exists
+      let candidateEmbedding = profile.profileEmbedding;
+      if (!candidateEmbedding && profile.skills?.length) {
+        try {
+          candidateEmbedding = await generateCandidateEmbedding(profile);
+          await storage.updateCandidateProfile(req.session.userId!, { profileEmbedding: candidateEmbedding });
+        } catch (err) {
+          console.error("Could not generate candidate embedding:", err);
+        }
+      }
+
+      // Use SQL-based matching with pgvector if embedding available
+      if (candidateEmbedding) {
+        const matchedJobs = await findMatchingJobsSQL(candidateEmbedding);
+        
+        res.json({
+          jobs: matchedJobs.map(j => ({
+            id: j.jobId,
+            title: j.title,
+            description: j.description,
+            location: j.location,
+            salaryRange: j.salaryRange,
+            jobType: j.jobType,
+            matchScore: j.matchScore,
+          })),
+          totalMatches: matchedJobs.length,
+          matchingMethod: "pgvector-sql",
+        });
+      } else {
+        // Fallback without embedding
+        const jobs = await storage.getAllJobPostings();
+        const activeJobs = jobs.filter(j => j.isActive);
+
+        res.json({
+          jobs: activeJobs.map(j => ({
+            ...j,
+            matchScore: 50, // Default score
+          })),
+          totalMatches: activeJobs.length,
+          matchingMethod: "fallback-no-embedding",
+        });
+      }
+    } catch (error) {
+      console.error("Error finding matching jobs:", error);
+      res.status(500).json({ message: "Erreur lors de la recherche d'offres" });
+    }
+  });
+
+  // Store matching result
+  app.post("/api/matching/results", requireRole("agency", "company"), async (req, res) => {
+    try {
+      const result = await storage.createMatchingResult(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error storing matching result:", error);
+      res.status(500).json({ message: "Erreur lors de l'enregistrement du résultat" });
+    }
+  });
+
+  // Get matching results for a job
+  app.get("/api/matching/job/:jobId/results", requireRole("agency", "company"), async (req, res) => {
+    try {
+      const results = await storage.getMatchingResultsByJob(req.params.jobId as string);
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching matching results:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération des résultats" });
     }
   });
 

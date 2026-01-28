@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -38,8 +39,13 @@ import {
   MapPin,
   Briefcase,
   Star,
-  MoreHorizontal
+  MoreHorizontal,
+  Loader2,
+  Brain,
+  RefreshCw
 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { JobPosting, CandidateProfile, User } from "@shared/schema";
 
 interface Candidate {
   id: string;
@@ -130,15 +136,72 @@ const skillOptions = [
   "SQL", "AWS", "Docker", "Kubernetes", "UI/UX"
 ];
 
+interface MatchedCandidate {
+  id: string;
+  user: Omit<User, 'password'>;
+  profile?: CandidateProfile;
+  matchScore: number;
+}
+
+interface MatchingResponse {
+  jobId: string;
+  jobTitle: string;
+  candidates: MatchedCandidate[];
+  totalMatches: number;
+  filtersApplied: Record<string, string>;
+}
+
 export function CandidateManagementTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [playingVoiceCV, setPlayingVoiceCV] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
+  const [useSemanticSearch, setUseSemanticSearch] = useState(true);
   const itemsPerPage = 5;
 
-  const filteredCandidates = mockCandidates.filter((candidate) => {
+  // Fetch jobs for the selector
+  const { data: jobs = [], isLoading: isLoadingJobs } = useQuery<JobPosting[]>({
+    queryKey: ['/api/jobs'],
+  });
+
+  // Fetch matched candidates when a job is selected
+  const { data: matchingData, isLoading: isLoadingMatches, refetch: refetchMatches } = useQuery<MatchingResponse>({
+    queryKey: ['/api/matching/job', selectedJobId, 'candidates', { skill: selectedSkill }],
+    queryFn: async () => {
+      if (!selectedJobId || selectedJobId === "none") return { jobId: "", jobTitle: "", candidates: [], totalMatches: 0, filtersApplied: {} };
+      const params = new URLSearchParams();
+      if (selectedSkill && selectedSkill !== "all") params.append("skills", selectedSkill);
+      const response = await fetch(`/api/matching/job/${selectedJobId}/candidates?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch matches");
+      return response.json();
+    },
+    enabled: useSemanticSearch && !!selectedJobId && selectedJobId !== "none",
+  });
+
+  // Use API data or fallback to mock
+  const apiCandidates: Candidate[] = matchingData?.candidates?.map((c) => ({
+    id: c.id,
+    name: c.user.fullName,
+    email: c.user.email,
+    phone: c.user.phone || "",
+    city: c.user.city || "",
+    skills: c.profile?.skills || [],
+    experience: c.profile?.experienceYears || 0,
+    matchScore: c.matchScore,
+    status: "available" as const,
+    hasVoiceCV: !!c.profile?.voiceCvUrl,
+    voiceCVUrl: c.profile?.voiceCvUrl || undefined,
+    avatarUrl: c.user.avatarUrl || undefined,
+    appliedDate: c.profile?.createdAt?.toString() || new Date().toISOString(),
+  })) || [];
+
+  const candidates = useSemanticSearch && selectedJobId && selectedJobId !== "none" 
+    ? apiCandidates 
+    : mockCandidates;
+
+  const filteredCandidates = candidates.filter((candidate) => {
     const matchesSearch = 
       candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       candidate.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -178,20 +241,78 @@ export function CandidateManagementTable() {
     }
   };
 
+  const isLoading = isLoadingJobs || isLoadingMatches;
+
   return (
     <Card>
       <CardHeader className="pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <CardTitle className="text-lg">Gestion des Candidatures</CardTitle>
+          <div>
+            <CardTitle className="text-lg">Gestion des Candidatures</CardTitle>
+            <CardDescription>
+              Matching sémantique IA pour trouver les meilleurs candidats
+            </CardDescription>
+          </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="gap-1">
-              <Sparkles className="h-3 w-3" />
-              IA Activée
-            </Badge>
+            <Button
+              variant={useSemanticSearch ? "default" : "outline"}
+              size="sm"
+              onClick={() => setUseSemanticSearch(!useSemanticSearch)}
+              data-testid="button-toggle-semantic"
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              {useSemanticSearch ? "IA Active" : "IA Inactive"}
+            </Button>
+            {useSemanticSearch && selectedJobId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchMatches()}
+                disabled={isLoadingMatches}
+                data-testid="button-refresh-matches"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoadingMatches ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {useSemanticSearch && (
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Matching IA pour:</span>
+              </div>
+              <Select value={selectedJobId} onValueChange={setSelectedJobId}>
+                <SelectTrigger className="w-full sm:w-[300px]" data-testid="select-job-matching">
+                  <SelectValue placeholder="Sélectionner une offre d'emploi..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucune (données de démo)</SelectItem>
+                  {jobs.map((job) => (
+                    <SelectItem key={job.id} value={job.id}>
+                      {job.title} - {job.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isLoadingMatches && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Calcul des scores...
+                </div>
+              )}
+            </div>
+            {matchingData?.totalMatches !== undefined && selectedJobId && selectedJobId !== "none" && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {matchingData.totalMatches} candidat(s) analysés par le moteur de matching sémantique
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

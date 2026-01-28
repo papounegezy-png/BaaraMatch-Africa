@@ -86,6 +86,7 @@ export interface IStorage {
 
   getMatchingResults(candidateId: string): Promise<MatchingResult[]>;
   getMatchingResultsForJob(jobId: string): Promise<MatchingResult[]>;
+  getMatchingResultsByJob(jobId: string): Promise<MatchingResult[]>;
   createMatchingResult(result: InsertMatchingResult): Promise<MatchingResult>;
 
   getJobRequiredSkills(jobId: string): Promise<JobRequiredSkill[]>;
@@ -390,6 +391,10 @@ export class DatabaseStorage implements IStorage {
       .from(matchingResults)
       .where(eq(matchingResults.jobId, jobId))
       .orderBy(desc(matchingResults.overallScore));
+  }
+
+  async getMatchingResultsByJob(jobId: string): Promise<MatchingResult[]> {
+    return this.getMatchingResultsForJob(jobId);
   }
 
   async createMatchingResult(result: InsertMatchingResult): Promise<MatchingResult> {
