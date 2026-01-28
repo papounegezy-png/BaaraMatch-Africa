@@ -31,6 +31,8 @@ export const candidateProfiles = pgTable("candidate_profiles", {
   availableFrom: text("available_from"),
   salaryExpectation: text("salary_expectation"),
   resumeUrl: text("resume_url"),
+  whatsappNumber: text("whatsapp_number"),
+  preferredContact: text("preferred_contact").default("whatsapp"),
 });
 
 export const agencyProfiles = pgTable("agency_profiles", {
@@ -42,6 +44,9 @@ export const agencyProfiles = pgTable("agency_profiles", {
   website: text("website"),
   licenseNumber: text("license_number"),
   candidatesPlaced: integer("candidates_placed").default(0),
+  apdpCertificateUrl: text("apdp_certificate_url"),
+  businessRegistrationUrl: text("business_registration_url"),
+  verificationStatus: text("verification_status").default("pending"),
 });
 
 export const companyProfiles = pgTable("company_profiles", {
@@ -54,6 +59,9 @@ export const companyProfiles = pgTable("company_profiles", {
   employeeCount: text("employee_count"),
   foundedYear: integer("founded_year"),
   logoUrl: text("logo_url"),
+  siretNumber: text("siret_number"),
+  vatNumber: text("vat_number"),
+  billingAddress: text("billing_address"),
 });
 
 export const jobPostings = pgTable("job_postings", {

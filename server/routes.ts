@@ -1,19 +1,41 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import session from "express-session";
+import pgSession from "connect-pg-simple";
 import { storage } from "./storage";
-import { insertUserSchema, loginSchema, insertJobPostingSchema, insertApplicationSchema } from "@shared/schema";
+import { pool } from "./db";
+import { insertUserSchema, loginSchema, insertJobPostingSchema, insertApplicationSchema, type UserType } from "@shared/schema";
 import { z } from "zod";
 import { createHash } from "crypto";
 
 declare module "express-session" {
   interface SessionData {
     userId: string;
+    userType: UserType;
   }
 }
 
 function hashPassword(password: string): string {
   return createHash("sha256").update(password).digest("hex");
+}
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    return res.status(401).json({ message: "Authentification requise" });
+  }
+  next();
+}
+
+function requireRole(...roles: UserType[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Authentification requise" });
+    }
+    if (!req.session.userType || !roles.includes(req.session.userType)) {
+      return res.status(403).json({ message: "Accès non autorisé pour ce rôle" });
+    }
+    next();
+  };
 }
 
 export async function registerRoutes(
@@ -26,8 +48,15 @@ export async function registerRoutes(
     throw new Error("SESSION_SECRET is required in production");
   }
   
+  const PgStore = pgSession(session);
+  
   app.use(
     session({
+      store: new PgStore({
+        pool: pool,
+        tableName: "user_sessions",
+        createTableIfMissing: true,
+      }),
       secret: sessionSecret || "baaramatch-dev-secret",
       resave: false,
       saveUninitialized: false,
