@@ -16,6 +16,13 @@ import {
   type MatchingFilters 
 } from "./embeddings";
 import { findMatchingCandidatesSQL, findMatchingJobsSQL } from "./init-pgvector";
+import {
+  parseWhatsAppWebhook,
+  getMessagesFromWebhook,
+  processVoiceCVMessage,
+  sendWhatsAppMessage,
+  calculateProfileCompleteness,
+} from "./whatsapp";
 
 const BCRYPT_SALT_ROUNDS = 12;
 
@@ -820,6 +827,129 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching matching results:", error);
       res.status(500).json({ message: "Erreur lors de la récupération des résultats" });
+    }
+  });
+
+  // =====================================================
+  // WhatsApp Business API Webhook Routes
+  // =====================================================
+
+  // WhatsApp webhook verification (GET request from Meta)
+  app.get("/api/whatsapp/webhook", (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("[WhatsApp] Webhook verified successfully");
+      res.status(200).send(challenge);
+    } else {
+      console.log("[WhatsApp] Webhook verification failed");
+      res.sendStatus(403);
+    }
+  });
+
+  // WhatsApp webhook receiver (POST - receives messages)
+  app.post("/api/whatsapp/webhook", async (req, res) => {
+    try {
+      res.sendStatus(200);
+
+      const payload = parseWhatsAppWebhook(req.body);
+      if (!payload) {
+        console.log("[WhatsApp] Invalid webhook payload");
+        return;
+      }
+
+      const messages = getMessagesFromWebhook(payload);
+      console.log(`[WhatsApp] Received ${messages.length} message(s)`);
+
+      for (const { message, senderName } of messages) {
+        if (message.type === "audio" || message.type === "voice") {
+          console.log(`[WhatsApp] Processing voice CV from ${message.from}`);
+          
+          const result = await processVoiceCVMessage(message, senderName);
+
+          if (result.success) {
+            const confirmationMessage = `Bonjour ${senderName}!\n\nMerci pour votre CV vocal. Votre profil a été mis à jour avec succès.\n\nScore de complétude: ${result.completenessScore}%\n\nNous vous contacterons dès qu'une opportunité correspondant à votre profil sera disponible.\n\n- L'équipe BaaraMatch Africa`;
+            
+            await sendWhatsAppMessage(message.from, confirmationMessage);
+            console.log(`[WhatsApp] Confirmation sent to ${message.from}`);
+          } else {
+            const errorMessage = `Bonjour ${senderName},\n\nNous avons reçu votre message mais n'avons pas pu traiter votre CV vocal. Veuillez réessayer ou nous contacter pour assistance.\n\n- L'équipe BaaraMatch Africa`;
+            
+            await sendWhatsAppMessage(message.from, errorMessage);
+            console.log(`[WhatsApp] Error notification sent to ${message.from}: ${result.error}`);
+          }
+        } else if (message.type === "text" && message.text) {
+          const welcomeMessage = `Bonjour ${senderName}!\n\nBienvenue sur BaaraMatch Africa. Pour créer ou mettre à jour votre profil, envoyez-nous un message vocal présentant:\n\n- Votre parcours professionnel\n- Vos compétences clés\n- Le type de poste recherché\n\nNotre IA analysera votre CV vocal et vous mettra en relation avec les meilleures opportunités.\n\n- L'équipe BaaraMatch Africa`;
+          
+          await sendWhatsAppMessage(message.from, welcomeMessage);
+          console.log(`[WhatsApp] Welcome message sent to ${message.from}`);
+        }
+      }
+    } catch (error) {
+      console.error("[WhatsApp] Webhook processing error:", error);
+    }
+  });
+
+  // Manual voice CV upload endpoint (for web app)
+  app.post("/api/voice-cv/upload", requireRole("candidate"), async (req, res) => {
+    try {
+      const { audioBase64, mimeType } = req.body;
+      
+      if (!audioBase64 || !mimeType) {
+        return res.status(400).json({ message: "Audio data required" });
+      }
+
+      const audioBuffer = Buffer.from(audioBase64, "base64");
+
+      const { transcribeAudio, extractProfileFromTranscription } = await import("./whatsapp");
+      const { generateCandidateEmbedding } = await import("./embeddings");
+
+      const transcription = await transcribeAudio(audioBuffer, mimeType);
+      const extractedProfile = await extractProfileFromTranscription(transcription);
+
+      const profileData = {
+        skills: extractedProfile.skills,
+        experienceYears: extractedProfile.experienceYears,
+        voiceCvUrl: `data:${mimeType};base64,${audioBase64.substring(0, 100)}...`,
+        voiceCvTranscript: transcription,
+      };
+
+      let profile = await storage.getCandidateProfile(req.session.userId!);
+      
+      if (profile) {
+        await storage.updateCandidateProfile(req.session.userId!, profileData);
+        profile = { ...profile, ...profileData };
+      } else {
+        profile = await storage.createCandidateProfile({
+          userId: req.session.userId!,
+          ...profileData,
+        });
+      }
+
+      if (extractedProfile.skills.length > 0) {
+        try {
+          const embedding = await generateCandidateEmbedding(profile);
+          await storage.updateCandidateProfile(req.session.userId!, { profileEmbedding: embedding });
+        } catch (err) {
+          console.error("Failed to generate candidate embedding:", err);
+        }
+      }
+
+      const completenessScore = calculateProfileCompleteness(profile);
+
+      res.json({
+        success: true,
+        transcription,
+        extractedProfile,
+        completenessScore,
+      });
+    } catch (error) {
+      console.error("Error processing voice CV upload:", error);
+      res.status(500).json({ message: "Erreur lors du traitement du CV vocal" });
     }
   });
 
