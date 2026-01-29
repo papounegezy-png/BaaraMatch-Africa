@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AgencyKPICards } from "@/components/agency-kpi-cards";
 import { ActiveContractsTable } from "@/components/active-contracts-table";
 import { CandidateSearchDashboard } from "@/components/candidate-search-dashboard";
+import { CandidateManagementTable } from "@/components/candidate-management-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -65,6 +66,22 @@ function DashboardHome() {
   );
 }
 
+function CandidatesManagementPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          Gestion des Candidats
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Base de données des candidats, profils, compétences et historique des placements
+        </p>
+      </div>
+      <CandidateManagementTable />
+    </div>
+  );
+}
+
 export default function AgencyDashboardPage() {
   const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
@@ -93,13 +110,7 @@ export default function AgencyDashboardPage() {
     }
     
     if (location.startsWith("/agency/candidates")) {
-      return (
-        <ComingSoonPage 
-          title="Gestion des Candidats" 
-          icon={Users}
-          description="Base de données des candidats, création de profils, CV & pièces jointes, compétences, disponibilités et historique des placements."
-        />
-      );
+      return <CandidatesManagementPage />;
     }
     
     if (location.startsWith("/agency/companies")) {

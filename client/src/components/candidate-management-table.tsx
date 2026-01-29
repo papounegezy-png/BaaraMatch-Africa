@@ -161,6 +161,11 @@ export function CandidateManagementTable() {
   const [useSemanticSearch, setUseSemanticSearch] = useState(true);
   const itemsPerPage = 5;
 
+  // Fetch all candidates from the database
+  const { data: allCandidatesData = [], isLoading: isLoadingAllCandidates } = useQuery<(User & { profile?: CandidateProfile })[]>({
+    queryKey: ['/api/candidates'],
+  });
+
   // Fetch jobs for the selector
   const { data: jobs = [], isLoading: isLoadingJobs } = useQuery<JobPosting[]>({
     queryKey: ['/api/jobs'],
@@ -180,8 +185,25 @@ export function CandidateManagementTable() {
     enabled: useSemanticSearch && !!selectedJobId && selectedJobId !== "none",
   });
 
-  // Use API data or fallback to mock
-  const apiCandidates: Candidate[] = matchingData?.candidates?.map((c) => ({
+  // Convert API candidates to our Candidate interface
+  const dbCandidates: Candidate[] = allCandidatesData.map((c) => ({
+    id: c.id,
+    name: c.fullName,
+    email: c.email,
+    phone: c.phone || "",
+    city: c.city || "",
+    skills: c.profile?.skills || [],
+    experience: c.profile?.experienceYears || 0,
+    matchScore: 0,
+    status: "available" as const,
+    hasVoiceCV: !!c.profile?.voiceCvUrl,
+    voiceCVUrl: c.profile?.voiceCvUrl || undefined,
+    avatarUrl: c.avatarUrl || undefined,
+    appliedDate: c.createdAt?.toString() || new Date().toISOString(),
+  }));
+
+  // Use API data for semantic search or fallback to all DB candidates
+  const matchedCandidates: Candidate[] = matchingData?.candidates?.map((c) => ({
     id: c.id,
     name: c.user.fullName,
     email: c.user.email,
@@ -197,9 +219,10 @@ export function CandidateManagementTable() {
     appliedDate: c.profile?.createdAt?.toString() || new Date().toISOString(),
   })) || [];
 
+  // Use matched candidates if semantic search is enabled and job selected, otherwise use all DB candidates
   const candidates = useSemanticSearch && selectedJobId && selectedJobId !== "none" 
-    ? apiCandidates 
-    : mockCandidates;
+    ? matchedCandidates 
+    : (dbCandidates.length > 0 ? dbCandidates : mockCandidates);
 
   const filteredCandidates = candidates.filter((candidate) => {
     const matchesSearch = 
