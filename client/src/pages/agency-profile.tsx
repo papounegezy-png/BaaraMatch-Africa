@@ -20,6 +20,9 @@ import {
   Play,
   ImageIcon,
   FileText,
+  Bell,
+  Star,
+  Share2,
 } from "lucide-react";
 
 interface AgencyWithProfile {
@@ -261,6 +264,33 @@ export default function AgencyProfilePage() {
                         </a>
                       </Button>
                     )}
+                  </div>
+
+                  <div className="flex flex-col gap-2 w-full mt-4 pt-4 border-t">
+                    <Button 
+                      variant="default" 
+                      className="w-full gap-2"
+                      data-testid="button-follow-agency"
+                    >
+                      <Bell className="h-4 w-4" />
+                      Suivre
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2"
+                      data-testid="button-write-review"
+                    >
+                      <Star className="h-4 w-4" />
+                      Écrire un avis
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2"
+                      data-testid="button-link-social"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Réseaux sociaux
+                    </Button>
                   </div>
                 </div>
               </CardContent>
