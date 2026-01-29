@@ -74,7 +74,14 @@ export default function RegisterPage() {
         title: "Inscription réussie",
         description: "Votre compte a été créé avec succès !",
       });
-      setLocation("/dashboard");
+      // Redirect based on user type
+      if (userData.userType === "agency") {
+        setLocation("/agency/dashboard");
+      } else if (userData.userType === "company") {
+        setLocation("/company/dashboard");
+      } else {
+        setLocation("/dashboard");
+      }
     },
     onError: (error: Error) => {
       toast({
