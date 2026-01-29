@@ -50,6 +50,77 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { User, CandidateProfile } from "@shared/schema";
 
+const JOB_TITLES = [
+  "Développeur Web",
+  "Développeur Mobile",
+  "Développeur Full Stack",
+  "Designer UI/UX",
+  "Chef de projet",
+  "Commercial",
+  "Assistant(e) administratif(ve)",
+  "Comptable",
+  "Ressources Humaines",
+  "Marketing Digital",
+  "Community Manager",
+  "Data Analyst",
+  "Ingénieur DevOps",
+  "Technicien informatique",
+  "Agent de sécurité",
+  "Chauffeur",
+  "Cuisinier",
+  "Serveur/Serveuse",
+  "Vendeur/Vendeuse",
+  "Électricien",
+  "Plombier",
+  "Mécanicien",
+  "Infirmier(ère)",
+  "Enseignant(e)",
+  "Secrétaire",
+  "Réceptionniste",
+  "Maçon",
+  "Menuisier",
+  "Agent d'entretien",
+  "Autre",
+];
+
+const SKILLS_LIST = [
+  "Microsoft Office",
+  "Excel avancé",
+  "Comptabilité",
+  "Gestion de projet",
+  "Communication",
+  "Leadership",
+  "Travail en équipe",
+  "Anglais",
+  "Français",
+  "Arabe",
+  "Service client",
+  "Vente",
+  "Négociation",
+  "Marketing",
+  "Réseaux sociaux",
+  "Photoshop",
+  "JavaScript",
+  "Python",
+  "Java",
+  "React",
+  "Node.js",
+  "SQL",
+  "WordPress",
+  "SEO",
+  "Analyse de données",
+  "Gestion de stock",
+  "Logistique",
+  "Conduite",
+  "Permis B",
+  "Premiers secours",
+  "Cuisine",
+  "Électricité",
+  "Plomberie",
+  "Soudure",
+  "Menuiserie",
+];
+
 const profileSchema = z.object({
   fullName: z.string().min(2, "Nom requis"),
   phone: z.string().optional(),
@@ -169,13 +240,6 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
     
     return Math.round((score / total) * 100);
   }
-
-  const addSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()]);
-      setNewSkill("");
-    }
-  };
 
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter((s) => s !== skillToRemove));
@@ -637,13 +701,20 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Titre du poste recherché</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        placeholder="Ex: Développeur Full Stack"
-                        data-testid="input-title" 
-                      />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-title">
+                          <SelectValue placeholder="Sélectionnez un poste" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {JOB_TITLES.map((title) => (
+                          <SelectItem key={title} value={title}>
+                            {title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -696,16 +767,26 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
               <div>
                 <FormLabel className="mb-2 block">Compétences</FormLabel>
                 <div className="flex gap-2 mb-3">
-                  <Input
+                  <Select
                     value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    placeholder="Ajouter une compétence"
-                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-                    data-testid="input-new-skill"
-                  />
-                  <Button type="button" size="icon" onClick={addSkill} data-testid="button-add-skill">
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                    onValueChange={(value) => {
+                      if (value && !skills.includes(value)) {
+                        setSkills([...skills, value]);
+                      }
+                      setNewSkill("");
+                    }}
+                  >
+                    <SelectTrigger className="flex-1" data-testid="select-skill">
+                      <SelectValue placeholder="Sélectionnez une compétence" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SKILLS_LIST.filter(skill => !skills.includes(skill)).map((skill) => (
+                        <SelectItem key={skill} value={skill}>
+                          {skill}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill) => (
