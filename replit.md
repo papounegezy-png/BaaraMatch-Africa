@@ -142,7 +142,13 @@ The application includes a complete semantic matching engine using OpenAI embedd
 - `OPENAI_API_KEY` - Required for semantic matching (text-embedding-3-small)
 
 ## Recent Changes (Jan 2026)
-- **Profile Save & Voice CV** (Latest):
+- **Profile View & Avatar Upload** (Latest):
+  - Profile page with view/edit toggle modes
+  - ProfileView component displays user info (name, contact, experience, skills, voice CV)
+  - Avatar upload via POST /api/avatar/upload with server-side validation (MIME type, 2MB limit)
+  - Progress bar showing profile completion percentage
+  - Uses fresh query data after updates for consistent display
+- **Profile Save & Voice CV**:
   - Profile modifications now save to server via PATCH /api/profile API
   - Real voice CV recording using MediaRecorder API (not simulation)
   - Audio playback works for both newly recorded and server-stored voice CVs
