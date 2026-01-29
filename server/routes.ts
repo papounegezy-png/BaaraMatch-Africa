@@ -894,6 +894,41 @@ export async function registerRoutes(
     }
   });
 
+  // Avatar upload endpoint
+  app.post("/api/avatar/upload", requireAuth, async (req, res) => {
+    try {
+      const { imageBase64 } = req.body;
+      
+      if (!imageBase64) {
+        return res.status(400).json({ message: "Image data required" });
+      }
+
+      // Validate that it's a valid data URL with image MIME type
+      const dataUrlPattern = /^data:image\/(png|jpeg|jpg|gif|webp);base64,/;
+      if (!dataUrlPattern.test(imageBase64)) {
+        return res.status(400).json({ message: "Format d'image invalide. Utilisez PNG, JPEG, GIF ou WebP." });
+      }
+
+      // Check size (max 2MB base64 encoded ~ 2.7MB string)
+      if (imageBase64.length > 2.7 * 1024 * 1024) {
+        return res.status(400).json({ message: "Image trop volumineuse. Maximum 2 Mo." });
+      }
+
+      // Store as data URL
+      await storage.updateUser(req.session.userId!, { 
+        avatarUrl: imageBase64 
+      });
+
+      res.json({
+        success: true,
+        avatarUrl: imageBase64,
+      });
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      res.status(500).json({ message: "Erreur lors du téléchargement de la photo" });
+    }
+  });
+
   // Manual voice CV upload endpoint (for web app)
   app.post("/api/voice-cv/upload", requireRole("candidate"), async (req, res) => {
     try {
