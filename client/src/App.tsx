@@ -19,6 +19,7 @@ import AgencyDashboardPage from "@/pages/agency-dashboard";
 import CandidateJobsPage from "@/pages/candidate-jobs";
 import JobDetailPage from "@/pages/job-detail";
 import NotificationsPage from "@/pages/notifications";
+import StatisticsPage from "@/pages/statistics";
 import NotFound from "@/pages/not-found";
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -41,6 +42,7 @@ function PublicRouter() {
         <Route path="/login" component={LoginPage} />
         <Route path="/register" component={RegisterPage} />
         <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/statistics" component={StatisticsPage} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/jobs" component={JobsPage} />
         <Route path="/jobs/:id" component={JobDetailPage} />

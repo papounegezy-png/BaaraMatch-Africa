@@ -294,27 +294,32 @@ function MobileDashboard({ user, stats, jobs, applications, profileCompletion, a
 
       <div className="px-4 -mt-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          {stats.map((stat) => (
-            <Card key={stat.label} className="overflow-hidden">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <stat.icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold" data-testid={`stat-${stat.label.toLowerCase()}`}>
-                      {stat.value}
+          {stats.map((stat, index) => {
+            const tabKeys = ["candidatures", "offres", "entretiens", "acceptes"];
+            return (
+              <Link key={stat.label} href={`/statistics?tab=${tabKeys[index]}`}>
+                <Card className="overflow-hidden hover-elevate cursor-pointer" data-testid={`stat-card-${tabKeys[index]}`}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <stat.icon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xl font-bold" data-testid={`stat-${stat.label.toLowerCase()}`}>
+                          {stat.value}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground leading-tight">{stat.label}</p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <TrendingUp className="h-2.5 w-2.5 text-accent" />
+                      {stat.trend}
                     </p>
-                    <p className="text-[10px] text-muted-foreground leading-tight">{stat.label}</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-2.5 w-2.5 text-accent" />
-                  {stat.trend}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {user.userType === "candidate" && (
