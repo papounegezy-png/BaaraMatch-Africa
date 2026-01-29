@@ -155,14 +155,21 @@ The application includes a complete semantic matching engine using OpenAI embedd
 - Agency placements table for tracking placed employees
 - Vector embedding fields for future semantic matching engine
 - Mobile-first UI with bottom navigation and swipable job cards
-- B2B Agency Dashboard with:
-  - Shadcn sidebar navigation (collapsible)
-  - 4 KPI stat cards (Time-to-fill, Active Contracts, Revenue, Satisfaction)
-  - Candidate management table with semantic search and AI skill filters
+- B2B Agency Dashboard with Figma-based "RH Connect" design:
+  - Shadcn sidebar navigation (collapsible) with blue-green gradient branding
+  - Menu items: Accueil, Candidats, Missions, Contrats, Facturation, Analytique
+  - Simplified header with search bar and notification bell
+  - 3 KPI stat cards: Taux de remplissage (87%), Missions urgentes (12), Candidats placés (156)
+  - Active contracts table with avatar, status badges (Actif/En cours), alerts
+  - Candidate search with AI skill filters and semantic matching
   - Voice CV preview dialog
-  - CRM/VMS module with messaging and timesheet validation
-  - HR Performance charts using Recharts (Area, Bar, Pie charts)
 - Separate routing for agency portal (/agency/*) and public routes
+
+### Agency Dashboard Components
+- `agency-sidebar.tsx` - RH Connect branded sidebar with gradient icons
+- `agency-kpi-cards.tsx` - 3-column KPI grid with metrics
+- `active-contracts-table.tsx` - Contracts table with status badges and alerts
+- `candidate-search-dashboard.tsx` - AI-powered candidate search
 
 ## Development
 ```bash
