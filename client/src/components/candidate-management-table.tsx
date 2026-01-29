@@ -27,6 +27,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { 
   Search, 
   Filter, 
@@ -42,7 +48,15 @@ import {
   MoreHorizontal,
   Loader2,
   Brain,
-  RefreshCw
+  RefreshCw,
+  Mail,
+  Phone,
+  Calendar,
+  X,
+  User as UserIcon,
+  FileText,
+  Award,
+  Clock
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { JobPosting, CandidateProfile, User } from "@shared/schema";
@@ -159,6 +173,7 @@ export function CandidateManagementTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [useSemanticSearch, setUseSemanticSearch] = useState(true);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const itemsPerPage = 5;
 
   // Fetch all candidates from the database
@@ -392,7 +407,12 @@ export function CandidateManagementTable() {
               {paginatedCandidates.map((candidate) => {
                 const statusBadge = getStatusBadge(candidate.status);
                 return (
-                  <TableRow key={candidate.id} data-testid={`candidate-row-${candidate.id}`}>
+                  <TableRow 
+                    key={candidate.id} 
+                    data-testid={`candidate-row-${candidate.id}`}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelectedCandidate(candidate)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
@@ -545,6 +565,168 @@ export function CandidateManagementTable() {
           </div>
         </div>
       </CardContent>
+
+      {/* Candidate Details Sheet */}
+      <Sheet open={!!selectedCandidate} onOpenChange={(open) => !open && setSelectedCandidate(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="space-y-4 pb-4 border-b">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={selectedCandidate?.avatarUrl} />
+                <AvatarFallback className="text-lg">
+                  {selectedCandidate ? getInitials(selectedCandidate.name) : ""}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <SheetTitle className="text-xl">{selectedCandidate?.name}</SheetTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge className={selectedCandidate ? getStatusBadge(selectedCandidate.status).className : ""}>
+                    {selectedCandidate ? getStatusBadge(selectedCandidate.status).label : ""}
+                  </Badge>
+                  {selectedCandidate && selectedCandidate.matchScore > 0 && (
+                    <div className="flex items-center gap-1 text-sm">
+                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                      <span className="font-medium">{selectedCandidate.matchScore}% match</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </SheetHeader>
+
+          {selectedCandidate && (
+            <div className="space-y-6 pt-6">
+              {/* Contact Information */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Informations de contact
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <a href={`mailto:${selectedCandidate.email}`} className="text-primary hover:underline">
+                      {selectedCandidate.email}
+                    </a>
+                  </div>
+                  {selectedCandidate.phone && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <a href={`tel:${selectedCandidate.phone}`} className="hover:underline">
+                        {selectedCandidate.phone}
+                      </a>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedCandidate.city || "Non spécifié"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Experience */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Expérience
+                </h3>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">{selectedCandidate.experience} ans d'expérience</p>
+                    <p className="text-xs text-muted-foreground">Expérience professionnelle</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Skills */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Compétences
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCandidate.skills.length > 0 ? (
+                    selectedCandidate.skills.map((skill) => (
+                      <Badge key={skill} variant="secondary">
+                        {skill}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Aucune compétence renseignée</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Voice CV */}
+              {selectedCandidate.hasVoiceCV && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    CV Vocal
+                  </h3>
+                  <div className="p-4 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full"
+                        onClick={() => toggleVoiceCV(selectedCandidate.id)}
+                        data-testid={`button-play-voice-cv-detail-${selectedCandidate.id}`}
+                      >
+                        {playingVoiceCV === selectedCandidate.id ? (
+                          <Pause className="h-4 w-4" />
+                        ) : (
+                          <Play className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <div className="flex-1">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary transition-all duration-300"
+                            style={{ 
+                              width: playingVoiceCV === selectedCandidate.id ? "45%" : "0%" 
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+                          <span>0:45</span>
+                          <span>1:30</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Registration Date */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Inscription
+                </h3>
+                <div className="flex items-center gap-3 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>
+                    Inscrit le {new Date(selectedCandidate.appliedDate).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button className="flex-1" data-testid="button-contact-candidate">
+                  <Mail className="h-4 w-4 mr-2" />
+                  Contacter
+                </Button>
+                <Button variant="outline" className="flex-1" data-testid="button-add-to-mission">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  Ajouter à une mission
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </Card>
   );
 }
