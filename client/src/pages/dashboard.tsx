@@ -32,42 +32,50 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { SwipableJobCards } from "@/components/swipable-job-cards";
 import { AgencyAnalytics } from "@/components/agency-analytics";
 import { MobileProfileEditor } from "@/components/mobile-profile-editor";
-import type { User, UserType, JobPosting } from "@shared/schema";
-
-const mockStats = {
-  candidate: [
-    { label: "Candidatures", value: 12, icon: FileText, trend: "+3" },
-    { label: "Vues profil", value: 48, icon: Eye, trend: "+15%" },
-    { label: "Entretiens", value: 3, icon: Users, trend: "2 prévus" },
-    { label: "Matchs", value: 24, icon: Briefcase, trend: "8 nouveaux" },
-  ],
-  agency: [
-    { label: "Candidats", value: 156, icon: Users, trend: "+12" },
-    { label: "Placements", value: 34, icon: CheckCircle2, trend: "+5" },
-    { label: "Partenaires", value: 28, icon: Building2, trend: "+3" },
-    { label: "Offres", value: 45, icon: Briefcase, trend: "12 actives" },
-  ],
-  company: [
-    { label: "Offres", value: 8, icon: Briefcase, trend: "3 actives" },
-    { label: "Candidatures", value: 89, icon: FileText, trend: "+24" },
-    { label: "Entretiens", value: 12, icon: Users, trend: "5 prévus" },
-    { label: "Pourvus", value: 15, icon: CheckCircle2, trend: "+2" },
-  ],
-};
-
-const mockApplications = [
-  { id: "1", jobTitle: "Développeur Full Stack", company: "TechAfrica Solutions", status: "pending", date: "Il y a 2 jours" },
-  { id: "2", jobTitle: "Chef de Projet IT", company: "Orange Digital", status: "interview", date: "Il y a 5 jours" },
-  { id: "3", jobTitle: "Analyste Business", company: "Sonatel", status: "rejected", date: "Il y a 1 semaine" },
-  { id: "4", jobTitle: "DevOps Engineer", company: "Wave Mobile", status: "accepted", date: "Il y a 3 jours" },
-];
+import type { User, UserType, JobPosting, Application, CandidateProfile } from "@shared/schema";
 
 const statusConfig = {
-  pending: { label: "En attente", icon: Clock, className: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
-  interview: { label: "Entretien", icon: Users, className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  accepted: { label: "Accepté", icon: CheckCircle2, className: "bg-green-500/10 text-green-600 dark:text-green-400" },
-  rejected: { label: "Refusé", icon: XCircle, className: "bg-red-500/10 text-red-600 dark:text-red-400" },
+  pending: { label: "En attente", icon: Clock, className: "bg-primary/10 text-primary" },
+  reviewing: { label: "En examen", icon: Eye, className: "bg-primary/10 text-primary" },
+  shortlisted: { label: "Présélectionné", icon: CheckCircle2, className: "bg-secondary/10 text-secondary" },
+  interview: { label: "Entretien", icon: Users, className: "bg-accent/10 text-accent" },
+  offered: { label: "Offre reçue", icon: CheckCircle2, className: "bg-accent/10 text-accent" },
+  hired: { label: "Embauché", icon: CheckCircle2, className: "bg-accent/10 text-accent" },
+  rejected: { label: "Refusé", icon: XCircle, className: "bg-destructive/10 text-destructive" },
+  withdrawn: { label: "Retiré", icon: XCircle, className: "bg-muted text-muted-foreground" },
 };
+
+function calculateProfileCompletion(user: User, profile?: CandidateProfile): number {
+  let score = 0;
+  const total = 10;
+  
+  if (user.fullName) score++;
+  if (user.phone) score++;
+  if (user.city) score++;
+  if (profile?.title) score++;
+  if (profile?.bio) score++;
+  if (profile?.experience) score++;
+  if (profile?.education) score++;
+  if (profile?.whatsappNumber) score++;
+  if (profile?.skills && profile.skills.length > 0) score++;
+  if (profile?.voiceCvUrl) score++;
+  
+  return Math.round((score / total) * 100);
+}
+
+function formatRelativeDate(date: Date | string | null): string {
+  if (!date) return "";
+  const now = new Date();
+  const past = new Date(date);
+  const diffMs = now.getTime() - past.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return "Hier";
+  if (diffDays < 7) return `Il y a ${diffDays} jours`;
+  if (diffDays < 30) return `Il y a ${Math.floor(diffDays / 7)} semaine${Math.floor(diffDays / 7) > 1 ? 's' : ''}`;
+  return `Il y a ${Math.floor(diffDays / 30)} mois`;
+}
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth();
@@ -78,11 +86,74 @@ export default function DashboardPage() {
     queryKey: ["/api/jobs"],
   });
 
+  const { data: applications = [] } = useQuery<Application[]>({
+    queryKey: ["/api/applications"],
+    enabled: !!user,
+  });
+
+  const { data: profile } = useQuery<CandidateProfile>({
+    queryKey: ["/api/profile"],
+    enabled: !!user && user.userType === "candidate",
+  });
+
   useEffect(() => {
     if (!isLoading && !user) {
       setLocation("/login");
     }
   }, [user, isLoading, setLocation]);
+
+  const candidateStats = [
+    { 
+      label: "Candidatures", 
+      value: applications.length, 
+      icon: FileText, 
+      trend: applications.length > 0 ? `${applications.filter(a => a.status === "pending").length} en attente` : "Aucune" 
+    },
+    { 
+      label: "Offres vues", 
+      value: jobs.length, 
+      icon: Eye, 
+      trend: "Disponibles" 
+    },
+    { 
+      label: "Entretiens", 
+      value: applications.filter(a => a.status === "interview").length, 
+      icon: Users, 
+      trend: applications.filter(a => a.status === "interview").length > 0 ? "Planifiés" : "Aucun" 
+    },
+    { 
+      label: "Acceptés", 
+      value: applications.filter(a => a.status === "hired" || a.status === "offered").length, 
+      icon: CheckCircle2, 
+      trend: applications.filter(a => a.status === "hired").length > 0 ? "Félicitations!" : "-" 
+    },
+  ];
+
+  const companyStats = [
+    { label: "Offres", value: jobs.filter(j => j.isActive).length, icon: Briefcase, trend: "Actives" },
+    { label: "Candidatures", value: applications.length, icon: FileText, trend: "Reçues" },
+    { label: "Entretiens", value: applications.filter(a => a.status === "interview").length, icon: Users, trend: "Planifiés" },
+    { label: "Pourvus", value: applications.filter(a => a.status === "hired").length, icon: CheckCircle2, trend: "Ce mois" },
+  ];
+
+  const agencyStats = [
+    { label: "Candidats", value: 0, icon: Users, trend: "Actifs" },
+    { label: "Placements", value: 0, icon: CheckCircle2, trend: "Ce mois" },
+    { label: "Partenaires", value: 0, icon: Building2, trend: "Actifs" },
+    { label: "Offres", value: jobs.length, icon: Briefcase, trend: "Disponibles" },
+  ];
+
+  const getStats = () => {
+    switch (user?.userType) {
+      case "candidate": return candidateStats;
+      case "company": return companyStats;
+      case "agency": return agencyStats;
+      default: return candidateStats;
+    }
+  };
+
+  const profileCompletion = user && profile ? calculateProfileCompletion(user, profile) : 
+    (user ? calculateProfileCompletion(user) : 0);
 
   if (isLoading) {
     return (
@@ -104,17 +175,7 @@ export default function DashboardPage() {
     return null;
   }
 
-  const stats = mockStats[user.userType];
-  const profileCompletion = 75;
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
+  const stats = getStats();
 
   const handleJobLike = (jobId: string) => {
     console.log("Liked job:", jobId);
@@ -131,6 +192,7 @@ export default function DashboardPage() {
           user={user} 
           stats={stats} 
           jobs={jobs}
+          applications={applications}
           profileCompletion={profileCompletion}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -145,6 +207,7 @@ export default function DashboardPage() {
           user={user} 
           stats={stats} 
           jobs={jobs}
+          applications={applications}
           profileCompletion={profileCompletion}
         />
       </div>
@@ -152,10 +215,18 @@ export default function DashboardPage() {
   );
 }
 
+interface StatItem {
+  label: string;
+  value: number;
+  icon: typeof FileText;
+  trend: string;
+}
+
 interface DashboardProps {
   user: User;
-  stats: typeof mockStats.candidate;
+  stats: StatItem[];
   jobs: JobPosting[];
+  applications: Application[];
   profileCompletion: number;
   activeTab?: string;
   setActiveTab?: (tab: string) => void;
@@ -163,7 +234,7 @@ interface DashboardProps {
   onJobSkip?: (jobId: string) => void;
 }
 
-function MobileDashboard({ user, stats, jobs, profileCompletion, activeTab, setActiveTab, onJobLike, onJobSkip }: DashboardProps) {
+function MobileDashboard({ user, stats, jobs, applications, profileCompletion, activeTab, setActiveTab, onJobLike, onJobSkip }: DashboardProps) {
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -267,29 +338,38 @@ function MobileDashboard({ user, stats, jobs, profileCompletion, activeTab, setA
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Candidatures récentes</CardTitle>
-                  <Badge variant="secondary" className="text-xs">{mockApplications.length}</Badge>
+                  <Badge variant="secondary" className="text-xs">{applications.length}</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                {mockApplications.slice(0, 3).map((app) => {
-                  const status = statusConfig[app.status as keyof typeof statusConfig];
-                  return (
-                    <div
-                      key={app.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      data-testid={`application-${app.id}`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{app.jobTitle}</p>
-                        <p className="text-xs text-muted-foreground">{app.company}</p>
+                {applications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Aucune candidature pour le moment
+                  </p>
+                ) : (
+                  applications.slice(0, 3).map((app) => {
+                    const status = statusConfig[app.status as keyof typeof statusConfig] || statusConfig.pending;
+                    const job = jobs.find(j => j.id === app.jobId);
+                    return (
+                      <div
+                        key={app.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                        data-testid={`application-${app.id}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{job?.title || "Offre d'emploi"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {job?.location || "Localisation inconnue"} • {formatRelativeDate(app.createdAt)}
+                          </p>
+                        </div>
+                        <Badge className={`${status.className} shrink-0 ml-2`}>
+                          <status.icon className="h-3 w-3 mr-1" />
+                          {status.label}
+                        </Badge>
                       </div>
-                      <Badge className={`${status.className} shrink-0 ml-2`}>
-                        <status.icon className="h-3 w-3 mr-1" />
-                        {status.label}
-                      </Badge>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
 
@@ -330,25 +410,34 @@ function MobileDashboard({ user, stats, jobs, profileCompletion, activeTab, setA
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                {mockApplications.slice(0, 4).map((app) => {
-                  const status = statusConfig[app.status as keyof typeof statusConfig];
-                  return (
-                    <div
-                      key={app.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      data-testid={`application-${app.id}`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{app.jobTitle}</p>
-                        <p className="text-xs text-muted-foreground">{app.company}</p>
+                {applications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Aucune candidature reçue
+                  </p>
+                ) : (
+                  applications.slice(0, 4).map((app) => {
+                    const status = statusConfig[app.status as keyof typeof statusConfig] || statusConfig.pending;
+                    const job = jobs.find(j => j.id === app.jobId);
+                    return (
+                      <div
+                        key={app.id}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                        data-testid={`application-${app.id}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{job?.title || "Offre d'emploi"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatRelativeDate(app.createdAt)}
+                          </p>
+                        </div>
+                        <Badge className={`${status.className} shrink-0 ml-2`}>
+                          <status.icon className="h-3 w-3 mr-1" />
+                          {status.label}
+                        </Badge>
                       </div>
-                      <Badge className={`${status.className} shrink-0 ml-2`}>
-                        <status.icon className="h-3 w-3 mr-1" />
-                        {status.label}
-                      </Badge>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
 
@@ -365,7 +454,7 @@ function MobileDashboard({ user, stats, jobs, profileCompletion, activeTab, setA
   );
 }
 
-function DesktopDashboard({ user, stats, jobs, profileCompletion }: DashboardProps) {
+function DesktopDashboard({ user, stats, jobs, applications, profileCompletion }: DashboardProps) {
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -580,24 +669,33 @@ function DesktopDashboard({ user, stats, jobs, profileCompletion }: DashboardPro
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {mockApplications.map((app) => {
-                      const status = statusConfig[app.status as keyof typeof statusConfig];
-                      return (
-                        <div
-                          key={app.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                        >
-                          <div>
-                            <p className="font-medium">{app.jobTitle}</p>
-                            <p className="text-sm text-muted-foreground">{app.company}</p>
+                    {applications.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Aucune candidature pour le moment
+                      </p>
+                    ) : (
+                      applications.map((app) => {
+                        const status = statusConfig[app.status as keyof typeof statusConfig] || statusConfig.pending;
+                        const job = jobs.find(j => j.id === app.jobId);
+                        return (
+                          <div
+                            key={app.id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                          >
+                            <div>
+                              <p className="font-medium">{job?.title || "Offre d'emploi"}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {job?.location} • {formatRelativeDate(app.createdAt)}
+                              </p>
+                            </div>
+                            <Badge className={status.className}>
+                              <status.icon className="h-3 w-3 mr-1" />
+                              {status.label}
+                            </Badge>
                           </div>
-                          <Badge className={status.className}>
-                            <status.icon className="h-3 w-3 mr-1" />
-                            {status.label}
-                          </Badge>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -618,24 +716,33 @@ function DesktopDashboard({ user, stats, jobs, profileCompletion }: DashboardPro
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {mockApplications.map((app) => {
-                    const status = statusConfig[app.status as keyof typeof statusConfig];
-                    return (
-                      <div
+                  {applications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Aucune candidature reçue
+                    </p>
+                  ) : (
+                    applications.map((app) => {
+                      const status = statusConfig[app.status as keyof typeof statusConfig] || statusConfig.pending;
+                      const job = jobs.find(j => j.id === app.jobId);
+                      return (
+                        <div
                         key={app.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      >
-                        <div>
-                          <p className="font-medium">{app.jobTitle}</p>
-                          <p className="text-sm text-muted-foreground">{app.company}</p>
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                        >
+                          <div>
+                            <p className="font-medium">{job?.title || "Offre d'emploi"}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatRelativeDate(app.createdAt)}
+                            </p>
+                          </div>
+                          <Badge className={status.className}>
+                            <status.icon className="h-3 w-3 mr-1" />
+                            {status.label}
+                          </Badge>
                         </div>
-                        <Badge className={status.className}>
-                          <status.icon className="h-3 w-3 mr-1" />
-                          {status.label}
-                        </Badge>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </CardContent>
             </Card>
