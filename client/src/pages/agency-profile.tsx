@@ -39,7 +39,9 @@ interface AgencyWithProfile {
     candidatesPlaced: number | null;
     verificationStatus: string | null;
     foundedYear: number | null;
-    employeeCount?: number | null;
+    employeeCount: number | null;
+    averageAge: number | null;
+    genderRatioMale: number | null;
   } | null;
 }
 
@@ -200,25 +202,31 @@ export default function AgencyProfilePage() {
                   <div className="grid grid-cols-2 gap-3 w-full">
                     <div className="bg-muted/50 rounded-lg p-4 text-center">
                       <p className="text-xs text-muted-foreground mb-1">Année de création</p>
-                      <p className="text-lg font-bold text-foreground">
+                      <p className="text-lg font-bold text-foreground" data-testid="stat-founded-year">
                         {agency.profile?.foundedYear || "N/A"}
                       </p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-4 text-center">
                       <p className="text-xs text-muted-foreground mb-1">Collaborateurs</p>
-                      <p className="text-lg font-bold text-foreground">
-                        {agency.profile?.candidatesPlaced || 20}
+                      <p className="text-lg font-bold text-foreground" data-testid="stat-employee-count">
+                        {agency.profile?.employeeCount || "N/A"}
                       </p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-4 text-center">
                       <p className="text-xs text-muted-foreground mb-1">Age moyen</p>
-                      <p className="text-lg font-bold text-foreground">32 ans</p>
+                      <p className="text-lg font-bold text-foreground" data-testid="stat-average-age">
+                        {agency.profile?.averageAge ? `${agency.profile.averageAge} ans` : "N/A"}
+                      </p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-4 text-center">
                       <p className="text-xs text-muted-foreground mb-1">Parité</p>
-                      <p className="text-lg font-bold text-foreground">
-                        <span className="text-blue-600">♂ 60%</span>{" "}
-                        <span className="text-pink-600">♀ 40%</span>
+                      <p className="text-lg font-bold text-foreground" data-testid="stat-gender-ratio">
+                        {agency.profile?.genderRatioMale != null ? (
+                          <>
+                            <span className="text-blue-600">♂ {agency.profile.genderRatioMale}%</span>{" "}
+                            <span className="text-pink-600">♀ {100 - agency.profile.genderRatioMale}%</span>
+                          </>
+                        ) : "N/A"}
                       </p>
                     </div>
                   </div>

@@ -92,6 +92,10 @@ export const agencyProfiles = pgTable("agency_profiles", {
   rating: real("rating"),
   totalPlacements: integer("total_placements").default(0),
   activePlacements: integer("active_placements").default(0),
+  foundedYear: integer("founded_year"),
+  employeeCount: integer("employee_count"),
+  averageAge: integer("average_age"),
+  genderRatioMale: integer("gender_ratio_male"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
