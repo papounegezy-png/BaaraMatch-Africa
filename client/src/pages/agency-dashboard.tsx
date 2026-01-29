@@ -5,6 +5,7 @@ import { AgencyKPICards } from "@/components/agency-kpi-cards";
 import { ActiveContractsTable } from "@/components/active-contracts-table";
 import { CandidateSearchDashboard } from "@/components/candidate-search-dashboard";
 import { CandidateManagementTable } from "@/components/candidate-management-table";
+import { MissionsManagement } from "@/components/missions-management";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -124,13 +125,7 @@ export default function AgencyDashboardPage() {
     }
     
     if (location.startsWith("/agency/missions")) {
-      return (
-        <ComingSoonPage 
-          title="Offres & Missions" 
-          icon={Briefcase}
-          description="Création d'offres d'emploi, publication interne/externe, suivi des candidatures et affectation des candidats."
-        />
-      );
+      return <MissionsManagement />;
     }
     
     if (location.startsWith("/agency/contracts")) {
