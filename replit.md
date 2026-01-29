@@ -142,7 +142,19 @@ The application includes a complete semantic matching engine using OpenAI embedd
 - `OPENAI_API_KEY` - Required for semantic matching (text-embedding-3-small)
 
 ## Recent Changes (Jan 2026)
-- **Profile View & Avatar Upload** (Latest):
+- **Agency Dashboard Sidebar** (Latest):
+  - Comprehensive sidebar with 12 sections and collapsible submenus
+  - Sections: Tableau de bord, Candidats, Entreprises, Offres & missions, Placements & contrats, Paie & facturation, Suivi RH & conformité, CRM, Rapports & stats, Paramètres, Sécurité & audit, Support
+  - AgencyLayout component wraps all /agency/* routes
+  - Route-based content switching with "Coming Soon" pages for unimplemented sections
+  - Collapsible sidebar support with icon-only mode
+  - RH Connect branding with blue-green gradient logo
+- **Agency Profile Enhancements**:
+  - Follow button for publication notifications
+  - Write a Review button for agency feedback
+  - Link Social Media button for social connections
+  - Stat cards with real data: foundedYear, employeeCount, averageAge, genderRatioMale
+- **Profile View & Avatar Upload**:
   - Profile page with view/edit toggle modes
   - ProfileView component displays user info (name, contact, experience, skills, voice CV)
   - Avatar upload via POST /api/avatar/upload with server-side validation (MIME type, 2MB limit)
