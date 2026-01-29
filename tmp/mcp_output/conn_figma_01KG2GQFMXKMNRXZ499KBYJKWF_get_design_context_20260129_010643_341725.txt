@@ -1,0 +1,1076 @@
+<mcp_external_output>
+
+### Content Block 1 (Text)
+const imgIcon = "https://www.figma.com/api/mcp/asset/e18a715c-abe9-49bc-9920-b33d490ddf57";
+const imgIcon1 = "https://www.figma.com/api/mcp/asset/50007111-81e8-4123-984e-f96c18beb8e2";
+const imgIcon2 = "https://www.figma.com/api/mcp/asset/ea43cb58-4b9f-4e15-b555-fd9ee4c53d9a";
+const imgIcon3 = "https://www.figma.com/api/mcp/asset/763f9f20-c479-4ddc-a5b3-9bd994d8bffa";
+const imgIcon4 = "https://www.figma.com/api/mcp/asset/b5f3beca-c8d2-4f87-b70d-56f670f8a7d8";
+const imgIcon5 = "https://www.figma.com/api/mcp/asset/0b03636a-7418-403a-9132-e1ec684825de";
+const imgIcon6 = "https://www.figma.com/api/mcp/asset/0ab8cccd-1f20-4030-b3c9-19e3dd977bed";
+const imgIcon7 = "https://www.figma.com/api/mcp/asset/76fb8aef-f7a4-43d3-86c5-35a8ff7ef88d";
+const imgIcon8 = "https://www.figma.com/api/mcp/asset/48035ff5-0a60-4af9-9342-caab0ce0dce4";
+const imgVector = "https://www.figma.com/api/mcp/asset/2c253219-cf85-42ec-a5fa-0a814dc49790";
+const imgVector1 = "https://www.figma.com/api/mcp/asset/55307e0b-1031-48fd-973d-370464c0a757";
+const imgVector2 = "https://www.figma.com/api/mcp/asset/3c524028-cb5d-4dd6-a49b-05558cc41a3e";
+const imgVector3 = "https://www.figma.com/api/mcp/asset/46ec84e0-9bdc-4007-b485-1d8cb46cb080";
+const imgVector4 = "https://www.figma.com/api/mcp/asset/e088f342-f435-4aab-8a26-9ee55f9022a2";
+const imgVector5 = "https://www.figma.com/api/mcp/asset/b755c251-deb6-437d-ae1e-15aaffab8c90";
+const imgVector6 = "https://www.figma.com/api/mcp/asset/0201cb68-74ac-44c9-bf1b-1da9dc1f7e12";
+const imgIcon9 = "https://www.figma.com/api/mcp/asset/1e3029d6-44d1-446a-a5f9-6e55ef468b90";
+const imgIcon10 = "https://www.figma.com/api/mcp/asset/739245be-8d98-4bba-8dd8-6e50c2d56ddd";
+const imgIcon11 = "https://www.figma.com/api/mcp/asset/e37f323c-d8f8-4812-b489-1caa644b49eb";
+const imgIcon12 = "https://www.figma.com/api/mcp/asset/bab72073-c36a-4ecb-aa22-a707747de9ae";
+const imgVector7 = "https://www.figma.com/api/mcp/asset/cbea20ea-345a-4f48-a24d-432d54ed0051";
+
+export default function App() {
+  return (
+    <div className="bg-[#f9fafb] content-stretch flex items-start relative size-full" data-name="App" data-node-id="9:611">
+      <div className="bg-white border-[#e5e7eb] border-r-[0.667px] border-solid h-[583.333px] relative shrink-0 w-[256px]" data-name="Sidebar" data-node-id="9:612">
+        <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+          <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid content-stretch flex flex-col h-[92.667px] items-start left-0 pb-[0.667px] pt-[24px] px-[24px] top-0 w-[255.333px]" data-name="Container" data-node-id="9:613">
+            <div className="content-stretch flex gap-[12px] h-[44px] items-center relative shrink-0 w-full" data-name="Container" data-node-id="9:614">
+              <div className="relative rounded-[10px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:615" style={{ backgroundImage: "linear-gradient(135deg, rgb(43, 127, 255) 0%, rgb(0, 201, 80) 100%)" }}>
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                  <div className="relative shrink-0 size-[24px]" data-name="Icon" data-node-id="9:616">
+                    <img alt="" className="block max-w-none size-full" src={imgIcon} />
+                  </div>
+                </div>
+              </div>
+              <div className="h-[44px] relative shrink-0 w-[114.969px]" data-name="Container" data-node-id="9:621">
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start relative size-full">
+                  <div className="h-[28px] relative shrink-0 w-full" data-name="Heading 2" data-node-id="9:622">
+                    <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[28px] left-0 text-[#101828] text-[20px] top-[-2.33px]" data-node-id="9:623">
+                      RH Connect
+                    </p>
+                  </div>
+                  <div className="content-stretch flex h-[16px] items-start relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:624">
+                    <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[16px] relative shrink-0 text-[#6a7282] text-[12px]" data-node-id="9:625">
+                      Agence de placement
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="absolute content-stretch flex flex-col gap-[4px] h-[284px] items-start left-[16px] top-[108.67px] w-[223.333px]" data-name="List" data-node-id="9:626">
+            <div className="h-[44px] relative shrink-0 w-full" data-name="List Item" data-node-id="9:627">
+              <div className="absolute bg-[#eff6ff] content-stretch flex gap-[12px] h-[44px] items-center left-0 pl-[16px] rounded-[10px] top-0 w-[223.333px]" data-name="Button" data-node-id="9:628">
+                <div className="relative shrink-0 size-[20px]" data-name="Icon" data-node-id="9:629">
+                  <img alt="" className="block max-w-none size-full" src={imgIcon1} />
+                </div>
+                <div className="h-[20px] relative shrink-0 w-[43.99px]" data-name="Text" data-node-id="9:632">
+                  <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                    <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[22px] text-[#155dfc] text-[14px] text-center top-[-1.33px]" data-node-id="9:633">
+                      Accueil
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[44px] relative shrink-0 w-full" data-name="List Item" data-node-id="9:634">
+              <div className="absolute content-stretch flex gap-[12px] h-[44px] items-center left-0 pl-[16px] rounded-[10px] top-0 w-[223.333px]" data-name="Button" data-node-id="9:635">
+                <div className="relative shrink-0 size-[20px]" data-name="Icon" data-node-id="9:636">
+                  <img alt="" className="block max-w-none size-full" src={imgIcon2} />
+                </div>
+                <div className="h-[20px] relative shrink-0 w-[61.406px]" data-name="Text" data-node-id="9:641">
+                  <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                    <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[31px] text-[#4a5565] text-[14px] text-center top-[-1.33px]" data-node-id="9:642">
+                      Candidats
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[44px] relative shrink-0 w-full" data-name="List Item" data-node-id="9:643">
+              <div className="absolute content-stretch flex gap-[12px] h-[44px] items-center left-0 pl-[16px] rounded-[10px] top-0 w-[223.333px]" data-name="Button" data-node-id="9:644">
+                <div className="relative shrink-0 size-[20px]" data-name="Icon" data-node-id="9:645">
+                  <img alt="" className="block max-w-none size-full" src={imgIcon3} />
+                </div>
+                <div className="h-[20px] relative shrink-0 w-[53.302px]" data-name="Text" data-node-id="9:648">
+                  <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                    <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[27.5px] text-[#4a5565] text-[14px] text-center top-[-1.33px]" data-node-id="9:649">
+                      Missions
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[44px] relative shrink-0 w-full" data-name="List Item" data-node-id="9:650">
+              <div className="absolute content-stretch flex gap-[12px] h-[44px] items-center left-0 pl-[16px] rounded-[10px] top-0 w-[223.333px]" data-name="Button" data-node-id="9:651">
+                <div className="relative shrink-0 size-[20px]" data-name="Icon" data-node-id="9:652">
+                  <img alt="" className="block max-w-none size-full" src={imgIcon4} />
+                </div>
+                <div className="h-[20px] relative shrink-0 w-[52.219px]" data-name="Text" data-node-id="9:658">
+                  <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                    <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[26.5px] text-[#4a5565] text-[14px] text-center top-[-1.33px]" data-node-id="9:659">
+                      Contrats
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[44px] relative shrink-0 w-full" data-name="List Item" data-node-id="9:660">
+              <div className="absolute content-stretch flex gap-[12px] h-[44px] items-center left-0 pl-[16px] rounded-[10px] top-0 w-[223.333px]" data-name="Button" data-node-id="9:661">
+                <div className="relative shrink-0 size-[20px]" data-name="Icon" data-node-id="9:662">
+                  <img alt="" className="block max-w-none size-full" src={imgIcon5} />
+                </div>
+                <div className="h-[20px] relative shrink-0 w-[68.875px]" data-name="Text" data-node-id="9:665">
+                  <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                    <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[34.5px] text-[#4a5565] text-[14px] text-center top-[-1.33px]" data-node-id="9:666">
+                      Facturation
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="h-[44px] relative shrink-0 w-full" data-name="List Item" data-node-id="9:667">
+              <div className="absolute content-stretch flex gap-[12px] h-[44px] items-center left-0 pl-[16px] rounded-[10px] top-0 w-[223.333px]" data-name="Button" data-node-id="9:668">
+                <div className="relative shrink-0 size-[20px]" data-name="Icon" data-node-id="9:669">
+                  <img alt="" className="block max-w-none size-full" src={imgIcon6} />
+                </div>
+                <div className="h-[20px] relative shrink-0 w-[65.865px]" data-name="Text" data-node-id="9:674">
+                  <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                    <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[33px] text-[#4a5565] text-[14px] text-center top-[-1.33px]" data-node-id="9:675">
+                      Analytique
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="absolute border-[#e5e7eb] border-solid border-t-[0.667px] content-stretch flex flex-col h-[96.667px] items-start left-0 pt-[16.667px] px-[16px] top-[486.67px] w-[255.333px]" data-name="Container" data-node-id="9:676">
+            <div className="content-stretch flex gap-[12px] h-[64px] items-center px-[16px] relative shrink-0 w-full" data-name="Container" data-node-id="9:677">
+              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:678" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:679">
+                    MA
+                  </p>
+                </div>
+              </div>
+              <div className="flex-[1_0_0] h-[36px] min-h-px min-w-px relative" data-name="Container" data-node-id="9:680">
+                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start relative size-full">
+                  <div className="h-[20px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:681">
+                    <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:682">
+                      Marie Aubert
+                    </p>
+                  </div>
+                  <div className="content-stretch flex h-[16px] items-start relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:683">
+                    <p className="flex-[1_0_0] font-['Arimo:Regular',sans-serif] font-normal leading-[16px] min-h-px min-w-px relative text-[#6a7282] text-[12px] whitespace-pre-wrap" data-node-id="9:684">
+                      Administrateur
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex-[1_0_0] h-[583.333px] min-h-px min-w-px relative" data-name="Container" data-node-id="9:685">
+        <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start overflow-clip relative rounded-[inherit] size-full">
+          <div className="bg-white border-[#e5e7eb] border-b-[0.667px] border-solid h-[74px] relative shrink-0 w-[655.333px]" data-name="Header" data-node-id="9:686">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start pb-[0.667px] pt-[16px] px-[32px] relative size-full">
+              <div className="h-[41.333px] relative shrink-0 w-full" data-name="Container" data-node-id="9:687">
+                <div className="absolute h-[41.333px] left-0 top-0 w-[448px]" data-name="Container" data-node-id="9:688">
+                  <div className="absolute border-[#d1d5dc] border-[0.667px] border-solid content-stretch flex h-[41.333px] items-center left-0 overflow-clip pl-[40px] pr-[16px] py-[8px] rounded-[10px] top-0 w-[448px]" data-name="Text Input" data-node-id="9:689">
+                    <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[normal] relative shrink-0 text-[16px] text-[rgba(10,10,10,0.5)]" data-node-id="9:690">
+                      Rechercher un candidat, une mission...
+                    </p>
+                  </div>
+                  <div className="absolute left-[12px] size-[20px] top-[10.67px]" data-name="Icon" data-node-id="9:691">
+                    <img alt="" className="block max-w-none size-full" src={imgIcon7} />
+                  </div>
+                </div>
+                <div className="absolute left-[555.33px] rounded-[10px] size-[36px] top-[2.67px]" data-name="Button" data-node-id="9:694">
+                  <div className="absolute left-[8px] size-[20px] top-[8px]" data-name="Icon" data-node-id="9:695">
+                    <img alt="" className="block max-w-none size-full" src={imgIcon8} />
+                  </div>
+                  <div className="absolute bg-[#fb2c36] left-[24px] rounded-[22369600px] size-[8px] top-[4px]" data-name="Text" data-node-id="9:698" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-[1_0_0] min-h-px min-w-px relative w-[655.333px]" data-name="Main Content" data-node-id="9:699">
+            <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start overflow-clip pl-[32px] pr-[47.333px] pt-[24px] relative rounded-[inherit] size-full">
+              <div className="content-stretch flex flex-col gap-[24px] h-[1203.333px] items-start relative shrink-0 w-full" data-name="Container" data-node-id="9:700">
+                <div className="h-[36px] relative shrink-0 w-full" data-name="Heading 1" data-node-id="9:701">
+                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[36px] left-0 text-[#101828] text-[30px] top-[-3px]" data-node-id="9:702">
+                    Tableau de bord
+                  </p>
+                </div>
+                <div className="gap-[24px] grid grid-cols-[repeat(3,_minmax(0,_1fr))] grid-rows-[repeat(1,_minmax(0,_1fr))] h-[257.333px] relative shrink-0 w-full" data-name="StatsCards" data-node-id="9:703">
+                  <div className="bg-white border-[#e5e7eb] border-[0.667px] border-solid col-[1] css-3foyfs h-[257.333px] relative rounded-[14px] row-[1] shrink-0" data-name="Container" data-node-id="9:704">
+                    <div className="absolute bg-[#eff6ff] content-stretch flex flex-col items-start left-[24px] pt-[12px] px-[12px] rounded-[10px] size-[48px] top-[24px]" data-name="Container" data-node-id="9:705">
+                      <div className="h-[24px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:706">
+                        <div className="absolute inset-[29.17%_8.33%]" data-name="Vector" data-node-id="9:707">
+                          <div className="absolute inset-[-10%_-5%]">
+                            <img alt="" className="block max-w-none size-full" src={imgVector} />
+                          </div>
+                        </div>
+                        <div className="absolute inset-[29.17%_8.33%_45.83%_66.67%]" data-name="Vector" data-node-id="9:708">
+                          <div className="absolute inset-[-16.67%]">
+                            <img alt="" className="block max-w-none size-full" src={imgVector1} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute content-stretch flex flex-col gap-[4px] h-[88px] items-start left-[24px] top-[88px] w-[126.667px]" data-name="Container" data-node-id="9:709">
+                      <div className="h-[20px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:710">
+                        <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#4a5565] text-[14px] top-[-1.33px]" data-node-id="9:711">
+                          Taux de remplissage
+                        </p>
+                      </div>
+                      <div className="h-[36px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:712">
+                        <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[36px] left-0 text-[#101828] text-[30px] top-[-3px]" data-node-id="9:713">
+                          87%
+                        </p>
+                      </div>
+                      <div className="content-stretch flex gap-[4px] h-[20px] items-center relative shrink-0 w-full" data-name="Container" data-node-id="9:714">
+                        <div className="h-[20px] relative shrink-0 w-[28.583px]" data-name="Text" data-node-id="9:715">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#00a63e] text-[14px] top-[-1.33px]" data-node-id="9:716">
+                              +5%
+                            </p>
+                          </div>
+                        </div>
+                        <div className="h-[20px] relative shrink-0 w-[93.844px]" data-name="Text" data-node-id="9:717">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#6a7282] text-[14px] top-[-1.33px]" data-node-id="9:718">
+                              vs mois dernier
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white border-[#e5e7eb] border-[0.667px] border-solid col-[2] css-3foyfs h-[257.333px] relative rounded-[14px] row-[1] shrink-0" data-name="Container" data-node-id="9:719">
+                    <div className="absolute bg-[#fff7ed] content-stretch flex flex-col items-start left-[24px] pt-[12px] px-[12px] rounded-[10px] size-[48px] top-[24px]" data-name="Container" data-node-id="9:720">
+                      <div className="h-[24px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:721">
+                        <div className="absolute inset-[8.33%]" data-name="Vector" data-node-id="9:722">
+                          <div className="absolute inset-[-5%]">
+                            <img alt="" className="block max-w-none size-full" src={imgVector2} />
+                          </div>
+                        </div>
+                        <div className="absolute bottom-1/2 left-1/2 right-1/2 top-[33.33%]" data-name="Vector" data-node-id="9:723">
+                          <div className="absolute inset-[-25%_-1px]">
+                            <img alt="" className="block max-w-none size-full" src={imgVector3} />
+                          </div>
+                        </div>
+                        <div className="absolute bottom-[33.33%] left-1/2 right-[49.96%] top-[66.67%]" data-name="Vector" data-node-id="9:724">
+                          <div className="absolute inset-[-1px_-9999.77%]">
+                            <img alt="" className="block max-w-none size-full" src={imgVector4} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute content-stretch flex flex-col gap-[4px] h-[108px] items-start left-[24px] top-[88px] w-[126.667px]" data-name="Container" data-node-id="9:725">
+                      <div className="h-[20px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:726">
+                        <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#4a5565] text-[14px] top-[-1.33px]" data-node-id="9:727">
+                          Missions urgentes
+                        </p>
+                      </div>
+                      <div className="h-[36px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:728">
+                        <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[36px] left-0 text-[#101828] text-[30px] top-[-3px]" data-node-id="9:729">
+                          12
+                        </p>
+                      </div>
+                      <div className="content-stretch flex gap-[4px] h-[40px] items-center relative shrink-0 w-full" data-name="Container" data-node-id="9:730">
+                        <div className="h-[40px] relative shrink-0 w-[58.125px]" data-name="Text" data-node-id="9:731">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#f54900] text-[14px] top-[-1.33px] w-[59px] whitespace-pre-wrap" data-node-id="9:732">
+                              3 nouvelles
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex-[1_0_0] h-[40px] min-h-px min-w-px relative" data-name="Text" data-node-id="9:733">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#6a7282] text-[14px] top-[-1.33px] w-[47px] whitespace-pre-wrap" data-node-id="9:734">
+                              vs mois dernier
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white border-[#e5e7eb] border-[0.667px] border-solid col-[3] css-3foyfs h-[257.333px] relative rounded-[14px] row-[1] shrink-0" data-name="Container" data-node-id="9:735">
+                    <div className="absolute bg-[#f0fdf4] content-stretch flex flex-col items-start left-[24px] pt-[12px] px-[12px] rounded-[10px] size-[48px] top-[24px]" data-name="Container" data-node-id="9:736">
+                      <div className="h-[24px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:737">
+                        <div className="absolute bottom-[8.33%] left-1/2 right-1/2 top-[8.33%]" data-name="Vector" data-node-id="9:738">
+                          <div className="absolute inset-[-5%_-1px]">
+                            <img alt="" className="block max-w-none size-full" src={imgVector5} />
+                          </div>
+                        </div>
+                        <div className="absolute bottom-[20.83%] left-1/4 right-1/4 top-[20.83%]" data-name="Vector" data-node-id="9:739">
+                          <div className="absolute inset-[-7.14%_-8.33%]">
+                            <img alt="" className="block max-w-none size-full" src={imgVector6} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute content-stretch flex flex-col gap-[4px] h-[144px] items-start left-[24px] top-[88px] w-[126.667px]" data-name="Container" data-node-id="9:740">
+                      <div className="h-[20px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:741">
+                        <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#4a5565] text-[14px] top-[-1.33px]" data-node-id="9:742">
+                          Revenu mensuel
+                        </p>
+                      </div>
+                      <div className="h-[72px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:743">
+                        <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[36px] left-0 text-[#101828] text-[30px] top-[-3px] w-[106px] whitespace-pre-wrap" data-node-id="9:744">
+                          245 850 €
+                        </p>
+                      </div>
+                      <div className="content-stretch flex gap-[4px] h-[40px] items-center relative shrink-0 w-full" data-name="Container" data-node-id="9:745">
+                        <div className="h-[20px] relative shrink-0 w-[36.135px]" data-name="Text" data-node-id="9:746">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#00a63e] text-[14px] top-[-1.33px]" data-node-id="9:747">
+                              +12%
+                            </p>
+                          </div>
+                        </div>
+                        <div className="h-[40px] relative shrink-0 w-[86.531px]" data-name="Text" data-node-id="9:748">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#6a7282] text-[14px] top-[-1.33px] w-[47px] whitespace-pre-wrap" data-node-id="9:749">
+                              vs mois dernier
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white border-[#e5e7eb] border-[0.667px] border-solid content-stretch flex flex-col h-[854px] items-start p-[0.667px] relative rounded-[14px] shrink-0 w-full" data-name="EmployeesTable" data-node-id="9:750">
+                  <div className="border-[#e5e7eb] border-b-[0.667px] border-solid content-stretch flex flex-col gap-[16px] h-[138px] items-start pb-[0.667px] pt-[16px] px-[24px] relative shrink-0 w-full" data-name="Container" data-node-id="9:751">
+                    <div className="content-stretch flex h-[52px] items-center justify-between relative shrink-0 w-full" data-name="Container" data-node-id="9:752">
+                      <div className="h-[52px] relative shrink-0 w-[170.375px]" data-name="Container" data-node-id="9:753">
+                        <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col gap-[4px] items-start relative size-full">
+                          <div className="h-[28px] relative shrink-0 w-full" data-name="Heading 2" data-node-id="9:754">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[28px] left-0 text-[#101828] text-[20px] top-[-2.33px]" data-node-id="9:755">
+                              Employés placés
+                            </p>
+                          </div>
+                          <div className="h-[20px] relative shrink-0 w-full" data-name="Paragraph" data-node-id="9:756">
+                            <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#6a7282] text-[14px] top-[-1.33px]" data-node-id="9:757">
+                              Gérez vos placements actifs
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-[#155dfc] h-[36px] relative rounded-[10px] shrink-0 w-[169.5px]" data-name="Button" data-node-id="9:758">
+                        <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                          <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[85.5px] text-[14px] text-center text-white top-[6.67px]" data-node-id="9:759">
+                            + Nouveau placement
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-[37.333px] relative shrink-0 w-full" data-name="Container" data-node-id="9:760">
+                      <div className="absolute border-[#d1d5dc] border-[0.667px] border-solid content-stretch flex flex-col h-[37.333px] items-start left-[227.63px] pb-[0.667px] pl-[-540.292px] pr-[687.625px] pt-[-532px] rounded-[10px] top-0 w-[147.333px]" data-name="Dropdown" data-node-id="9:761">
+                        <div className="h-0 relative shrink-0 w-full" data-name="Option" data-node-id="9:762">
+                          <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[normal] left-0 text-[#0a0a0a] text-[14px] top-0 w-0 whitespace-pre-wrap" data-node-id="9:763">
+                            Tous les statuts
+                          </p>
+                        </div>
+                        <div className="h-0 relative shrink-0 w-full" data-name="Option" data-node-id="9:764">
+                          <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[normal] left-0 text-[#0a0a0a] text-[14px] top-0 w-0 whitespace-pre-wrap" data-node-id="9:765">
+                            Actif
+                          </p>
+                        </div>
+                        <div className="h-0 relative shrink-0 w-full" data-name="Option" data-node-id="9:766">
+                          <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[normal] left-0 text-[#0a0a0a] text-[14px] top-0 w-0 whitespace-pre-wrap" data-node-id="9:767">
+                            En cours
+                          </p>
+                        </div>
+                        <div className="h-0 relative shrink-0 w-full" data-name="Option" data-node-id="9:768">
+                          <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[normal] left-0 text-[#0a0a0a] text-[14px] top-0 w-0 whitespace-pre-wrap" data-node-id="9:769">
+                            Terminé
+                          </p>
+                        </div>
+                      </div>
+                      <div className="absolute border-[#d1d5dc] border-[0.667px] border-solid h-[37.333px] left-[386.96px] rounded-[10px] top-0 w-[139.708px]" data-name="Button" data-node-id="9:770">
+                        <div className="absolute left-[16px] size-[16px] top-[10px]" data-name="Icon" data-node-id="9:771">
+                          <img alt="" className="block max-w-none size-full" src={imgIcon9} />
+                        </div>
+                        <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[81.5px] text-[#0a0a0a] text-[14px] text-center top-[6.67px]" data-node-id="9:773">
+                          Plus de filtres
+                        </p>
+                      </div>
+                      <div className="absolute h-[37.333px] left-0 top-0 w-[215.625px]" data-name="Container" data-node-id="9:774">
+                        <div className="absolute border-[#d1d5dc] border-[0.667px] border-solid content-stretch flex h-[37.333px] items-center left-0 overflow-clip pl-[36px] pr-[16px] py-[8px] rounded-[10px] top-0 w-[215.625px]" data-name="Text Input" data-node-id="9:775">
+                          <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[normal] relative shrink-0 text-[14px] text-[rgba(10,10,10,0.5)]" data-node-id="9:776">
+                            Rechercher par nom ou client...
+                          </p>
+                        </div>
+                        <div className="absolute left-[12px] size-[16px] top-[10.67px]" data-name="Icon" data-node-id="9:777">
+                          <img alt="" className="block max-w-none size-full" src={imgIcon10} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="content-stretch flex flex-col h-[652.667px] items-start overflow-clip pr-[-289.104px] relative shrink-0 w-full" data-name="Container" data-node-id="9:780">
+                    <div className="h-[637.333px] relative shrink-0 w-full" data-name="Table" data-node-id="9:781">
+                      <div className="absolute bg-[#f9fafb] border-[#e5e7eb] border-b-[0.667px] border-solid h-[56.333px] left-0 top-0 w-[863.771px]" data-name="Table Header" data-node-id="9:782">
+                        <div className="absolute h-[56.333px] left-0 top-0 w-[863.771px]" data-name="Table Row" data-node-id="9:783">
+                          <div className="absolute h-[56.333px] left-0 top-0 w-[200.385px]" data-name="Header Cell" data-node-id="9:784">
+                            <p className="absolute font-['Arimo:Bold',sans-serif] font-bold leading-[16px] left-[24px] text-[#4a5565] text-[12px] top-[19px] tracking-[0.6px] uppercase" data-node-id="9:785">{`Nom de l'employé`}</p>
+                          </div>
+                          <div className="absolute h-[56.333px] left-[200.39px] top-0 w-[166.646px]" data-name="Header Cell" data-node-id="9:786">
+                            <p className="absolute font-['Arimo:Bold',sans-serif] font-bold leading-[16px] left-[24px] text-[#4a5565] text-[12px] top-[19px] tracking-[0.6px] uppercase" data-node-id="9:787">
+                              Client
+                            </p>
+                          </div>
+                          <div className="absolute h-[56.333px] left-[367.03px] top-0 w-[118.115px]" data-name="Header Cell" data-node-id="9:788">
+                            <p className="absolute font-['Arimo:Bold',sans-serif] font-bold leading-[16px] left-[24px] text-[#4a5565] text-[12px] top-[11px] tracking-[0.6px] uppercase w-[70px] whitespace-pre-wrap" data-node-id="9:789">
+                              Statut du contrat
+                            </p>
+                          </div>
+                          <div className="absolute h-[56.333px] left-[485.15px] top-0 w-[213.854px]" data-name="Header Cell" data-node-id="9:790">
+                            <p className="absolute font-['Arimo:Bold',sans-serif] font-bold leading-[16px] left-[24px] text-[#4a5565] text-[12px] top-[19px] tracking-[0.6px] uppercase" data-node-id="9:791">
+                              Fin de contrat
+                            </p>
+                          </div>
+                          <div className="absolute h-[56.333px] left-[699px] top-0 w-[164.771px]" data-name="Header Cell" data-node-id="9:792">
+                            <p className="absolute font-['Arimo:Bold',sans-serif] font-bold leading-[16px] left-[24px] text-[#4a5565] text-[12px] top-[19px] tracking-[0.6px] uppercase" data-node-id="9:793">
+                              Actions
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="absolute h-[581px] left-0 top-[56.33px] w-[863.771px]" data-name="Table Body" data-node-id="9:794">
+                        <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid h-[72.667px] left-0 top-0 w-[863.771px]" data-name="Table Row" data-node-id="9:795">
+                          <div className="absolute h-[72.667px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:796">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:797">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:798" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:799">
+                                    SM
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="h-[20px] relative shrink-0 w-[86.969px]" data-name="Paragraph" data-node-id="9:800">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:801">
+                                    Sophie Martin
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:802">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:803">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:804">
+                                TechCorp Solutions
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:805">
+                            <div className="absolute bg-[#f0fdf4] border-[#b9f8cf] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[49.354px]" data-name="Text" data-node-id="9:806">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#008236] text-[12px] top-[3px]" data-node-id="9:807">
+                                Actif
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:808">
+                            <div className="absolute content-stretch flex gap-[8px] h-[25.333px] items-center left-[24px] top-[23.67px] w-[165.854px]" data-name="Container" data-node-id="9:809">
+                              <div className="h-[20px] relative shrink-0 w-[73.823px]" data-name="Paragraph" data-node-id="9:810">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:811">
+                                    15 Fév 2026
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="bg-[#fff7ed] border-[#ffd6a7] border-[0.667px] border-solid h-[25.333px] relative rounded-[4px] shrink-0 w-[84.031px]" data-name="Text" data-node-id="9:812">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <div className="absolute left-[8px] size-[12px] top-[6px]" data-name="Icon" data-node-id="9:813">
+                                    <img alt="" className="block max-w-none size-full" src={imgIcon11} />
+                                  </div>
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[24px] text-[#ca3500] text-[12px] top-[3px]" data-node-id="9:817">
+                                    Imminent
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:818">
+                            <div className="absolute content-stretch flex gap-[8px] h-[32px] items-center left-[24px] top-[20.33px] w-[116.771px]" data-name="Container" data-node-id="9:819">
+                              <div className="bg-[#ffedd4] border-[#ffd6a7] border-[0.667px] border-solid h-[27px] relative rounded-[10px] shrink-0 w-[76.771px]" data-name="Button" data-node-id="9:820">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <div className="absolute left-[12px] size-[16px] top-[5.67px]" data-name="Icon" data-node-id="9:821">
+                                    <img alt="" className="block max-w-none size-full" src={imgIcon12} />
+                                  </div>
+                                  <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[48px] text-[#ca3500] text-[12px] text-center top-[3px]" data-node-id="9:825">
+                                    Alerte
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="relative rounded-[10px] shrink-0 size-[32px]" data-name="Button" data-node-id="9:826">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start pt-[8px] px-[8px] relative size-full">
+                                  <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:827">
+                                    <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:828">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:829">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:830">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid h-[72.667px] left-0 top-[72.67px] w-[863.771px]" data-name="Table Row" data-node-id="9:831">
+                          <div className="absolute h-[72.667px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:832">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:833">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:834" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:835">
+                                    TD
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="h-[20px] relative shrink-0 w-[95.927px]" data-name="Paragraph" data-node-id="9:836">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:837">
+                                    Thomas Dubois
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:838">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:839">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:840">
+                                Innovation Labs
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:841">
+                            <div className="absolute bg-[#f0fdf4] border-[#b9f8cf] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[49.354px]" data-name="Text" data-node-id="9:842">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#008236] text-[12px] top-[3px]" data-node-id="9:843">
+                                Actif
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:844">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[83.458px]" data-name="Paragraph" data-node-id="9:845">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:846">
+                                30 Mars 2026
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:847">
+                            <div className="absolute content-stretch flex flex-col items-start left-[24px] pt-[8px] px-[8px] rounded-[10px] size-[32px] top-[20.33px]" data-name="Button" data-node-id="9:848">
+                              <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:849">
+                                <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:850">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:851">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:852">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid h-[72.667px] left-0 top-[145.33px] w-[863.771px]" data-name="Table Row" data-node-id="9:853">
+                          <div className="absolute h-[72.667px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:854">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:855">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:856" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:857">
+                                    CB
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="h-[20px] relative shrink-0 w-[86.969px]" data-name="Paragraph" data-node-id="9:858">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:859">
+                                    Claire Bernard
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:860">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:861">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:862">
+                                Digital Services
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:863">
+                            <div className="absolute bg-[#f0fdf4] border-[#b9f8cf] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[49.354px]" data-name="Text" data-node-id="9:864">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#008236] text-[12px] top-[3px]" data-node-id="9:865">
+                                Actif
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:866">
+                            <div className="absolute content-stretch flex gap-[8px] h-[25.333px] items-center left-[24px] top-[23.67px] w-[165.854px]" data-name="Container" data-node-id="9:867">
+                              <div className="h-[20px] relative shrink-0 w-[73.823px]" data-name="Paragraph" data-node-id="9:868">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:869">
+                                    08 Fév 2026
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="bg-[#fff7ed] border-[#ffd6a7] border-[0.667px] border-solid h-[25.333px] relative rounded-[4px] shrink-0 w-[84.031px]" data-name="Text" data-node-id="9:870">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <div className="absolute left-[8px] size-[12px] top-[6px]" data-name="Icon" data-node-id="9:871">
+                                    <img alt="" className="block max-w-none size-full" src={imgIcon11} />
+                                  </div>
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[24px] text-[#ca3500] text-[12px] top-[3px]" data-node-id="9:875">
+                                    Imminent
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:876">
+                            <div className="absolute content-stretch flex gap-[8px] h-[32px] items-center left-[24px] top-[20.33px] w-[116.771px]" data-name="Container" data-node-id="9:877">
+                              <div className="bg-[#ffedd4] border-[#ffd6a7] border-[0.667px] border-solid h-[27px] relative rounded-[10px] shrink-0 w-[76.771px]" data-name="Button" data-node-id="9:878">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <div className="absolute left-[12px] size-[16px] top-[5.67px]" data-name="Icon" data-node-id="9:879">
+                                    <img alt="" className="block max-w-none size-full" src={imgIcon12} />
+                                  </div>
+                                  <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[48px] text-[#ca3500] text-[12px] text-center top-[3px]" data-node-id="9:883">
+                                    Alerte
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="relative rounded-[10px] shrink-0 size-[32px]" data-name="Button" data-node-id="9:884">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start pt-[8px] px-[8px] relative size-full">
+                                  <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:885">
+                                    <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:886">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:887">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:888">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid h-[72.667px] left-0 top-[218px] w-[863.771px]" data-name="Table Row" data-node-id="9:889">
+                          <div className="absolute h-[72.667px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:890">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:891">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:892" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:893">
+                                    LP
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="h-[20px] relative shrink-0 w-[65.406px]" data-name="Paragraph" data-node-id="9:894">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:895">
+                                    Lucas Petit
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:896">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:897">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:898">
+                                Consulting Group
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:899">
+                            <div className="absolute bg-[#eff6ff] border-[#bedbff] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[70.115px]" data-name="Text" data-node-id="9:900">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#1447e6] text-[12px] top-[3px]" data-node-id="9:901">
+                                En cours
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:902">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[76.042px]" data-name="Paragraph" data-node-id="9:903">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:904">
+                                20 Mai 2026
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:905">
+                            <div className="absolute content-stretch flex flex-col items-start left-[24px] pt-[8px] px-[8px] rounded-[10px] size-[32px] top-[20.33px]" data-name="Button" data-node-id="9:906">
+                              <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:907">
+                                <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:908">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:909">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:910">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid h-[72.667px] left-0 top-[290.67px] w-[863.771px]" data-name="Table Row" data-node-id="9:911">
+                          <div className="absolute h-[72.667px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:912">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:913">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:914" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:915">
+                                    EL
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="h-[20px] relative shrink-0 w-[75.917px]" data-name="Paragraph" data-node-id="9:916">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:917">
+                                    Emma Leroy
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:918">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:919">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:920">
+                                Financial Partners
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:921">
+                            <div className="absolute bg-[#f0fdf4] border-[#b9f8cf] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[49.354px]" data-name="Text" data-node-id="9:922">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#008236] text-[12px] top-[3px]" data-node-id="9:923">
+                                Actif
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:924">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[80.063px]" data-name="Paragraph" data-node-id="9:925">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:926">
+                                12 Avril 2026
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:927">
+                            <div className="absolute content-stretch flex flex-col items-start left-[24px] pt-[8px] px-[8px] rounded-[10px] size-[32px] top-[20.33px]" data-name="Button" data-node-id="9:928">
+                              <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:929">
+                                <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:930">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:931">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:932">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid h-[72.667px] left-0 top-[363.33px] w-[863.771px]" data-name="Table Row" data-node-id="9:933">
+                          <div className="absolute h-[72.667px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:934">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:935">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:936" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:937">
+                                    AM
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex-[1_0_0] h-[20px] min-h-px min-w-px relative" data-name="Paragraph" data-node-id="9:938">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:939">
+                                    Antoine Moreau
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:940">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:941">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:942">
+                                Marketing Pro
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:943">
+                            <div className="absolute bg-[#f0fdf4] border-[#b9f8cf] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[49.354px]" data-name="Text" data-node-id="9:944">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#008236] text-[12px] top-[3px]" data-node-id="9:945">
+                                Actif
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:946">
+                            <div className="absolute content-stretch flex gap-[8px] h-[25.333px] items-center left-[24px] top-[23.67px] w-[165.854px]" data-name="Container" data-node-id="9:947">
+                              <div className="h-[20px] relative shrink-0 w-[73.823px]" data-name="Paragraph" data-node-id="9:948">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:949">
+                                    05 Fév 2026
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="bg-[#fff7ed] border-[#ffd6a7] border-[0.667px] border-solid h-[25.333px] relative rounded-[4px] shrink-0 w-[84.031px]" data-name="Text" data-node-id="9:950">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <div className="absolute left-[8px] size-[12px] top-[6px]" data-name="Icon" data-node-id="9:951">
+                                    <img alt="" className="block max-w-none size-full" src={imgIcon11} />
+                                  </div>
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[24px] text-[#ca3500] text-[12px] top-[3px]" data-node-id="9:955">
+                                    Imminent
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:956">
+                            <div className="absolute content-stretch flex gap-[8px] h-[32px] items-center left-[24px] top-[20.33px] w-[116.771px]" data-name="Container" data-node-id="9:957">
+                              <div className="bg-[#ffedd4] border-[#ffd6a7] border-[0.667px] border-solid h-[27px] relative rounded-[10px] shrink-0 w-[76.771px]" data-name="Button" data-node-id="9:958">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <div className="absolute left-[12px] size-[16px] top-[5.67px]" data-name="Icon" data-node-id="9:959">
+                                    <img alt="" className="block max-w-none size-full" src={imgIcon12} />
+                                  </div>
+                                  <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[48px] text-[#ca3500] text-[12px] text-center top-[3px]" data-node-id="9:963">
+                                    Alerte
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="relative rounded-[10px] shrink-0 size-[32px]" data-name="Button" data-node-id="9:964">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex flex-col items-start pt-[8px] px-[8px] relative size-full">
+                                  <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:965">
+                                    <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:966">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:967">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                    <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:968">
+                                      <div className="absolute inset-[-50%]">
+                                        <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute border-[#e5e7eb] border-b-[0.667px] border-solid h-[72.667px] left-0 top-[436px] w-[863.771px]" data-name="Table Row" data-node-id="9:969">
+                          <div className="absolute h-[72.667px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:970">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:971">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:972" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:973">
+                                    JR
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="h-[20px] relative shrink-0 w-[89.198px]" data-name="Paragraph" data-node-id="9:974">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:975">
+                                    Julie Rousseau
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:976">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:977">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:978">
+                                Tech Ventures
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:979">
+                            <div className="absolute bg-[#f0fdf4] border-[#b9f8cf] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[49.354px]" data-name="Text" data-node-id="9:980">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#008236] text-[12px] top-[3px]" data-node-id="9:981">
+                                Actif
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:982">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[77.188px]" data-name="Paragraph" data-node-id="9:983">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:984">
+                                25 Juin 2026
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.667px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:985">
+                            <div className="absolute content-stretch flex flex-col items-start left-[24px] pt-[8px] px-[8px] rounded-[10px] size-[32px] top-[20.33px]" data-name="Button" data-node-id="9:986">
+                              <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:987">
+                                <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:988">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:989">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:990">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="absolute h-[72.333px] left-0 top-[508.67px] w-[863.771px]" data-name="Table Row" data-node-id="9:991">
+                          <div className="absolute h-[72.333px] left-0 top-0 w-[200.385px]" data-name="Table Cell" data-node-id="9:992">
+                            <div className="absolute content-stretch flex gap-[12px] h-[40px] items-center left-[24px] top-[16.33px] w-[152.385px]" data-name="Container" data-node-id="9:993">
+                              <div className="relative rounded-[22369600px] shrink-0 size-[40px]" data-name="Container" data-node-id="9:994" style={{ backgroundImage: "linear-gradient(135deg, rgb(81, 162, 255) 0%, rgb(21, 93, 252) 100%)" }}>
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex items-center justify-center relative size-full">
+                                  <p className="font-['Arimo:Regular',sans-serif] font-normal leading-[20px] relative shrink-0 text-[14px] text-white" data-node-id="9:995">
+                                    PG
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="h-[20px] relative shrink-0 w-[84.542px]" data-name="Paragraph" data-node-id="9:996">
+                                <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                                  <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:997">
+                                    Pierre Garnier
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.333px] left-[200.39px] top-0 w-[166.646px]" data-name="Table Cell" data-node-id="9:998">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[118.646px]" data-name="Paragraph" data-node-id="9:999">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:1000">
+                                Business Solutions
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.333px] left-[367.03px] top-0 w-[118.115px]" data-name="Table Cell" data-node-id="9:1001">
+                            <div className="absolute bg-[#eff6ff] border-[#bedbff] border-[0.667px] border-solid h-[25.333px] left-[24px] rounded-[22369600px] top-[24.33px] w-[70.115px]" data-name="Text" data-node-id="9:1002">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[16px] left-[12px] text-[#1447e6] text-[12px] top-[3px]" data-node-id="9:1003">
+                                En cours
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.333px] left-[485.15px] top-0 w-[213.854px]" data-name="Table Cell" data-node-id="9:1004">
+                            <div className="absolute h-[20px] left-[24px] top-[26.33px] w-[83.458px]" data-name="Paragraph" data-node-id="9:1005">
+                              <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#101828] text-[14px] top-[-1.33px]" data-node-id="9:1006">
+                                18 Mars 2026
+                              </p>
+                            </div>
+                          </div>
+                          <div className="absolute h-[72.333px] left-[699px] top-0 w-[164.771px]" data-name="Table Cell" data-node-id="9:1007">
+                            <div className="absolute content-stretch flex flex-col items-start left-[24px] pt-[8px] px-[8px] rounded-[10px] size-[32px] top-[20.33px]" data-name="Button" data-node-id="9:1008">
+                              <div className="h-[16px] overflow-clip relative shrink-0 w-full" data-name="Icon" data-node-id="9:1009">
+                                <div className="absolute inset-[45.83%]" data-name="Vector" data-node-id="9:1010">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-3/4 left-[45.83%] right-[45.83%] top-[16.67%]" data-name="Vector" data-node-id="9:1011">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-[16.67%] left-[45.83%] right-[45.83%] top-3/4" data-name="Vector" data-node-id="9:1012">
+                                  <div className="absolute inset-[-50%]">
+                                    <img alt="" className="block max-w-none size-full" src={imgVector7} />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-[#e5e7eb] border-solid border-t-[0.667px] content-stretch flex h-[62px] items-center justify-between pt-[0.667px] px-[24px] relative shrink-0 w-full" data-name="Container" data-node-id="9:1013">
+                    <div className="h-[20px] relative shrink-0 w-[152.135px]" data-name="Paragraph" data-node-id="9:1014">
+                      <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                        <p className="absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-0 text-[#4a5565] text-[14px] top-[-1.33px] w-[153px] whitespace-pre-wrap" data-node-id="9:1015">
+                          Affichage de 8 employés
+                        </p>
+                      </div>
+                    </div>
+                    <div className="h-[29.333px] relative shrink-0 w-[164.635px]" data-name="Container" data-node-id="9:1016">
+                      <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[8px] items-start relative size-full">
+                        <div className="border-[#d1d5dc] border-[0.667px] border-solid h-[29.333px] relative rounded-[10px] shrink-0 w-[87.385px]" data-name="Button" data-node-id="9:1017">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[43px] text-[#4a5565] text-[14px] text-center top-[2.67px]" data-node-id="9:1018">
+                              Précédent
+                            </p>
+                          </div>
+                        </div>
+                        <div className="bg-[#155dfc] h-[29.333px] relative rounded-[10px] shrink-0 w-[69.25px]" data-name="Button" data-node-id="9:1019">
+                          <div className="bg-clip-padding border-0 border-[transparent] border-solid relative size-full">
+                            <p className="-translate-x-1/2 absolute font-['Arimo:Regular',sans-serif] font-normal leading-[20px] left-[35.5px] text-[14px] text-center text-white top-[3.33px]" data-node-id="9:1020">
+                              Suivant
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+### Content Block 2 (Text)
+SUPER CRITICAL: The generated React+Tailwind code MUST be converted to match the target project's technology stack and styling system.
+1. Analyze the target codebase to identify: technology stack, styling approach, component patterns, and design tokens
+2. Convert React syntax to the target framework/library
+3. Transform all Tailwind classes to the target styling system while preserving exact visual design
+4. Follow the project's existing patterns and conventions
+DO NOT install any Tailwind as a dependency unless the user instructs you to do so.
+
+
+### Content Block 3 (Text)
+Node ids have been added to the code as data attributes, e.g. `data-node-id="1:2"`.
+
+### Content Block 4 (Text)
+Images and SVGs will be stored as constants, e.g. const image = 'https://www.figma.com/api/mcp/asset/550e8400-e29b-41d4-a716-446655440000'. These constants will be used in the code as the source for the image, ex: <img src={image} />. Image assets are stored on a remote server for 7 days and can be fetched using the provided URLs until they expire.
+
+### Content Block 5 (Text)
+IMPORTANT: After you call this tool, you MUST call get_screenshot to get a screenshot of the node for context.
+
+</mcp_external_output>
