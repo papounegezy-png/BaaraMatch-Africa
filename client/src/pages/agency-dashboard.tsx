@@ -1,19 +1,73 @@
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
-import { AgencySidebar } from "@/components/agency-sidebar";
+import { useEffect } from "react";
 import { AgencyKPICards } from "@/components/agency-kpi-cards";
 import { ActiveContractsTable } from "@/components/active-contracts-table";
 import { CandidateSearchDashboard } from "@/components/candidate-search-dashboard";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Bell, Search } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Users, 
+  Building2, 
+  Briefcase, 
+  FileText, 
+  Receipt, 
+  BarChart3, 
+  Shield, 
+  MessageCircle,
+  Settings,
+  HelpCircle,
+  Construction
+} from "lucide-react";
+
+function ComingSoonPage({ title, icon: Icon, description }: { title: string; icon: React.ElementType; description: string }) {
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h1>
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
+            <Icon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
+            {title}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mb-4">
+            {description}
+          </p>
+          <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+            <Construction className="h-4 w-4" />
+            <span>En cours de développement</span>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function DashboardHome() {
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+        Tableau de bord
+      </h1>
+      <AgencyKPICards />
+      <ActiveContractsTable />
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Recherche de Candidats IA</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Filtrage intelligent par compétences, expérience et disponibilité
+          </p>
+        </div>
+        <CandidateSearchDashboard />
+      </div>
+    </div>
+  );
+}
 
 export default function AgencyDashboardPage() {
   const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [location, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -23,7 +77,7 @@ export default function AgencyDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
@@ -33,73 +87,123 @@ export default function AgencyDashboardPage() {
     return null;
   }
 
-  const sidebarStyle = {
-    "--sidebar-width": "16rem",
-    "--sidebar-width-icon": "3.5rem",
-  } as React.CSSProperties;
+  const getPageContent = () => {
+    if (location === "/agency/dashboard" || location === "/agency") {
+      return <DashboardHome />;
+    }
+    
+    if (location.startsWith("/agency/candidates")) {
+      return (
+        <ComingSoonPage 
+          title="Gestion des Candidats" 
+          icon={Users}
+          description="Base de données des candidats, création de profils, CV & pièces jointes, compétences, disponibilités et historique des placements."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/companies")) {
+      return (
+        <ComingSoonPage 
+          title="Gestion des Entreprises" 
+          icon={Building2}
+          description="Fiches entreprises, contacts RH, besoins en recrutement, contrats & accords cadres."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/missions")) {
+      return (
+        <ComingSoonPage 
+          title="Offres & Missions" 
+          icon={Briefcase}
+          description="Création d'offres d'emploi, publication interne/externe, suivi des candidatures et affectation des candidats."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/contracts")) {
+      return (
+        <ComingSoonPage 
+          title="Placements & Contrats" 
+          icon={FileText}
+          description="Placements en cours, contrats de travail, dates de début & fin, suivi des renouvellements et évaluations."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/billing")) {
+      return (
+        <ComingSoonPage 
+          title="Paie & Facturation" 
+          icon={Receipt}
+          description="Facturation clients, rémunération candidats, commissions agence et export comptable."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/hr")) {
+      return (
+        <ComingSoonPage 
+          title="Suivi RH & Conformité" 
+          icon={Shield}
+          description="Dossiers administratifs, pièces légales, conformité légale & sociale et suivi des performances."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/crm")) {
+      return (
+        <ComingSoonPage 
+          title="CRM & Relations Clients" 
+          icon={MessageCircle}
+          description="Suivi des échanges, appels/emails/réunions, relances automatiques et satisfaction client."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/analytics")) {
+      return (
+        <ComingSoonPage 
+          title="Rapports & Statistiques" 
+          icon={BarChart3}
+          description="Rapports de placement, performance par secteur, taux de satisfaction et export PDF/Excel."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/settings")) {
+      return (
+        <ComingSoonPage 
+          title="Paramètres & Administration" 
+          icon={Settings}
+          description="Utilisateurs & rôles, droits d'accès, paramétrage des services et paramètres financiers."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/security")) {
+      return (
+        <ComingSoonPage 
+          title="Sécurité & Audit" 
+          icon={Shield}
+          description="Historique des actions, logs utilisateurs, sauvegarde des données et RGPD."
+        />
+      );
+    }
+    
+    if (location.startsWith("/agency/support")) {
+      return (
+        <ComingSoonPage 
+          title="Support & Assistance" 
+          icon={HelpCircle}
+          description="Tickets support, FAQ et guides utilisateurs."
+        />
+      );
+    }
+    
+    return <DashboardHome />;
+  };
 
-  return (
-    <SidebarProvider style={sidebarStyle}>
-      <div className="flex min-h-screen w-full bg-gray-50 dark:bg-gray-900">
-        <AgencySidebar />
-        
-        <SidebarInset className="flex flex-col min-h-screen overflow-hidden">
-          <header className="sticky top-0 z-40 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 lg:px-8">
-            <div className="flex items-center justify-between h-[74px] gap-4">
-              <div className="flex items-center gap-4 flex-1">
-                <SidebarTrigger className="-ml-2 lg:hidden" data-testid="button-toggle-sidebar" />
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Rechercher un candidat, une mission..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-10 bg-white dark:bg-gray-950 border-gray-300 dark:border-gray-700 rounded-xl text-base"
-                    data-testid="input-search"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="relative h-9 w-9 rounded-xl"
-                  data-testid="button-notifications"
-                >
-                  <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-                </Button>
-              </div>
-            </div>
-          </header>
-
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-6 lg:p-8 space-y-6 max-w-[1400px]">
-              <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">
-                Tableau de bord
-              </h1>
-
-              <AgencyKPICards />
-
-              <ActiveContractsTable />
-
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Recherche de Candidats IA</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Filtrage intelligent par compétences, expérience et disponibilité
-                    </p>
-                  </div>
-                </div>
-                <CandidateSearchDashboard />
-              </div>
-            </div>
-          </div>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
-  );
+  return getPageContent();
 }

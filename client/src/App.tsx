@@ -18,6 +18,7 @@ import AgenciesPage from "@/pages/agencies";
 import AgencyDashboardPage from "@/pages/agency-dashboard";
 import AgencyProfilePage from "@/pages/agency-profile";
 import AgencyJobsPage from "@/pages/agency-jobs";
+import { AgencyLayout } from "@/components/agency-layout";
 import CandidateJobsPage from "@/pages/candidate-jobs";
 import JobDetailPage from "@/pages/job-detail";
 import NotificationsPage from "@/pages/notifications";
@@ -61,10 +62,35 @@ function PublicRouter() {
 
 function AgencyRouter() {
   return (
-    <Switch>
-      <Route path="/agency/dashboard" component={AgencyDashboardPage} />
-      <Route path="/agency/:section" component={AgencyDashboardPage} />
-    </Switch>
+    <AgencyLayout>
+      <Switch>
+        <Route path="/agency/dashboard" component={AgencyDashboardPage} />
+        <Route path="/agency/dashboard/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/candidates" component={AgencyDashboardPage} />
+        <Route path="/agency/candidates/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/companies" component={AgencyDashboardPage} />
+        <Route path="/agency/companies/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/missions" component={AgencyDashboardPage} />
+        <Route path="/agency/missions/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/contracts" component={AgencyDashboardPage} />
+        <Route path="/agency/contracts/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/billing" component={AgencyDashboardPage} />
+        <Route path="/agency/billing/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/hr" component={AgencyDashboardPage} />
+        <Route path="/agency/hr/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/crm" component={AgencyDashboardPage} />
+        <Route path="/agency/crm/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/analytics" component={AgencyDashboardPage} />
+        <Route path="/agency/analytics/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/settings" component={AgencyDashboardPage} />
+        <Route path="/agency/settings/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/security" component={AgencyDashboardPage} />
+        <Route path="/agency/security/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/support" component={AgencyDashboardPage} />
+        <Route path="/agency/support/:subsection" component={AgencyDashboardPage} />
+        <Route path="/agency/:section" component={AgencyDashboardPage} />
+      </Switch>
+    </AgencyLayout>
   );
 }
 
