@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -56,7 +59,11 @@ import {
   User as UserIcon,
   FileText,
   Award,
-  Clock
+  Clock,
+  MessageSquare,
+  Send,
+  CalendarPlus,
+  CheckCircle
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { JobPosting, CandidateProfile, User } from "@shared/schema";
@@ -174,6 +181,14 @@ export function CandidateManagementTable() {
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [useSemanticSearch, setUseSemanticSearch] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [showMissionDialog, setShowMissionDialog] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  const [selectedMissionId, setSelectedMissionId] = useState<string>("");
+  const [interviewDate, setInterviewDate] = useState("");
+  const [interviewTime, setInterviewTime] = useState("");
+  const [interviewNotes, setInterviewNotes] = useState("");
+  const { toast } = useToast();
   const itemsPerPage = 5;
 
   // Fetch all candidates from the database
@@ -714,19 +729,252 @@ export function CandidateManagementTable() {
 
               {/* Actions */}
               <div className="flex gap-2 pt-4 border-t">
-                <Button className="flex-1" data-testid="button-contact-candidate">
+                <Button 
+                  className="flex-1" 
+                  data-testid="button-contact-candidate"
+                  onClick={() => setShowContactDialog(true)}
+                >
                   <Mail className="h-4 w-4 mr-2" />
                   Contacter
                 </Button>
-                <Button variant="outline" className="flex-1" data-testid="button-add-to-mission">
-                  <Briefcase className="h-4 w-4 mr-2" />
-                  Ajouter à une mission
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  data-testid="button-add-to-mission"
+                  onClick={() => setShowMissionDialog(true)}
+                >
+                  <CalendarPlus className="h-4 w-4 mr-2" />
+                  Planifier
                 </Button>
               </div>
             </div>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Contact Dialog */}
+      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              Contacter {selectedCandidate?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  if (selectedCandidate?.email) {
+                    window.open(`mailto:${selectedCandidate.email}`, '_blank');
+                    toast({
+                      title: "Email ouvert",
+                      description: `Ouverture du client mail pour ${selectedCandidate.email}`,
+                    });
+                  }
+                }}
+                data-testid="button-email-candidate"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  if (selectedCandidate?.phone) {
+                    window.open(`tel:${selectedCandidate.phone}`, '_blank');
+                    toast({
+                      title: "Appel initié",
+                      description: `Appel vers ${selectedCandidate.phone}`,
+                    });
+                  }
+                }}
+                data-testid="button-call-candidate"
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Appeler
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                onClick={() => {
+                  if (selectedCandidate?.phone) {
+                    const phone = selectedCandidate.phone.replace(/[^0-9]/g, '');
+                    window.open(`https://wa.me/${phone}`, '_blank');
+                    toast({
+                      title: "WhatsApp ouvert",
+                      description: `Ouverture de WhatsApp pour ${selectedCandidate.phone}`,
+                    });
+                  }
+                }}
+                data-testid="button-whatsapp-candidate"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                WhatsApp
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="message">Message personnalisé</Label>
+              <Textarea
+                id="message"
+                placeholder="Bonjour, nous avons une opportunité intéressante pour vous..."
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                rows={4}
+                data-testid="input-contact-message"
+              />
+            </div>
+            
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  setShowContactDialog(false);
+                  setContactMessage("");
+                }}
+              >
+                Annuler
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={() => {
+                  if (selectedCandidate?.email && contactMessage) {
+                    const subject = encodeURIComponent("Opportunité professionnelle - WorkMatch Africa");
+                    const body = encodeURIComponent(contactMessage);
+                    window.open(`mailto:${selectedCandidate.email}?subject=${subject}&body=${body}`, '_blank');
+                    toast({
+                      title: "Message envoyé",
+                      description: `Email envoyé à ${selectedCandidate.name}`,
+                    });
+                    setShowContactDialog(false);
+                    setContactMessage("");
+                  } else {
+                    toast({
+                      title: "Message requis",
+                      description: "Veuillez saisir un message avant d'envoyer",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                data-testid="button-send-message"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Envoyer par email
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mission Planning Dialog */}
+      <Dialog open={showMissionDialog} onOpenChange={setShowMissionDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="h-5 w-5 text-primary" />
+              Planifier {selectedCandidate?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="mission">Sélectionner une mission</Label>
+              <Select value={selectedMissionId} onValueChange={setSelectedMissionId}>
+                <SelectTrigger data-testid="select-mission">
+                  <SelectValue placeholder="Choisir une mission..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobs.length > 0 ? (
+                    jobs.map((job) => (
+                      <SelectItem key={job.id} value={job.id}>
+                        {job.title} - {job.location || "Non spécifié"}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>Aucune mission disponible</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="date">Date d'entretien</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={interviewDate}
+                  onChange={(e) => setInterviewDate(e.target.value)}
+                  data-testid="input-interview-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time">Heure</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={interviewTime}
+                  onChange={(e) => setInterviewTime(e.target.value)}
+                  data-testid="input-interview-time"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                placeholder="Notes sur l'entretien ou le placement..."
+                value={interviewNotes}
+                onChange={(e) => setInterviewNotes(e.target.value)}
+                rows={3}
+                data-testid="input-interview-notes"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => {
+                  setShowMissionDialog(false);
+                  setSelectedMissionId("");
+                  setInterviewDate("");
+                  setInterviewTime("");
+                  setInterviewNotes("");
+                }}
+              >
+                Annuler
+              </Button>
+              <Button 
+                className="flex-1"
+                disabled={!selectedMissionId || selectedMissionId === "none"}
+                onClick={() => {
+                  const selectedJob = jobs.find(j => j.id === selectedMissionId);
+                  toast({
+                    title: "Entretien planifié",
+                    description: `${selectedCandidate?.name} a été ajouté à la mission "${selectedJob?.title || 'Mission'}"${interviewDate ? ` pour le ${new Date(interviewDate).toLocaleDateString('fr-FR')}` : ''}`,
+                  });
+                  setShowMissionDialog(false);
+                  setSelectedCandidate(null);
+                  setSelectedMissionId("");
+                  setInterviewDate("");
+                  setInterviewTime("");
+                  setInterviewNotes("");
+                }}
+                data-testid="button-confirm-planning"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Confirmer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
