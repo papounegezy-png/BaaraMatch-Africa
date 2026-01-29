@@ -32,13 +32,20 @@ export default function LoginPage() {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (user) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({
         title: "Connexion réussie",
         description: "Bienvenue sur BaaraMatch Africa !",
       });
-      setLocation("/dashboard");
+      // Redirect based on user type
+      if (user.userType === "agency") {
+        setLocation("/agency/dashboard");
+      } else if (user.userType === "company") {
+        setLocation("/company/dashboard");
+      } else {
+        setLocation("/dashboard");
+      }
     },
     onError: (error: Error) => {
       toast({
