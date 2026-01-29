@@ -56,6 +56,7 @@ export interface IStorage {
   getCompanyProfile(userId: string): Promise<CompanyProfile | undefined>;
   createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
   updateCompanyProfile(userId: string, updates: Partial<CompanyProfile>): Promise<CompanyProfile | undefined>;
+  getAllCompanies(): Promise<(User & { profile?: CompanyProfile })[]>;
   
   getJobPosting(id: string): Promise<JobPosting | undefined>;
   getAllJobPostings(): Promise<JobPosting[]>;
@@ -227,6 +228,21 @@ export class DatabaseStorage implements IStorage {
       .where(eq(companyProfiles.userId, userId))
       .returning();
     return profile || undefined;
+  }
+
+  async getAllCompanies(): Promise<(User & { profile?: CompanyProfile })[]> {
+    const companyUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.userType, "company"));
+    
+    const result = await Promise.all(
+      companyUsers.map(async (user) => {
+        const profile = await this.getCompanyProfile(user.id);
+        return { ...user, profile };
+      })
+    );
+    return result;
   }
 
   async getJobPosting(id: string): Promise<JobPosting | undefined> {

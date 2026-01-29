@@ -325,6 +325,17 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/companies", async (req, res) => {
+    try {
+      const companies = await storage.getAllCompanies();
+      const companiesWithoutPasswords = companies.map(({ password: _, ...rest }) => rest);
+      res.json(companiesWithoutPasswords);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération des entreprises" });
+    }
+  });
+
   app.get("/api/profile", async (req, res) => {
     try {
       if (!req.session.userId) {

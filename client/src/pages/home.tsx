@@ -1,8 +1,10 @@
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Briefcase,
   Users,
@@ -16,7 +18,10 @@ import {
   CheckCircle2,
   Globe,
   Handshake,
+  Star,
+  BadgeCheck,
 } from "lucide-react";
+import type { User, AgencyProfile, CompanyProfile } from "@shared/schema";
 
 const stats = [
   { value: "15,000+", label: "Candidats inscrits", icon: Users },
@@ -106,7 +111,21 @@ const recentJobs = [
   },
 ];
 
+type AgencyWithProfile = User & { profile?: AgencyProfile };
+type CompanyWithProfile = User & { profile?: CompanyProfile };
+
 export default function HomePage() {
+  const { data: agencies = [] } = useQuery<AgencyWithProfile[]>({
+    queryKey: ["/api/agencies"],
+  });
+
+  const { data: companies = [] } = useQuery<CompanyWithProfile[]>({
+    queryKey: ["/api/companies"],
+  });
+
+  const featuredAgencies = agencies.slice(0, 4);
+  const featuredCompanies = companies.slice(0, 4);
+
   return (
     <div className="flex flex-col min-h-screen">
       <section className="relative overflow-hidden bg-gradient-to-br from-background via-card to-muted py-20 md:py-32">
@@ -271,6 +290,146 @@ export default function HomePage() {
             <Link href="/jobs">
               <Button size="lg" variant="outline" className="gap-2" data-testid="button-view-all-jobs">
                 Voir toutes les offres
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Agencies Section */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold" data-testid="text-agencies-title">
+              Agences de Placement Partenaires
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Découvrez nos agences de placement certifiées qui vous accompagnent dans votre recherche d'emploi.
+            </p>
+          </div>
+
+          {featuredAgencies.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredAgencies.map((agency) => (
+                <Card key={agency.id} className="hover-elevate text-center" data-testid={`card-agency-${agency.id}`}>
+                  <CardContent className="p-6 space-y-4">
+                    <Avatar className="h-20 w-20 mx-auto">
+                      <AvatarImage src={agency.avatarUrl || undefined} alt={agency.fullName} />
+                      <AvatarFallback className="bg-secondary/20 text-secondary text-xl">
+                        {agency.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold flex items-center justify-center gap-1">
+                        {agency.fullName}
+                        {agency.isVerified && <BadgeCheck className="h-4 w-4 text-accent" />}
+                      </h3>
+                      {agency.profile?.specializations && (
+                        <p className="text-sm text-muted-foreground">
+                          {agency.profile.specializations.slice(0, 2).join(' • ')}
+                        </p>
+                      )}
+                      {(agency.city || agency.country) && (
+                        <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {[agency.city, agency.country].filter(Boolean).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                    {agency.profile?.verificationStatus === "verified" && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Shield className="h-3 w-3 mr-1" />
+                        APDP Vérifié
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="max-w-md mx-auto">
+              <CardContent className="p-8 text-center">
+                <Handshake className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Aucune agence de placement disponible pour le moment.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="text-center mt-8">
+            <Link href="/agencies">
+              <Button size="lg" variant="outline" className="gap-2" data-testid="button-view-all-agencies">
+                Voir toutes les agences
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Companies Section */}
+      <section className="py-16 md:py-24 bg-muted/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center space-y-4 mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold" data-testid="text-companies-title">
+              Entreprises Partenaires
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Rejoignez les entreprises qui recrutent les meilleurs talents africains.
+            </p>
+          </div>
+
+          {featuredCompanies.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredCompanies.map((company) => (
+                <Card key={company.id} className="hover-elevate text-center" data-testid={`card-company-${company.id}`}>
+                  <CardContent className="p-6 space-y-4">
+                    <Avatar className="h-20 w-20 mx-auto">
+                      <AvatarImage src={company.avatarUrl || undefined} alt={company.fullName} />
+                      <AvatarFallback className="bg-accent/20 text-accent text-xl">
+                        {company.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                      <h3 className="font-semibold flex items-center justify-center gap-1">
+                        {company.fullName}
+                        {company.isVerified && <BadgeCheck className="h-4 w-4 text-accent" />}
+                      </h3>
+                      {company.profile?.industry && (
+                        <Badge variant="outline" className="text-xs">
+                          {company.profile.industry}
+                        </Badge>
+                      )}
+                      {(company.city || company.country) && (
+                        <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {[company.city, company.country].filter(Boolean).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                    {company.profile?.employeeCount && (
+                      <p className="text-xs text-muted-foreground">
+                        <Users className="h-3 w-3 inline mr-1" />
+                        {company.profile.employeeCount} employés
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="max-w-md mx-auto">
+              <CardContent className="p-8 text-center">
+                <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Aucune entreprise partenaire disponible pour le moment.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="text-center mt-8">
+            <Link href="/companies">
+              <Button size="lg" variant="outline" className="gap-2" data-testid="button-view-all-companies">
+                Voir toutes les entreprises
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
