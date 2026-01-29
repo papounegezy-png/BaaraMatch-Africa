@@ -186,8 +186,8 @@ export default function JobDetailPage() {
             <CardContent className="p-6 space-y-4">
               {job.salaryRange && (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <DollarSign className="h-5 w-5 text-accent" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Salaire</p>
@@ -197,8 +197,8 @@ export default function JobDetailPage() {
               )}
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Briefcase className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Type de contrat</p>
@@ -207,8 +207,8 @@ export default function JobDetailPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <MapPin className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                  <MapPin className="h-5 w-5 text-secondary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Localisation</p>
@@ -217,8 +217,8 @@ export default function JobDetailPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Publié</p>
