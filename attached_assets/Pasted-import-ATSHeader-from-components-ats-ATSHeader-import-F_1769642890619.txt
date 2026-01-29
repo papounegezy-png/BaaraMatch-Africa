@@ -1,0 +1,224 @@
+import { ATSHeader } from './components/ats/ATSHeader';
+import { FilterPanel } from './components/ats/FilterPanel';
+import { CandidateList } from './components/ats/CandidateList';
+import { CandidateDetails } from './components/ats/CandidateDetails';
+import { useState } from 'react';
+
+export interface Candidate {
+  id: number;
+  name: string;
+  title: string;
+  location: string;
+  experience: string;
+  matchScore: number;
+  avatar: string;
+  availability: 'Immédiate' | '1 mois' | '2-3 mois';
+  salary: string;
+  skills: { name: string; level: number }[];
+  summary: string;
+  voiceCV: string;
+  ratings: {
+    manager: number | null;
+    candidate: number | null;
+  };
+  lastActivity: string;
+  phone: string;
+  email: string;
+  languages: string[];
+}
+
+export const candidates: Candidate[] = [
+  {
+    id: 1,
+    name: 'Sophie Marchand',
+    title: 'Développeur Full Stack Senior',
+    location: 'Paris, France',
+    experience: '8 ans',
+    matchScore: 96,
+    avatar: 'SM',
+    availability: 'Immédiate',
+    salary: '65-75K €',
+    skills: [
+      { name: 'React', level: 95 },
+      { name: 'Node.js', level: 90 },
+      { name: 'TypeScript', level: 88 },
+      { name: 'PostgreSQL', level: 85 },
+      { name: 'AWS', level: 80 },
+    ],
+    summary: "Développeuse full stack passionnée avec 8 ans d'expérience dans la création d'applications web scalables. Expert en React et Node.js, avec une forte compétence en architecture microservices. A dirigé plusieurs équipes de développement et contribué à des projets open source majeurs.",
+    voiceCV: 'https://example.com/voice/sophie-marchand.mp3',
+    ratings: { manager: 4.5, candidate: null },
+    lastActivity: 'Il y a 2 heures',
+    phone: '+33 6 12 34 56 78',
+    email: 'sophie.marchand@email.com',
+    languages: ['Français (Natif)', 'Anglais (C1)', 'Espagnol (B1)'],
+  },
+  {
+    id: 2,
+    name: 'Thomas Dubois',
+    title: 'Data Scientist',
+    location: 'Lyon, France',
+    experience: '6 ans',
+    matchScore: 92,
+    avatar: 'TD',
+    availability: 'Immédiate',
+    salary: '60-70K €',
+    skills: [
+      { name: 'Python', level: 95 },
+      { name: 'Machine Learning', level: 92 },
+      { name: 'TensorFlow', level: 88 },
+      { name: 'SQL', level: 90 },
+      { name: 'Data Visualization', level: 85 },
+    ],
+    summary: "Data scientist spécialisé en machine learning avec 6 ans d'expérience. Expert en modélisation prédictive et traitement du langage naturel. A développé des modèles de recommandation pour des plateformes e-commerce générant +20% de conversion.",
+    voiceCV: 'https://example.com/voice/thomas-dubois.mp3',
+    ratings: { manager: null, candidate: 4.8 },
+    lastActivity: 'Il y a 5 heures',
+    phone: '+33 6 23 45 67 89',
+    email: 'thomas.dubois@email.com',
+    languages: ['Français (Natif)', 'Anglais (C2)'],
+  },
+  {
+    id: 3,
+    name: 'Marie Laurent',
+    title: 'Product Manager',
+    location: 'Bordeaux, France',
+    experience: '7 ans',
+    matchScore: 89,
+    avatar: 'ML',
+    availability: '1 mois',
+    salary: '70-85K €',
+    skills: [
+      { name: 'Product Strategy', level: 93 },
+      { name: 'Agile/Scrum', level: 90 },
+      { name: 'Data Analysis', level: 87 },
+      { name: 'Stakeholder Management', level: 92 },
+      { name: 'UX Research', level: 85 },
+    ],
+    summary: "Product Manager expérimentée avec une forte orientation data. 7 ans d'expérience à piloter des produits tech de l'idéation au lancement. Track record prouvé avec 3 lancements de produits réussis générant +50M€ de revenus cumulés.",
+    voiceCV: 'https://example.com/voice/marie-laurent.mp3',
+    ratings: { manager: 4.2, candidate: 4.5 },
+    lastActivity: 'Il y a 1 jour',
+    phone: '+33 6 34 56 78 90',
+    email: 'marie.laurent@email.com',
+    languages: ['Français (Natif)', 'Anglais (C1)', 'Allemand (B2)'],
+  },
+  {
+    id: 4,
+    name: 'Alexandre Martin',
+    title: 'DevOps Engineer',
+    location: 'Paris, France',
+    experience: '5 ans',
+    matchScore: 87,
+    avatar: 'AM',
+    availability: 'Immédiate',
+    salary: '55-65K €',
+    skills: [
+      { name: 'Kubernetes', level: 92 },
+      { name: 'Docker', level: 95 },
+      { name: 'CI/CD', level: 90 },
+      { name: 'Terraform', level: 88 },
+      { name: 'AWS', level: 85 },
+    ],
+    summary: "Ingénieur DevOps avec 5 ans d'expérience en automatisation et infrastructure cloud. Expert en Kubernetes et Docker. A réduit les temps de déploiement de 70% et amélioré la disponibilité à 99.9% pour plusieurs clients enterprise.",
+    voiceCV: 'https://example.com/voice/alexandre-martin.mp3',
+    ratings: { manager: null, candidate: null },
+    lastActivity: 'Il y a 3 heures',
+    phone: '+33 6 45 67 89 01',
+    email: 'alexandre.martin@email.com',
+    languages: ['Français (Natif)', 'Anglais (B2)'],
+  },
+  {
+    id: 5,
+    name: 'Julie Rousseau',
+    title: 'UX/UI Designer Senior',
+    location: 'Marseille, France',
+    experience: '6 ans',
+    matchScore: 85,
+    avatar: 'JR',
+    availability: '2-3 mois',
+    salary: '50-60K €',
+    skills: [
+      { name: 'Figma', level: 95 },
+      { name: 'Design System', level: 92 },
+      { name: 'User Research', level: 88 },
+      { name: 'Prototyping', level: 90 },
+      { name: 'Accessibility', level: 85 },
+    ],
+    summary: "Designer UX/UI senior avec 6 ans d'expérience dans la création d'interfaces intuitives et accessibles. Spécialisée dans les design systems et l'atomic design. A travaillé sur des applications utilisées par +2M d'utilisateurs.",
+    voiceCV: 'https://example.com/voice/julie-rousseau.mp3',
+    ratings: { manager: 4.7, candidate: 4.3 },
+    lastActivity: 'Il y a 6 heures',
+    phone: '+33 6 56 78 90 12',
+    email: 'julie.rousseau@email.com',
+    languages: ['Français (Natif)', 'Anglais (C1)', 'Italien (B1)'],
+  },
+  {
+    id: 6,
+    name: 'Nicolas Bernard',
+    title: 'Tech Lead Backend',
+    location: 'Nantes, France',
+    experience: '9 ans',
+    matchScore: 84,
+    avatar: 'NB',
+    availability: '1 mois',
+    salary: '70-80K €',
+    skills: [
+      { name: 'Java', level: 95 },
+      { name: 'Spring Boot', level: 93 },
+      { name: 'Microservices', level: 90 },
+      { name: 'MongoDB', level: 87 },
+      { name: 'Kafka', level: 85 },
+    ],
+    summary: "Tech Lead Backend avec 9 ans d'expérience en architecture de systèmes distribués. Expert Java/Spring Boot. A conçu et implémenté des systèmes gérant +100K requêtes/seconde. Mentor pour 15+ développeurs juniors.",
+    voiceCV: 'https://example.com/voice/nicolas-bernard.mp3',
+    ratings: { manager: 4.8, candidate: null },
+    lastActivity: 'Il y a 4 heures',
+    phone: '+33 6 67 89 01 23',
+    email: 'nicolas.bernard@email.com',
+    languages: ['Français (Natif)', 'Anglais (B2)'],
+  },
+];
+
+export default function App() {
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [filters, setFilters] = useState({
+    skills: [] as string[],
+    experience: '',
+    availability: '',
+    minMatchScore: 0,
+  });
+
+  const filteredCandidates = candidates.filter((candidate) => {
+    if (filters.skills.length > 0) {
+      const hasSkill = filters.skills.some((skill) =>
+        candidate.skills.some((s) => s.name.toLowerCase().includes(skill.toLowerCase()))
+      );
+      if (!hasSkill) return false;
+    }
+    if (filters.experience && candidate.experience !== filters.experience) return false;
+    if (filters.availability && candidate.availability !== filters.availability) return false;
+    if (candidate.matchScore < filters.minMatchScore) return false;
+    return true;
+  });
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      <ATSHeader candidateCount={filteredCandidates.length} />
+      <div className="flex-1 flex overflow-hidden">
+        <FilterPanel filters={filters} onFiltersChange={setFilters} />
+        <CandidateList
+          candidates={filteredCandidates}
+          selectedCandidate={selectedCandidate}
+          onSelectCandidate={setSelectedCandidate}
+        />
+        {selectedCandidate && (
+          <CandidateDetails
+            candidate={selectedCandidate}
+            onClose={() => setSelectedCandidate(null)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

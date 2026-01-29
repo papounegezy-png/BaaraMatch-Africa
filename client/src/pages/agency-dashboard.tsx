@@ -1,9 +1,10 @@
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AgencySidebar } from "@/components/agency-sidebar";
 import { AgencyKPICards } from "@/components/agency-kpi-cards";
 import { CandidateManagementTable } from "@/components/candidate-management-table";
+import { CandidateSearchDashboard } from "@/components/candidate-search-dashboard";
 import { CRMMessagingModule } from "@/components/crm-messaging-module";
 import { HRPerformanceCharts } from "@/components/hr-performance-charts";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -134,9 +135,19 @@ export default function AgencyDashboardPage() {
 
               <AgencyKPICards />
 
-              <HRPerformanceCharts />
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-semibold">Recherche de Candidats IA</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Filtrage intelligent par compétences, expérience et disponibilité
+                    </p>
+                  </div>
+                </div>
+                <CandidateSearchDashboard />
+              </div>
 
-              <CandidateManagementTable />
+              <HRPerformanceCharts />
 
               <CRMMessagingModule />
             </div>
