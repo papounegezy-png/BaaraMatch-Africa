@@ -16,6 +16,8 @@ import JobsPage from "@/pages/jobs";
 import CandidatesPage from "@/pages/candidates";
 import AgenciesPage from "@/pages/agencies";
 import AgencyDashboardPage from "@/pages/agency-dashboard";
+import AgencyProfilePage from "@/pages/agency-profile";
+import AgencyJobsPage from "@/pages/agency-jobs";
 import CandidateJobsPage from "@/pages/candidate-jobs";
 import JobDetailPage from "@/pages/job-detail";
 import NotificationsPage from "@/pages/notifications";
@@ -48,6 +50,8 @@ function PublicRouter() {
         <Route path="/jobs/:id" component={JobDetailPage} />
         <Route path="/candidates" component={CandidatesPage} />
         <Route path="/agencies" component={AgenciesPage} />
+        <Route path="/agencies/:id" component={AgencyProfilePage} />
+        <Route path="/agencies/:id/jobs" component={AgencyJobsPage} />
         <Route path="/notifications" component={NotificationsPage} />
         <Route component={NotFound} />
       </Switch>

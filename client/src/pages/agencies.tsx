@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Search,
@@ -18,98 +20,36 @@ import {
   Building2,
   TrendingUp,
   Award,
+  Shield,
 } from "lucide-react";
 
-const mockAgencies = [
-  {
-    id: "1",
-    name: "AfriTalent RH",
-    description: "Leader du recrutement en Afrique de l'Ouest, spécialisé dans les secteurs Tech et Finance.",
-    location: "Dakar, Sénégal",
-    specializations: ["Technologie", "Finance", "Conseil"],
-    candidatesPlaced: 2500,
-    activeJobs: 45,
-    rating: 4.9,
-    isVerified: true,
-    website: "afritalent.sn",
-    logoUrl: null,
-    since: "2015",
-  },
-  {
-    id: "2",
-    name: "Success Career Consulting",
-    description: "Cabinet de conseil RH et placement de cadres supérieurs en Afrique francophone.",
-    location: "Abidjan, Côte d'Ivoire",
-    specializations: ["Management", "Direction Générale", "Finance"],
-    candidatesPlaced: 1800,
-    activeJobs: 32,
-    rating: 4.7,
-    isVerified: true,
-    website: "successcareer.ci",
-    logoUrl: null,
-    since: "2012",
-  },
-  {
-    id: "3",
-    name: "TechJob Africa",
-    description: "Plateforme de recrutement spécialisée dans les métiers du numérique et de l'IT.",
-    location: "Dakar, Sénégal",
-    specializations: ["Développement", "Data Science", "DevOps", "Design"],
-    candidatesPlaced: 1200,
-    activeJobs: 78,
-    rating: 4.8,
-    isVerified: true,
-    website: "techjob.africa",
-    logoUrl: null,
-    since: "2018",
-  },
-  {
-    id: "4",
-    name: "Sahel Emploi",
-    description: "Agence de placement généraliste couvrant le Mali, le Niger et le Burkina Faso.",
-    location: "Bamako, Mali",
-    specializations: ["BTP", "Agriculture", "ONG", "Administration"],
-    candidatesPlaced: 3200,
-    activeJobs: 56,
-    rating: 4.5,
-    isVerified: false,
-    website: "sahelemploi.ml",
-    logoUrl: null,
-    since: "2010",
-  },
-  {
-    id: "5",
-    name: "Guinée Recrutement Plus",
-    description: "Première agence de recrutement en Guinée, expert des secteurs miniers et industriels.",
-    location: "Conakry, Guinée",
-    specializations: ["Mines", "Industrie", "Logistique", "Énergie"],
-    candidatesPlaced: 4500,
-    activeJobs: 23,
-    rating: 4.6,
-    isVerified: true,
-    website: "grplus.gn",
-    logoUrl: null,
-    since: "2008",
-  },
-  {
-    id: "6",
-    name: "Health Talents West Africa",
-    description: "Spécialiste du recrutement dans le secteur de la santé en Afrique de l'Ouest.",
-    location: "Dakar, Sénégal",
-    specializations: ["Médecine", "Pharmacie", "Soins infirmiers", "Laboratoire"],
-    candidatesPlaced: 850,
-    activeJobs: 34,
-    rating: 4.9,
-    isVerified: true,
-    website: "healthtalents.africa",
-    logoUrl: null,
-    since: "2019",
-  },
-];
+interface AgencyWithProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  avatarUrl: string | null;
+  city: string | null;
+  country: string | null;
+  isVerified: boolean;
+  profile: {
+    agencyName: string | null;
+    description: string | null;
+    website: string | null;
+    specializations: string[] | null;
+    candidatesPlaced: number | null;
+    verificationStatus: string | null;
+    foundedYear: number | null;
+  } | null;
+}
 
 export default function AgenciesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
+  const [sortBy, setSortBy] = useState("rating");
+
+  const { data: agencies, isLoading } = useQuery<AgencyWithProfile[]>({
+    queryKey: ["/api/agencies"],
+  });
 
   const getInitials = (name: string) => {
     return name
@@ -120,18 +60,37 @@ export default function AgenciesPage() {
       .slice(0, 2);
   };
 
-  const filteredAgencies = mockAgencies.filter((agency) => {
+  const getLocation = (agency: AgencyWithProfile) => {
+    return [agency.city, agency.country].filter(Boolean).join(", ");
+  };
+
+  const filteredAgencies = agencies?.filter((agency) => {
+    const displayName = agency.profile?.agencyName || agency.fullName;
+    const location = getLocation(agency);
+    const specs = agency.profile?.specializations || [];
+    
     const matchesSearch =
       searchQuery === "" ||
-      agency.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agency.specializations.some((spec) =>
+      displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      specs.some((spec) =>
         spec.toLowerCase().includes(searchQuery.toLowerCase())
       );
     const matchesLocation =
       locationQuery === "" ||
-      agency.location.toLowerCase().includes(locationQuery.toLowerCase());
+      location.toLowerCase().includes(locationQuery.toLowerCase());
 
     return matchesSearch && matchesLocation;
+  }) || [];
+
+  const sortedAgencies = [...filteredAgencies].sort((a, b) => {
+    switch (sortBy) {
+      case "placements":
+        return (b.profile?.candidatesPlaced || 0) - (a.profile?.candidatesPlaced || 0);
+      case "name":
+        return (a.profile?.agencyName || a.fullName).localeCompare(b.profile?.agencyName || b.fullName);
+      default:
+        return 0;
+    }
   });
 
   return (
@@ -144,7 +103,7 @@ export default function AgenciesPage() {
                 Agences de Placement
               </h1>
               <p className="text-muted-foreground">
-                Découvrez {filteredAgencies.length} agences partenaires de confiance
+                Découvrez {filteredAgencies.length} agence{filteredAgencies.length > 1 ? "s" : ""} partenaire{filteredAgencies.length > 1 ? "s" : ""} de confiance
               </p>
             </div>
 
@@ -194,111 +153,142 @@ export default function AgenciesPage() {
               <Filter className="h-4 w-4" />
               Filtres
             </Button>
-            <Select defaultValue="rating">
+            <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-40" data-testid="select-sort-agencies">
                 <SelectValue placeholder="Trier par" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="rating">Mieux notées</SelectItem>
                 <SelectItem value="placements">Plus de placements</SelectItem>
-                <SelectItem value="jobs">Plus d'offres</SelectItem>
+                <SelectItem value="name">Nom</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {filteredAgencies.map((agency) => (
-            <Card key={agency.id} className="hover-elevate overflow-visible" data-testid={`card-agency-${agency.id}`}>
-              <CardContent className="p-6">
-                <div className="flex gap-4">
-                  <div className="relative flex-shrink-0">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={agency.logoUrl || undefined} />
-                      <AvatarFallback className="text-lg bg-secondary text-secondary-foreground">
-                        {getInitials(agency.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {agency.isVerified && (
-                      <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-background">
-                        <CheckCircle2 className="h-5 w-5 text-accent" />
-                      </div>
-                    )}
+        {isLoading ? (
+          <div className="grid md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <div className="flex gap-4">
+                    <Skeleton className="h-16 w-16 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-6 w-48" />
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-16 w-full" />
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : sortedAgencies.length > 0 ? (
+          <div className="grid md:grid-cols-2 gap-6">
+            {sortedAgencies.map((agency) => {
+              const displayName = agency.profile?.agencyName || agency.fullName;
+              const location = getLocation(agency);
+              const specs = agency.profile?.specializations || [];
+              const isApdpVerified = agency.profile?.verificationStatus === "verified";
 
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-lg" data-testid={`text-agency-name-${agency.id}`}>
-                          {agency.name}
-                        </h3>
+              return (
+                <Card key={agency.id} className="hover-elevate overflow-visible" data-testid={`card-agency-${agency.id}`}>
+                  <CardContent className="p-6">
+                    <div className="flex gap-4">
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="h-16 w-16">
+                          <AvatarImage src={agency.avatarUrl || undefined} />
+                          <AvatarFallback className="text-lg bg-secondary text-secondary-foreground">
+                            {getInitials(displayName)}
+                          </AvatarFallback>
+                        </Avatar>
                         {agency.isVerified && (
-                          <Badge variant="secondary" className="text-xs">
-                            Vérifiée
-                          </Badge>
+                          <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-background">
+                            <CheckCircle2 className="h-5 w-5 text-accent" />
+                          </div>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {agency.location}
-                        <span className="mx-2">•</span>
-                        Depuis {agency.since}
-                      </p>
-                    </div>
 
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {agency.description}
-                    </p>
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-lg" data-testid={`text-agency-name-${agency.id}`}>
+                              {displayName}
+                            </h3>
+                            {isApdpVerified && (
+                              <Badge variant="secondary" className="text-xs gap-1">
+                                <Shield className="h-3 w-3" />
+                                Vérifiée
+                              </Badge>
+                            )}
+                          </div>
+                          {location && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {location}
+                              {agency.profile?.foundedYear && (
+                                <>
+                                  <span className="mx-2">•</span>
+                                  Depuis {agency.profile.foundedYear}
+                                </>
+                              )}
+                            </p>
+                          )}
+                        </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {agency.specializations.slice(0, 3).map((spec) => (
-                        <Badge key={spec} variant="outline" className="text-xs">
-                          {spec}
-                        </Badge>
-                      ))}
-                      {agency.specializations.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{agency.specializations.length - 3}
-                        </Badge>
-                      )}
-                    </div>
+                        {agency.profile?.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {agency.profile.description}
+                          </p>
+                        )}
 
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1 text-yellow-500">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="font-medium">{agency.rating}</span>
+                        {specs.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {specs.slice(0, 3).map((spec) => (
+                              <Badge key={spec} variant="outline" className="text-xs">
+                                {spec}
+                              </Badge>
+                            ))}
+                            {specs.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{specs.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-4 text-sm">
+                          <div className="flex items-center gap-1 text-yellow-500">
+                            <Star className="h-4 w-4 fill-current" />
+                            <span className="font-medium">4.8</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                            <span>{(agency.profile?.candidatesPlaced || 0).toLocaleString()} placés</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2">
+                          <Link href={`/agencies/${agency.id}`} className="flex-1">
+                            <Button variant="outline" className="w-full" data-testid={`button-view-agency-${agency.id}`}>
+                              Voir le profil
+                            </Button>
+                          </Link>
+                          <Link href={`/agencies/${agency.id}/jobs`} className="flex-1">
+                            <Button className="w-full gap-2" data-testid={`button-agency-jobs-${agency.id}`}>
+                              <Briefcase className="h-4 w-4" />
+                              Voir les offres
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        <span>{agency.candidatesPlaced.toLocaleString()} placés</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Briefcase className="h-4 w-4" />
-                        <span>{agency.activeJobs} offres</span>
-                      </div>
                     </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <Link href={`/agencies/${agency.id}`} className="flex-1">
-                        <Button variant="outline" className="w-full" data-testid={`button-view-agency-${agency.id}`}>
-                          Voir le profil
-                        </Button>
-                      </Link>
-                      <Link href={`/agencies/${agency.id}/jobs`} className="flex-1">
-                        <Button className="w-full gap-2" data-testid={`button-agency-jobs-${agency.id}`}>
-                          <Briefcase className="h-4 w-4" />
-                          Voir les offres
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredAgencies.length === 0 && (
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
           <Card>
             <CardContent className="p-12 text-center">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
