@@ -100,6 +100,14 @@ export default function DashboardPage() {
     if (!isLoading && !user) {
       setLocation("/login");
     }
+    // Redirect agency users to their dedicated dashboard
+    if (!isLoading && user && user.userType === "agency") {
+      setLocation("/agency/dashboard");
+    }
+    // Redirect company users to their dedicated dashboard
+    if (!isLoading && user && user.userType === "company") {
+      setLocation("/company/dashboard");
+    }
   }, [user, isLoading, setLocation]);
 
   const candidateStats = [
