@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, Briefcase, User, Bell, BarChart3, Users, Building2 } from "lucide-react";
+import { Home, Briefcase, User, Bell, BarChart3, Users, Building2, Search, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UserType } from "@shared/schema";
 
@@ -11,10 +11,9 @@ export function MobileBottomNav({ userType }: BottomNavProps) {
   const [location] = useLocation();
 
   const candidateNavItems = [
-    { href: "/dashboard", icon: Home, label: "Accueil" },
-    { href: "/jobs", icon: Briefcase, label: "Emplois" },
-    { href: "/notifications", icon: Bell, label: "Alertes" },
-    { href: "/profile", icon: User, label: "Profil" },
+    { href: "/candidate/jobs", icon: Search, label: "Recherche" },
+    { href: "/candidate/applications", icon: Heart, label: "Mes candidatures" },
+    { href: "/candidate/profile", icon: User, label: "Profil" },
   ];
 
   const agencyNavItems = [
@@ -36,6 +35,48 @@ export function MobileBottomNav({ userType }: BottomNavProps) {
     : userType === "agency" 
     ? agencyNavItems 
     : companyNavItems;
+
+  if (userType === "candidate") {
+    return (
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex items-center justify-around px-4 py-3">
+          {candidateNavItems.map((item) => {
+            const isActive = location === item.href || 
+              (item.href === "/candidate/jobs" && (location === "/candidate/dashboard" || location.startsWith("/candidate/jobs")));
+            
+            return (
+              <Link 
+                key={item.href} 
+                href={item.href}
+                className="flex flex-col items-center gap-1 py-2 px-4 rounded-xl"
+                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                <item.icon 
+                  className={`h-6 w-6 ${
+                    isActive 
+                      ? "text-purple-600 dark:text-purple-400" 
+                      : "text-gray-500 dark:text-gray-400"
+                  }`}
+                />
+                <span 
+                  className={`text-xs ${
+                    isActive 
+                      ? "font-bold text-purple-600 dark:text-purple-400" 
+                      : "font-normal text-gray-500 dark:text-gray-400"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom)] lg:hidden">

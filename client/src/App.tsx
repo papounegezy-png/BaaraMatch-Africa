@@ -16,6 +16,7 @@ import JobsPage from "@/pages/jobs";
 import CandidatesPage from "@/pages/candidates";
 import AgenciesPage from "@/pages/agencies";
 import AgencyDashboardPage from "@/pages/agency-dashboard";
+import CandidateJobsPage from "@/pages/candidate-jobs";
 import NotificationsPage from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
 
@@ -59,11 +60,26 @@ function AgencyRouter() {
   );
 }
 
+function CandidateRouter() {
+  return (
+    <Switch>
+      <Route path="/candidate/jobs" component={CandidateJobsPage} />
+      <Route path="/candidate/dashboard" component={CandidateJobsPage} />
+      <Route path="/candidate/applications" component={CandidateJobsPage} />
+      <Route path="/candidate/profile" component={CandidateJobsPage} />
+    </Switch>
+  );
+}
+
 function AppRouter() {
   const [location] = useLocation();
   
   if (location.startsWith("/agency")) {
     return <AgencyRouter />;
+  }
+  
+  if (location.startsWith("/candidate")) {
+    return <CandidateRouter />;
   }
   
   return <PublicRouter />;
