@@ -154,7 +154,12 @@ The application includes a complete semantic matching engine using OpenAI embedd
 - Enhanced schema with skills matching infrastructure
 - Agency placements table for tracking placed employees
 - Vector embedding fields for future semantic matching engine
-- Mobile-first UI with bottom navigation and swipable job cards
+- Mobile-first UI with Figma-based candidate experience:
+  - Swipeable job cards with gradient headers and match scores
+  - Purple-pink themed "J'aime" action buttons
+  - Floating voice CV recording button (red-pink gradient)
+  - Bottom navigation: Recherche, Mes candidatures, Profil
+  - Gradient background (purple to blue to pink)
 - B2B Agency Dashboard with Figma-based "RH Connect" design:
   - Shadcn sidebar navigation (collapsible) with blue-green gradient branding
   - Menu items: Accueil, Candidats, Missions, Contrats, Facturation, Analytique
