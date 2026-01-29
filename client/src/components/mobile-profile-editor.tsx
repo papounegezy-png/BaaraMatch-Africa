@@ -265,9 +265,9 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
       </Card>
 
       <Card className="overflow-hidden">
-        <CardHeader className="pb-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+        <CardHeader className="pb-2 bg-gradient-to-r from-accent/10 to-accent/5">
           <CardTitle className="text-base flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
               <Mic className="h-4 w-4 text-white" />
             </div>
             CV Vocal WhatsApp
@@ -282,7 +282,7 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
             <div className="flex flex-col items-center py-6 space-y-4">
               <Button
                 onClick={handleStartRecording}
-                className="rounded-full bg-green-500 shadow-lg"
+                className="rounded-full bg-accent hover:bg-accent/90 shadow-lg"
                 size="lg"
                 data-testid="button-start-recording"
               >
@@ -328,11 +328,11 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
 
           {hasVoiceCV && !isRecording && (
             <div className="space-y-3">
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-accent/10 border border-accent/20">
                 <Button
                   onClick={() => setIsPlayingVoice(!isPlayingVoice)}
                   size="icon"
-                  className="rounded-full bg-green-500 shrink-0"
+                  className="rounded-full bg-accent hover:bg-accent/90 shrink-0"
                   data-testid="button-play-voice"
                 >
                   {isPlayingVoice ? (
@@ -346,7 +346,7 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
                     {[...Array(30)].map((_, i) => (
                       <div
                         key={i}
-                        className="w-1 bg-green-500/60 rounded-full"
+                        className="w-1 bg-accent/60 rounded-full"
                         style={{ height: `${4 + Math.random() * 20}px` }}
                       />
                     ))}
@@ -469,7 +469,7 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
                   name="whatsappNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-1 text-green-600">
+                      <FormLabel className="flex items-center gap-1 text-accent">
                         <Phone className="h-3 w-3" />
                         WhatsApp
                       </FormLabel>
