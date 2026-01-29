@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,8 +44,10 @@ import {
   Upload,
   FileText,
   StopCircle,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { User, CandidateProfile } from "@shared/schema";
 
 const profileSchema = z.object({
@@ -70,6 +73,7 @@ interface MobileProfileEditorProps {
 
 export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEditorProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [skills, setSkills] = useState<string[]>(profile?.skills || []);
   const [newSkill, setNewSkill] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -78,6 +82,34 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
+  const [voiceCvBlob, setVoiceCvBlob] = useState<Blob | null>(null);
+  const [voiceCvUrl, setVoiceCvUrl] = useState<string | null>(profile?.voiceCvUrl || null);
+
+  const saveProfileMutation = useMutation({
+    mutationFn: async (data: { userUpdates: Record<string, unknown>; profileUpdates: Record<string, unknown> }) => {
+      const response = await apiRequest("PATCH", "/api/profile", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      toast({
+        title: "Profil mis à jour",
+        description: "Vos modifications ont été enregistrées avec succès.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de sauvegarder le profil.",
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (isRecording) {
@@ -155,36 +187,110 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
-    toast({
-      title: "Enregistrement démarré",
-      description: "Présentez-vous en quelques phrases (max 1 min)...",
-    });
-  };
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      recordingStartTimeRef.current = Date.now();
 
-  const handleStopRecording = () => {
-    setIsRecording(false);
-    if (recordingTime > 5) {
-      setHasVoiceCV(true);
-      toast({
-        title: "CV Vocal enregistré !",
-        description: `Durée: ${formatTime(recordingTime)}`,
-      });
-    } else {
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        stream.getTracks().forEach(track => track.stop());
+        
+        const elapsedSeconds = Math.floor((Date.now() - recordingStartTimeRef.current) / 1000);
+        
+        if (elapsedSeconds >= 5) {
+          setVoiceCvBlob(audioBlob);
+          const blobUrl = URL.createObjectURL(audioBlob);
+          setVoiceCvUrl(blobUrl);
+          setHasVoiceCV(true);
+          toast({
+            title: "CV Vocal enregistré !",
+            description: `Durée: ${formatTime(elapsedSeconds)}`,
+          });
+        } else {
+          setRecordingTime(0);
+          toast({
+            title: "Enregistrement trop court",
+            description: "Votre présentation doit durer au moins 5 secondes.",
+            variant: "destructive",
+          });
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
       setRecordingTime(0);
       toast({
-        title: "Enregistrement trop court",
-        description: "Votre présentation doit durer au moins 5 secondes.",
+        title: "Enregistrement démarré",
+        description: "Présentez-vous en quelques phrases (max 1 min)...",
+      });
+    } catch (error) {
+      toast({
+        title: "Accès au microphone refusé",
+        description: "Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.",
         variant: "destructive",
       });
     }
   };
 
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handlePlayVoiceCV = () => {
+    if (isPlayingVoice && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlayingVoice(false);
+      return;
+    }
+    
+    const audioSource = voiceCvUrl || profile?.voiceCvUrl;
+    if (!audioSource) return;
+    
+    const audio = new Audio(audioSource);
+    audioRef.current = audio;
+    
+    audio.onended = () => {
+      setIsPlayingVoice(false);
+    };
+    
+    audio.onerror = () => {
+      setIsPlayingVoice(false);
+      toast({
+        title: "Erreur de lecture",
+        description: "Impossible de lire le CV vocal.",
+        variant: "destructive",
+      });
+    };
+    
+    audio.play().catch(() => {
+      setIsPlayingVoice(false);
+    });
+    setIsPlayingVoice(true);
+  };
+
   const handleDeleteVoiceCV = () => {
     setHasVoiceCV(false);
+    setVoiceCvBlob(null);
+    setVoiceCvUrl(null);
     setRecordingTime(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     toast({
       title: "CV Vocal supprimé",
       description: "Vous pouvez en enregistrer un nouveau.",
@@ -211,13 +317,28 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
   };
 
   const onSubmit = (data: ProfileFormData) => {
+    const userUpdates: Record<string, unknown> = {
+      fullName: data.fullName,
+      phone: data.phone,
+      city: data.city,
+    };
+
+    const profileUpdates: Record<string, unknown> = {
+      title: data.title,
+      bio: data.bio,
+      experience: data.experience,
+      education: data.education,
+      whatsappNumber: data.whatsappNumber,
+      availableFrom: data.availableFrom,
+      salaryExpectation: data.salaryExpectation,
+      skills: skills,
+    };
+
+    saveProfileMutation.mutate({ userUpdates, profileUpdates });
+    
     if (onSave) {
       onSave(data);
     }
-    toast({
-      title: "Profil mis à jour",
-      description: "Vos modifications ont été enregistrées.",
-    });
   };
 
   const getInitials = (name: string) => {
@@ -330,10 +451,11 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-4 rounded-xl bg-accent/10 border border-accent/20">
                 <Button
-                  onClick={() => setIsPlayingVoice(!isPlayingVoice)}
+                  onClick={handlePlayVoiceCV}
                   size="icon"
                   className="rounded-full bg-accent hover:bg-accent/90 shrink-0"
                   data-testid="button-play-voice"
+                  disabled={!voiceCvUrl && !profile?.voiceCvUrl}
                 >
                   {isPlayingVoice ? (
                     <Pause className="h-5 w-5" />
@@ -696,9 +818,19 @@ export function MobileProfileEditor({ user, profile, onSave }: MobileProfileEdit
             size="lg"
             className="w-full gap-2"
             data-testid="button-save-profile"
+            disabled={saveProfileMutation.isPending}
           >
-            <Save className="h-4 w-4" />
-            Enregistrer les modifications
+            {saveProfileMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Enregistrement...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Enregistrer les modifications
+              </>
+            )}
           </Button>
         </form>
       </Form>
