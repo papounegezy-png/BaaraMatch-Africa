@@ -249,9 +249,82 @@ export function CommissionManagement() {
   };
 
   const handleDownload = (commission: CommissionRecord) => {
+    const companyInfo = {
+      name: "RH Connect SARL",
+      address: "123 Avenue Cheikh Anta Diop",
+      city: "Dakar, Sénégal",
+      phone: "+221 33 123 45 67",
+      email: "contact@rhconnect.sn",
+      ninea: "005123456 2G3",
+      tva: "SN 123456789"
+    };
+
+    const content = `
+═══════════════════════════════════════════════════════════════
+                    DÉTAIL DE COMMISSION
+═══════════════════════════════════════════════════════════════
+
+ÉMETTEUR
+────────────────────────────────────────────────────────────────
+${companyInfo.name}
+${companyInfo.address}
+${companyInfo.city}
+Tél: ${companyInfo.phone}
+Email: ${companyInfo.email}
+NINEA: ${companyInfo.ninea}
+N° TVA: ${companyInfo.tva}
+
+═══════════════════════════════════════════════════════════════
+                    INFORMATIONS DU PLACEMENT
+═══════════════════════════════════════════════════════════════
+
+Numéro de facture:     ${commission.invoiceNumber || 'N/A'}
+Date de placement:     ${formatDate(commission.placementDate)}
+Statut:                ${getStatusBadge(commission.status).label}
+
+CANDIDAT PLACÉ
+────────────────────────────────────────────────────────────────
+Nom:                   ${commission.candidateName}
+Poste:                 ${commission.candidatePosition}
+
+ENTREPRISE CLIENTE
+────────────────────────────────────────────────────────────────
+Nom:                   ${commission.companyName}
+Type de contrat:       ${commission.contractType}
+
+═══════════════════════════════════════════════════════════════
+                    DÉTAIL FINANCIER
+═══════════════════════════════════════════════════════════════
+
+Valeur annuelle du contrat:    ${formatCurrency(commission.contractValue)}
+Taux de commission:            ${commission.commissionRate}%
+────────────────────────────────────────────────────────────────
+MONTANT DE LA COMMISSION:      ${formatCurrency(commission.commissionAmount)}
+
+═══════════════════════════════════════════════════════════════
+
+${commission.paymentDate ? `
+PAIEMENT REÇU
+────────────────────────────────────────────────────────────────
+Date de paiement: ${formatDate(commission.paymentDate)}
+` : ''}
+
+Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
+`;
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `commission_${commission.invoiceNumber || commission.id}_${commission.candidateName.replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     toast({
-      title: "Téléchargement",
-      description: `Détail de commission téléchargé.`,
+      title: "Téléchargement réussi",
+      description: `Détail de commission pour ${commission.candidateName} téléchargé.`,
     });
   };
 
