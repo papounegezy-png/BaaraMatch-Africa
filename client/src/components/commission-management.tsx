@@ -61,7 +61,7 @@ interface CommissionRecord {
   paymentDate?: string;
 }
 
-const mockCommissions: CommissionRecord[] = [
+const initialCommissions: CommissionRecord[] = [
   {
     id: "1",
     candidateName: "Sophie Marchand",
@@ -166,11 +166,20 @@ const commissionStats = {
 
 export function CommissionManagement() {
   const { toast } = useToast();
+  const [commissions, setCommissions] = useState<CommissionRecord[]>(initialCommissions);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [contractFilter, setContractFilter] = useState("all");
   const [selectedCommission, setSelectedCommission] = useState<CommissionRecord | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [showInvoiceConfirm, setShowInvoiceConfirm] = useState(false);
+  const [commissionToInvoice, setCommissionToInvoice] = useState<CommissionRecord | null>(null);
+
+  const generateInvoiceNumber = () => {
+    const year = new Date().getFullYear();
+    const existingInvoices = commissions.filter(c => c.invoiceNumber).length;
+    return `FAC-${year}-${String(existingInvoices + 1).padStart(3, '0')}`;
+  };
 
   const getStatusBadge = (status: CommissionRecord["status"]) => {
     const variants = {
@@ -205,7 +214,7 @@ export function CommissionManagement() {
     });
   };
 
-  const filteredCommissions = mockCommissions.filter(commission => {
+  const filteredCommissions = commissions.filter(commission => {
     const matchesSearch = commission.candidateName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          commission.companyName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || commission.status === statusFilter;
@@ -213,10 +222,29 @@ export function CommissionManagement() {
     return matchesSearch && matchesStatus && matchesContract;
   });
 
-  const handleGenerateInvoice = (commission: CommissionRecord) => {
+  const openInvoiceConfirm = (commission: CommissionRecord) => {
+    setCommissionToInvoice(commission);
+    setShowInvoiceConfirm(true);
+  };
+
+  const handleGenerateInvoice = () => {
+    if (!commissionToInvoice) return;
+    
+    const invoiceNumber = generateInvoiceNumber();
+    
+    setCommissions(prev => prev.map(c => 
+      c.id === commissionToInvoice.id 
+        ? { ...c, status: "invoiced" as const, invoiceNumber }
+        : c
+    ));
+    
+    setShowInvoiceConfirm(false);
+    setCommissionToInvoice(null);
+    setShowDetail(false);
+    
     toast({
-      title: "Facture générée",
-      description: `Facture créée pour la commission de ${formatCurrency(commission.commissionAmount)}.`,
+      title: "Facture générée avec succès",
+      description: `Facture ${invoiceNumber} créée pour ${commissionToInvoice.candidateName} - ${formatCurrency(commissionToInvoice.commissionAmount)}.`,
     });
   };
 
@@ -427,7 +455,7 @@ export function CommissionManagement() {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleGenerateInvoice(commission)}
+                              onClick={() => openInvoiceConfirm(commission)}
                               data-testid={`button-invoice-${commission.id}`}
                             >
                               Facturer
@@ -532,7 +560,7 @@ export function CommissionManagement() {
               Fermer
             </Button>
             {selectedCommission?.status === "pending" && (
-              <Button onClick={() => { handleGenerateInvoice(selectedCommission); setShowDetail(false); }}>
+              <Button onClick={() => openInvoiceConfirm(selectedCommission)}>
                 <FileText className="h-4 w-4 mr-2" />
                 Générer facture
               </Button>
@@ -543,6 +571,61 @@ export function CommissionManagement() {
                 Télécharger
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showInvoiceConfirm} onOpenChange={setShowInvoiceConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />
+              Confirmer la facturation
+            </DialogTitle>
+            <DialogDescription>
+              Vous êtes sur le point de générer une facture pour cette commission.
+            </DialogDescription>
+          </DialogHeader>
+          {commissionToInvoice && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Candidat</span>
+                  <span className="font-medium">{commissionToInvoice.candidateName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Entreprise</span>
+                  <span>{commissionToInvoice.companyName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Type de contrat</span>
+                  <Badge className={getContractBadge(commissionToInvoice.contractType)}>
+                    {commissionToInvoice.contractType}
+                  </Badge>
+                </div>
+                <div className="border-t pt-3 flex justify-between">
+                  <span className="text-muted-foreground">Montant à facturer</span>
+                  <span className="font-bold text-lg text-green-600">
+                    {formatCurrency(commissionToInvoice.commissionAmount)}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-sm text-blue-700 dark:text-blue-400">
+                  Une facture sera générée avec le numéro <span className="font-mono font-medium">{generateInvoiceNumber()}</span> et envoyée au client.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInvoiceConfirm(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleGenerateInvoice} data-testid="button-confirm-invoice">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Confirmer et générer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
