@@ -11,6 +11,7 @@ import { CvAttachmentsManager } from "@/components/cv-attachments-manager";
 import { CandidateProfileView } from "@/components/candidate-profile-view";
 import { PlacementReports } from "@/components/placement-reports";
 import { FinancialSettings } from "@/components/financial-settings";
+import { ClientInvoicing } from "@/components/client-invoicing";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -156,12 +157,16 @@ export default function AgencyDashboardPage() {
       );
     }
     
+    if (location === "/agency/billing" || location === "/agency/billing/invoices") {
+      return <ClientInvoicing />;
+    }
+    
     if (location.startsWith("/agency/billing")) {
       return (
         <ComingSoonPage 
           title="Paie & Facturation" 
           icon={Receipt}
-          description="Facturation clients, rémunération candidats, commissions agence et export comptable."
+          description="Rémunérations candidats, commissions agence, états de paiement et export comptable."
         />
       );
     }

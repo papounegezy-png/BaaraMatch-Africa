@@ -1,0 +1,548 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { 
+  Receipt,
+  Search,
+  Filter,
+  Plus,
+  Download,
+  Send,
+  Eye,
+  Pencil,
+  MoreHorizontal,
+  Calendar,
+  Building2,
+  FileText,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  Printer,
+  Mail
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+
+interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  clientName: string;
+  clientType: "company" | "agency";
+  issueDate: string;
+  dueDate: string;
+  amount: string;
+  amountHT: string;
+  tva: string;
+  status: "paid" | "pending" | "overdue" | "cancelled" | "draft";
+  placements: number;
+  paymentMethod?: string;
+  paidDate?: string;
+}
+
+const mockInvoices: Invoice[] = [
+  {
+    id: "1",
+    invoiceNumber: "RHC-2026-0044",
+    clientName: "TechCorp Africa",
+    clientType: "company",
+    issueDate: "2026-01-15",
+    dueDate: "2026-02-14",
+    amount: "1,250,000 XOF",
+    amountHT: "1,059,322 XOF",
+    tva: "190,678 XOF",
+    status: "pending",
+    placements: 3,
+  },
+  {
+    id: "2",
+    invoiceNumber: "RHC-2026-0043",
+    clientName: "FinBank Sénégal",
+    clientType: "company",
+    issueDate: "2026-01-10",
+    dueDate: "2026-02-09",
+    amount: "2,450,000 XOF",
+    amountHT: "2,076,271 XOF",
+    tva: "373,729 XOF",
+    status: "paid",
+    placements: 5,
+    paymentMethod: "Virement bancaire",
+    paidDate: "2026-01-28",
+  },
+  {
+    id: "3",
+    invoiceNumber: "RHC-2026-0042",
+    clientName: "Orange Digital Center",
+    clientType: "company",
+    issueDate: "2026-01-05",
+    dueDate: "2026-02-04",
+    amount: "875,000 XOF",
+    amountHT: "741,525 XOF",
+    tva: "133,475 XOF",
+    status: "pending",
+    placements: 2,
+  },
+  {
+    id: "4",
+    invoiceNumber: "RHC-2026-0041",
+    clientName: "Wave Mobile Money",
+    clientType: "company",
+    issueDate: "2025-12-20",
+    dueDate: "2026-01-19",
+    amount: "1,680,000 XOF",
+    amountHT: "1,423,729 XOF",
+    tva: "256,271 XOF",
+    status: "overdue",
+    placements: 4,
+  },
+  {
+    id: "5",
+    invoiceNumber: "RHC-2026-0040",
+    clientName: "Jumia Sénégal",
+    clientType: "company",
+    issueDate: "2025-12-15",
+    dueDate: "2026-01-14",
+    amount: "520,000 XOF",
+    amountHT: "440,678 XOF",
+    tva: "79,322 XOF",
+    status: "paid",
+    placements: 1,
+    paymentMethod: "Orange Money",
+    paidDate: "2026-01-10",
+  },
+  {
+    id: "6",
+    invoiceNumber: "RHC-2026-0039",
+    clientName: "Sonatel Group",
+    clientType: "company",
+    issueDate: "2025-12-10",
+    dueDate: "2026-01-09",
+    amount: "3,200,000 XOF",
+    amountHT: "2,711,864 XOF",
+    tva: "488,136 XOF",
+    status: "paid",
+    placements: 6,
+    paymentMethod: "Virement bancaire",
+    paidDate: "2026-01-05",
+  },
+  {
+    id: "7",
+    invoiceNumber: "RHC-2026-0038",
+    clientName: "Eiffage Sénégal",
+    clientType: "company",
+    issueDate: "2025-12-05",
+    dueDate: "2026-01-04",
+    amount: "950,000 XOF",
+    amountHT: "805,085 XOF",
+    tva: "144,915 XOF",
+    status: "cancelled",
+    placements: 2,
+  },
+];
+
+const invoiceStats = {
+  totalPending: "4,605,000 XOF",
+  pendingCount: 3,
+  totalOverdue: "1,680,000 XOF",
+  overdueCount: 1,
+  totalPaidThisMonth: "6,170,000 XOF",
+  paidCount: 3,
+  avgPaymentTime: 12,
+};
+
+export function ClientInvoicing() {
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+
+  const getStatusBadge = (status: Invoice["status"]) => {
+    const variants = {
+      paid: { label: "Payée", className: "bg-green-100 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800", icon: CheckCircle },
+      pending: { label: "En attente", className: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800", icon: Clock },
+      overdue: { label: "En retard", className: "bg-red-100 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800", icon: AlertCircle },
+      cancelled: { label: "Annulée", className: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700", icon: XCircle },
+      draft: { label: "Brouillon", className: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800", icon: FileText },
+    };
+    return variants[status];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+  };
+
+  const filteredInvoices = mockInvoices.filter(invoice => {
+    const matchesSearch = invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         invoice.clientName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleSendReminder = (invoice: Invoice) => {
+    toast({
+      title: "Rappel envoyé",
+      description: `Un rappel de paiement a été envoyé à ${invoice.clientName}.`,
+    });
+  };
+
+  const handleDownloadPDF = (invoice: Invoice) => {
+    toast({
+      title: "Téléchargement",
+      description: `Facture ${invoice.invoiceNumber} téléchargée.`,
+    });
+  };
+
+  const handleMarkAsPaid = (invoice: Invoice) => {
+    toast({
+      title: "Facture mise à jour",
+      description: `Facture ${invoice.invoiceNumber} marquée comme payée.`,
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Facturation Clients
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Gestion des factures et suivi des paiements
+          </p>
+        </div>
+        <Button data-testid="button-new-invoice">
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle facture
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card data-testid="card-pending-invoices">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">En attente</p>
+                <p className="text-2xl font-bold text-amber-600">{invoiceStats.totalPending}</p>
+                <p className="text-xs text-muted-foreground mt-1">{invoiceStats.pendingCount} factures</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-overdue-invoices">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">En retard</p>
+                <p className="text-2xl font-bold text-red-600">{invoiceStats.totalOverdue}</p>
+                <p className="text-xs text-muted-foreground mt-1">{invoiceStats.overdueCount} facture(s)</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-paid-invoices">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Payées ce mois</p>
+                <p className="text-2xl font-bold text-green-600">{invoiceStats.totalPaidThisMonth}</p>
+                <p className="text-xs text-muted-foreground mt-1">{invoiceStats.paidCount} factures</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-avg-payment">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Délai moyen</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{invoiceStats.avgPaymentTime} jours</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <ArrowDownRight className="h-3 w-3 text-green-500" />
+                  <span className="text-xs text-green-600">-3j vs mois dernier</span>
+                </div>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card data-testid="card-invoices-list">
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle>Liste des Factures</CardTitle>
+              <CardDescription>Toutes les factures émises</CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 w-64"
+                  data-testid="input-search-invoices"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40" data-testid="select-status-filter">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="pending">En attente</SelectItem>
+                  <SelectItem value="paid">Payées</SelectItem>
+                  <SelectItem value="overdue">En retard</SelectItem>
+                  <SelectItem value="cancelled">Annulées</SelectItem>
+                  <SelectItem value="draft">Brouillons</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>N° Facture</TableHead>
+                  <TableHead>Client</TableHead>
+                  <TableHead>Date émission</TableHead>
+                  <TableHead>Échéance</TableHead>
+                  <TableHead>Montant TTC</TableHead>
+                  <TableHead>Placements</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredInvoices.map((invoice) => {
+                  const statusBadge = getStatusBadge(invoice.status);
+                  const StatusIcon = statusBadge.icon;
+                  return (
+                    <TableRow key={invoice.id} data-testid={`invoice-row-${invoice.id}`}>
+                      <TableCell>
+                        <span className="font-mono font-medium">{invoice.invoiceNumber}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span>{invoice.clientName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatDate(invoice.issueDate)}</TableCell>
+                      <TableCell>
+                        <span className={invoice.status === "overdue" ? "text-red-600 font-medium" : ""}>
+                          {formatDate(invoice.dueDate)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-medium">{invoice.amount}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{invoice.placements}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusBadge.className}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {statusBadge.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" data-testid={`button-actions-${invoice.id}`}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setSelectedInvoice(invoice); setShowInvoiceDetail(true); }}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Voir détails
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDownloadPDF(invoice)}>
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Printer className="h-4 w-4 mr-2" />
+                              Imprimer
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {(invoice.status === "pending" || invoice.status === "overdue") && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleSendReminder(invoice)}>
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Envoyer rappel
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice)}>
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Marquer payée
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {invoice.status === "draft" && (
+                              <DropdownMenuItem>
+                                <Send className="h-4 w-4 mr-2" />
+                                Envoyer au client
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Modifier
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showInvoiceDetail} onOpenChange={setShowInvoiceDetail}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Facture {selectedInvoice?.invoiceNumber}
+            </DialogTitle>
+            <DialogDescription>
+              Détails de la facture
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInvoice && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Client</p>
+                    <p className="font-medium">{selectedInvoice.clientName}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date d'émission</p>
+                    <p className="font-medium">{formatDate(selectedInvoice.issueDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date d'échéance</p>
+                    <p className="font-medium">{formatDate(selectedInvoice.dueDate)}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Statut</p>
+                    <Badge className={getStatusBadge(selectedInvoice.status).className}>
+                      {getStatusBadge(selectedInvoice.status).label}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nombre de placements</p>
+                    <p className="font-medium">{selectedInvoice.placements}</p>
+                  </div>
+                  {selectedInvoice.paidDate && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Date de paiement</p>
+                      <p className="font-medium">{formatDate(selectedInvoice.paidDate)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Montant HT</span>
+                  <span>{selectedInvoice.amountHT}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">TVA (18%)</span>
+                  <span>{selectedInvoice.tva}</span>
+                </div>
+                <div className="flex justify-between font-bold text-lg border-t pt-2">
+                  <span>Total TTC</span>
+                  <span>{selectedInvoice.amount}</span>
+                </div>
+              </div>
+
+              {selectedInvoice.paymentMethod && (
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-medium">Paiement reçu</span>
+                  </div>
+                  <p className="text-sm text-green-600 dark:text-green-500 mt-1">
+                    Via {selectedInvoice.paymentMethod} le {formatDate(selectedInvoice.paidDate!)}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInvoiceDetail(false)}>
+              Fermer
+            </Button>
+            <Button onClick={() => selectedInvoice && handleDownloadPDF(selectedInvoice)}>
+              <Download className="h-4 w-4 mr-2" />
+              Télécharger PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
