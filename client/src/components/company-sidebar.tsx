@@ -40,6 +40,10 @@ import {
   UserCog,
   BadgeCheck,
   FolderKanban,
+  ShieldCheck,
+  History,
+  Database,
+  UserX,
 } from "lucide-react";
 import {
   Sidebar,
@@ -223,6 +227,21 @@ const menuSections: MenuSection[] = [
         href: "/company/support",
         icon: HelpCircle,
         label: "Support",
+      },
+    ],
+  },
+  {
+    title: "Sécurité & traçabilité",
+    items: [
+      {
+        href: "/company/security",
+        icon: ShieldCheck,
+        label: "Sécurité",
+        subItems: [
+          { href: "/company/security/history", icon: History, label: "Historique des actions" },
+          { href: "/company/security/backup", icon: Database, label: "Sauvegarde des données" },
+          { href: "/company/security/gdpr", icon: UserX, label: "Conformité RGPD" },
+        ],
       },
     ],
   },

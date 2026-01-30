@@ -239,6 +239,7 @@ Complete enterprise HR and recruitment management system accessible at `/company
 - `/company/orgchart` - Organization chart
 - `/company/departments` - Department management (create, edit, delete)
 - `/company/positions` - Position management (with salary ranges, levels)
+- `/company/security` - Security & traceability (action logs, backups, GDPR)
 
 ## Development
 ```bash

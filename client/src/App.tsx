@@ -132,6 +132,8 @@ function CompanyRouter() {
         <Route path="/company/departments/:subsection" component={CompanyDashboardPage} />
         <Route path="/company/positions" component={CompanyDashboardPage} />
         <Route path="/company/positions/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/security" component={CompanyDashboardPage} />
+        <Route path="/company/security/:subsection" component={CompanyDashboardPage} />
         <Route path="/company/settings" component={CompanyDashboardPage} />
         <Route path="/company/settings/:subsection" component={CompanyDashboardPage} />
         <Route path="/company/support" component={CompanyDashboardPage} />
