@@ -12,6 +12,7 @@ import { CandidateProfileView } from "@/components/candidate-profile-view";
 import { PlacementReports } from "@/components/placement-reports";
 import { FinancialSettings } from "@/components/financial-settings";
 import { ClientInvoicing } from "@/components/client-invoicing";
+import { SalaryManagement } from "@/components/salary-management";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -161,12 +162,16 @@ export default function AgencyDashboardPage() {
       return <ClientInvoicing />;
     }
     
+    if (location === "/agency/billing/salaries") {
+      return <SalaryManagement />;
+    }
+    
     if (location.startsWith("/agency/billing")) {
       return (
         <ComingSoonPage 
           title="Paie & Facturation" 
           icon={Receipt}
-          description="Rémunérations candidats, commissions agence, états de paiement et export comptable."
+          description="Commissions agence, états de paiement et export comptable."
         />
       );
     }
