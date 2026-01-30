@@ -943,13 +943,13 @@ export function ClientInvoicing() {
                 <Receipt className="h-4 w-4" />
                 Informations de Paiement
               </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Building2 className="h-4 w-4 text-blue-600" />
-                    Virement Bancaire
-                  </div>
-                  <div className="space-y-1 text-sm">
+              <div className="border rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Building2 className="h-4 w-4 text-blue-600" />
+                  Coordonnées Bancaires
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Banque</span>
                       <span className="font-medium">{bankInfo.bankName}</span>
@@ -958,6 +958,8 @@ export function ClientInvoicing() {
                       <span className="text-muted-foreground">Titulaire</span>
                       <span className="font-medium">{bankInfo.accountName}</span>
                     </div>
+                  </div>
+                  <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">IBAN</span>
                       <span className="font-mono text-xs">{bankInfo.iban}</span>
@@ -965,30 +967,6 @@ export function ClientInvoicing() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">BIC/SWIFT</span>
                       <span className="font-mono">{bankInfo.bic}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="border rounded-lg p-4 space-y-3">
-                  <div className="text-sm font-medium">Paiement Mobile</div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-2 bg-orange-50 dark:bg-orange-950/20 rounded">
-                      <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-full bg-orange-500 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">OM</span>
-                        </div>
-                        <span className="text-sm">Orange Money</span>
-                      </div>
-                      <span className="font-mono text-sm">{bankInfo.orangeMoney}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
-                      <div className="flex items-center gap-2">
-                        <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">W</span>
-                        </div>
-                        <span className="text-sm">Wave</span>
-                      </div>
-                      <span className="font-mono text-sm">{bankInfo.wave}</span>
                     </div>
                   </div>
                 </div>
