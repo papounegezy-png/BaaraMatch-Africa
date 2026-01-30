@@ -9,6 +9,7 @@ import { MissionsManagement } from "@/components/missions-management";
 import { NewCandidateForm } from "@/components/new-candidate-form";
 import { CvAttachmentsManager } from "@/components/cv-attachments-manager";
 import { CandidateProfileView } from "@/components/candidate-profile-view";
+import { PlacementReports } from "@/components/placement-reports";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -184,12 +185,16 @@ export default function AgencyDashboardPage() {
       );
     }
     
+    if (location === "/agency/analytics" || location === "/agency/analytics/placements") {
+      return <PlacementReports />;
+    }
+    
     if (location.startsWith("/agency/analytics")) {
       return (
         <ComingSoonPage 
           title="Rapports & Statistiques" 
           icon={BarChart3}
-          description="Rapports de placement, performance par secteur, taux de satisfaction et export PDF/Excel."
+          description="Performance par secteur, taux de satisfaction, tableaux analytiques et export PDF/Excel."
         />
       );
     }
