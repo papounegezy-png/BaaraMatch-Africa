@@ -10,6 +10,7 @@ import { NewCandidateForm } from "@/components/new-candidate-form";
 import { CvAttachmentsManager } from "@/components/cv-attachments-manager";
 import { CandidateProfileView } from "@/components/candidate-profile-view";
 import { PlacementReports } from "@/components/placement-reports";
+import { FinancialSettings } from "@/components/financial-settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -199,12 +200,16 @@ export default function AgencyDashboardPage() {
       );
     }
     
+    if (location === "/agency/settings/financial") {
+      return <FinancialSettings />;
+    }
+    
     if (location.startsWith("/agency/settings")) {
       return (
         <ComingSoonPage 
           title="Paramètres & Administration" 
           icon={Settings}
-          description="Utilisateurs & rôles, droits d'accès, paramétrage des services et paramètres financiers."
+          description="Utilisateurs & rôles, droits d'accès, paramétrage des services et sauvegarde."
         />
       );
     }
