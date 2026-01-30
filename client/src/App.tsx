@@ -19,6 +19,8 @@ import AgencyDashboardPage from "@/pages/agency-dashboard";
 import AgencyProfilePage from "@/pages/agency-profile";
 import AgencyJobsPage from "@/pages/agency-jobs";
 import { AgencyLayout } from "@/components/agency-layout";
+import CompanyDashboardPage from "@/pages/company-dashboard";
+import { CompanyLayout } from "@/components/company-layout";
 import CandidateJobsPage from "@/pages/candidate-jobs";
 import JobDetailPage from "@/pages/job-detail";
 import NotificationsPage from "@/pages/notifications";
@@ -105,11 +107,45 @@ function CandidateRouter() {
   );
 }
 
+function CompanyRouter() {
+  return (
+    <CompanyLayout>
+      <Switch>
+        <Route path="/company/dashboard" component={CompanyDashboardPage} />
+        <Route path="/company/dashboard/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/jobs" component={CompanyDashboardPage} />
+        <Route path="/company/jobs/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/applications" component={CompanyDashboardPage} />
+        <Route path="/company/applications/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/pipeline" component={CompanyDashboardPage} />
+        <Route path="/company/pipeline/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/statistics" component={CompanyDashboardPage} />
+        <Route path="/company/statistics/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/employees" component={CompanyDashboardPage} />
+        <Route path="/company/employees/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/leaves" component={CompanyDashboardPage} />
+        <Route path="/company/leaves/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/payroll" component={CompanyDashboardPage} />
+        <Route path="/company/payroll/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/orgchart" component={CompanyDashboardPage} />
+        <Route path="/company/settings" component={CompanyDashboardPage} />
+        <Route path="/company/settings/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/support" component={CompanyDashboardPage} />
+        <Route path="/company" component={CompanyDashboardPage} />
+      </Switch>
+    </CompanyLayout>
+  );
+}
+
 function AppRouter() {
   const [location] = useLocation();
   
   if (location.startsWith("/agency")) {
     return <AgencyRouter />;
+  }
+  
+  if (location.startsWith("/company")) {
+    return <CompanyRouter />;
   }
   
   if (location.startsWith("/candidate")) {

@@ -206,6 +206,38 @@ The application includes a complete semantic matching engine using OpenAI embedd
 - `active-contracts-table.tsx` - Contracts table with status badges and alerts
 - `candidate-search-dashboard.tsx` - AI-powered candidate search
 
+### Company ATS (Applicant Tracking System) - Jan 2026
+Complete enterprise HR and recruitment management system accessible at `/company/*`:
+
+**Layout & Navigation:**
+- `company-sidebar.tsx` - WorkMatch ATS branded sidebar with purple-pink gradient
+- `company-layout.tsx` - Layout wrapper with header, search, notifications
+- Collapsible menu sections: Recrutement, Gestion RH, Configuration
+
+**Recruitment Modules:**
+- Dashboard with KPI cards (postes ouverts, candidatures, entretiens, taux conversion)
+- Job Listings - Create, manage, and publish job postings
+- Applications - Track and manage all candidate applications
+- Pipeline - Kanban-style view (CV → Présélection → Entretien → Offre → Recruté)
+- Statistics - Comprehensive recruitment analytics (sources, conversion funnel, trends)
+
+**HR Management Modules:**
+- Employee Management - Directory, onboarding tracking, document management, role-based access
+- Leave Management - Leave requests/approvals, calendar, balances, history
+- Payroll - Automated payslip generation with PDF export, social contributions tracking
+- Org Chart - Interactive hierarchical organization chart with zoom controls
+
+**Route Structure:**
+- `/company/dashboard` - Main dashboard overview
+- `/company/jobs` - Job postings management
+- `/company/applications` - Candidate applications
+- `/company/pipeline` - Recruitment pipeline
+- `/company/statistics` - Recruitment metrics
+- `/company/employees` - Employee directory and management
+- `/company/leaves` - Leave and absence management
+- `/company/payroll` - Payroll and payslips
+- `/company/orgchart` - Organization chart
+
 ## Development
 ```bash
 npm run dev      # Start dev server
