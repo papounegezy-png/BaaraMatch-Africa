@@ -3,8 +3,17 @@ import { pgTable, text, varchar, timestamp, boolean, integer, real, index } from
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const userTypes = ["candidate", "agency", "company"] as const;
+export const userTypes = ["candidate", "agency", "company", "admin"] as const;
 export type UserType = typeof userTypes[number];
+
+export const companyModuleTypes = [
+  "sites",           // Gestion des chantiers/sites
+  "certifications",  // Habilitations & Certifications
+  "epi",             // EPI & Équipements
+  "hse",             // HSE (Hygiène, Sécurité, Environnement)
+  "interim"          // Intérimaires/Sous-traitants
+] as const;
+export type CompanyModuleType = typeof companyModuleTypes[number];
 
 export const applicationStatuses = ["pending", "reviewing", "shortlisted", "interview", "offered", "hired", "rejected", "withdrawn"] as const;
 export type ApplicationStatus = typeof applicationStatuses[number];
@@ -23,6 +32,7 @@ export const users = pgTable("users", {
   country: text("country").default("Sénégal"),
   avatarUrl: text("avatar_url"),
   isVerified: boolean("is_verified").default(false),
+  isSuperAdmin: boolean("is_super_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -117,6 +127,20 @@ export const companyProfiles = pgTable("company_profiles", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const companyModules = pgTable("company_modules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyProfileId: varchar("company_profile_id").notNull().references(() => companyProfiles.id),
+  moduleType: text("module_type").$type<CompanyModuleType>().notNull(),
+  isEnabled: boolean("is_enabled").default(true),
+  enabledAt: timestamp("enabled_at").defaultNow(),
+  enabledBy: varchar("enabled_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  companyModuleIdx: index("company_modules_company_idx").on(table.companyProfileId),
+  moduleTypeIdx: index("company_modules_type_idx").on(table.moduleType),
+}));
 
 export const jobPostings = pgTable("job_postings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -242,6 +266,7 @@ export const insertCandidateSkillSchema = createInsertSchema(candidateSkills).om
 export const insertCandidateProfileSchema = createInsertSchema(candidateProfiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAgencyProfileSchema = createInsertSchema(agencyProfiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertCompanyProfileSchema = createInsertSchema(companyProfiles).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCompanyModuleSchema = createInsertSchema(companyModules).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertJobPostingSchema = createInsertSchema(jobPostings).omit({ id: true, createdAt: true, updatedAt: true, viewCount: true, applicationCount: true });
 export const insertJobRequiredSkillSchema = createInsertSchema(jobRequiredSkills).omit({ id: true });
 export const insertApplicationSchema = createInsertSchema(applications).omit({ id: true, createdAt: true, updatedAt: true });
@@ -268,6 +293,7 @@ export type CandidateSkill = typeof candidateSkills.$inferSelect;
 export type CandidateProfile = typeof candidateProfiles.$inferSelect;
 export type AgencyProfile = typeof agencyProfiles.$inferSelect;
 export type CompanyProfile = typeof companyProfiles.$inferSelect;
+export type CompanyModule = typeof companyModules.$inferSelect;
 export type JobPosting = typeof jobPostings.$inferSelect;
 export type JobRequiredSkill = typeof jobRequiredSkills.$inferSelect;
 export type Application = typeof applications.$inferSelect;
@@ -278,6 +304,7 @@ export type InsertCandidateSkill = z.infer<typeof insertCandidateSkillSchema>;
 export type InsertCandidateProfile = z.infer<typeof insertCandidateProfileSchema>;
 export type InsertAgencyProfile = z.infer<typeof insertAgencyProfileSchema>;
 export type InsertCompanyProfile = z.infer<typeof insertCompanyProfileSchema>;
+export type InsertCompanyModule = z.infer<typeof insertCompanyModuleSchema>;
 export type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
 export type InsertJobRequiredSkill = z.infer<typeof insertJobRequiredSkillSchema>;
 export type InsertApplication = z.infer<typeof insertApplicationSchema>;
