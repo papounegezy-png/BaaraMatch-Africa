@@ -6,6 +6,8 @@ import { ActiveContractsTable } from "@/components/active-contracts-table";
 import { CandidateSearchDashboard } from "@/components/candidate-search-dashboard";
 import { CandidateManagementTable } from "@/components/candidate-management-table";
 import { MissionsManagement } from "@/components/missions-management";
+import { NewCandidateForm } from "@/components/new-candidate-form";
+import { CvAttachmentsManager } from "@/components/cv-attachments-manager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -108,6 +110,14 @@ export default function AgencyDashboardPage() {
   const getPageContent = () => {
     if (location === "/agency/dashboard" || location === "/agency") {
       return <DashboardHome />;
+    }
+    
+    if (location === "/agency/candidates/create") {
+      return <NewCandidateForm />;
+    }
+    
+    if (location === "/agency/candidates/documents") {
+      return <CvAttachmentsManager />;
     }
     
     if (location.startsWith("/agency/candidates")) {

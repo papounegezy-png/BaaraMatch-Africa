@@ -314,6 +314,57 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/candidates", async (req, res) => {
+    try {
+      const { user: userData, profile: profileData } = req.body;
+
+      if (!userData?.email || !userData?.fullName || !userData?.phone) {
+        return res.status(400).json({ message: "Email, nom et téléphone requis" });
+      }
+
+      const existingUser = await storage.getUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Un utilisateur avec cet email existe déjà" });
+      }
+
+      const hashedPassword = await bcrypt.hash(userData.password || Math.random().toString(36).slice(-8), 12);
+
+      const newUser = await storage.createUser({
+        email: userData.email,
+        password: hashedPassword,
+        fullName: userData.fullName,
+        phone: userData.phone,
+        city: userData.city || null,
+        country: userData.country || "Sénégal",
+        userType: "candidate",
+      });
+
+      if (profileData) {
+        await storage.createCandidateProfile({
+          userId: newUser.id,
+          title: profileData.title || null,
+          bio: profileData.bio || null,
+          skills: profileData.skills || null,
+          experience: profileData.experience || null,
+          experienceYears: profileData.experienceYears || null,
+          education: profileData.education || null,
+          educationLevel: profileData.educationLevel || null,
+          languages: profileData.languages || null,
+          availableFrom: profileData.availableFrom || null,
+          salaryExpectation: profileData.salaryExpectation || null,
+          whatsappNumber: profileData.whatsappNumber || userData.phone,
+          preferredContact: profileData.preferredContact || "whatsapp",
+        });
+      }
+
+      const { password: _, ...userWithoutPassword } = newUser;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error creating candidate:", error);
+      res.status(500).json({ message: "Erreur lors de la création du candidat" });
+    }
+  });
+
   app.get("/api/agencies", async (req, res) => {
     try {
       const agencies = await storage.getAllAgencies();
