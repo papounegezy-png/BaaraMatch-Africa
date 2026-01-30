@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -47,7 +50,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Printer,
-  Mail
+  Mail,
+  Trash2,
+  User,
+  Save
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -184,12 +190,66 @@ const invoiceStats = {
   avgPaymentTime: 12,
 };
 
+interface Client {
+  id: string;
+  name: string;
+  type: "company" | "agency";
+}
+
+interface PlacementItem {
+  id: string;
+  candidateName: string;
+  position: string;
+  monthlyRate: number;
+  startDate: string;
+  clientId: string;
+}
+
+const availableClients: Client[] = [
+  { id: "1", name: "TechCorp Africa", type: "company" },
+  { id: "2", name: "FinBank Sénégal", type: "company" },
+  { id: "3", name: "Orange Digital Center", type: "company" },
+  { id: "4", name: "Wave Mobile Money", type: "company" },
+  { id: "5", name: "Jumia Sénégal", type: "company" },
+  { id: "6", name: "Sonatel Group", type: "company" },
+  { id: "7", name: "Eiffage Sénégal", type: "company" },
+];
+
+const availablePlacements: PlacementItem[] = [
+  { id: "p1", candidateName: "Sophie Marchand", position: "Développeur Full Stack", monthlyRate: 850000, startDate: "2026-01-15", clientId: "1" },
+  { id: "p2", candidateName: "Amadou Diallo", position: "Ingénieur DevOps", monthlyRate: 720000, startDate: "2026-01-10", clientId: "2" },
+  { id: "p3", candidateName: "Fatou Sow", position: "UX Designer", monthlyRate: 550000, startDate: "2026-01-08", clientId: "3" },
+  { id: "p4", candidateName: "Ibrahim Koné", position: "Backend Engineer", monthlyRate: 780000, startDate: "2025-12-01", clientId: "4" },
+  { id: "p5", candidateName: "Marie Laurent", position: "Product Manager", monthlyRate: 680000, startDate: "2025-11-15", clientId: "5" },
+  { id: "p6", candidateName: "Jean-Pierre Ndiaye", position: "Data Analyst", monthlyRate: 620000, startDate: "2026-01-20", clientId: "1" },
+  { id: "p7", candidateName: "Aissatou Bâ", position: "QA Engineer", monthlyRate: 480000, startDate: "2026-01-18", clientId: "2" },
+];
+
+interface InvoiceLine {
+  id: string;
+  placementId: string;
+  candidateName: string;
+  position: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
 export function ClientInvoicing() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showInvoiceDetail, setShowInvoiceDetail] = useState(false);
+  const [showNewInvoice, setShowNewInvoice] = useState(false);
+  
+  const [newInvoiceClient, setNewInvoiceClient] = useState("");
+  const [newInvoiceDate, setNewInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newInvoiceDueDate, setNewInvoiceDueDate] = useState("");
+  const [newInvoicePaymentTerms, setNewInvoicePaymentTerms] = useState("30");
+  const [newInvoiceNotes, setNewInvoiceNotes] = useState("");
+  const [invoiceLines, setInvoiceLines] = useState<InvoiceLine[]>([]);
+  const [selectedPlacement, setSelectedPlacement] = useState("");
 
   const getStatusBadge = (status: Invoice["status"]) => {
     const variants = {
@@ -238,6 +298,99 @@ export function ClientInvoicing() {
     });
   };
 
+  const filteredPlacements = availablePlacements.filter(p => 
+    p.clientId === newInvoiceClient && !invoiceLines.some(line => line.placementId === p.id)
+  );
+
+  const addInvoiceLine = () => {
+    if (!selectedPlacement) return;
+    const placement = availablePlacements.find(p => p.id === selectedPlacement);
+    if (!placement) return;
+    
+    const newLine: InvoiceLine = {
+      id: `line-${Date.now()}`,
+      placementId: placement.id,
+      candidateName: placement.candidateName,
+      position: placement.position,
+      quantity: 1,
+      unitPrice: placement.monthlyRate,
+      total: placement.monthlyRate,
+    };
+    
+    setInvoiceLines([...invoiceLines, newLine]);
+    setSelectedPlacement("");
+  };
+
+  const removeInvoiceLine = (lineId: string) => {
+    setInvoiceLines(invoiceLines.filter(line => line.id !== lineId));
+  };
+
+  const updateLineQuantity = (lineId: string, quantity: number) => {
+    setInvoiceLines(invoiceLines.map(line => 
+      line.id === lineId 
+        ? { ...line, quantity, total: line.unitPrice * quantity }
+        : line
+    ));
+  };
+
+  const calculateTotals = () => {
+    const subtotal = invoiceLines.reduce((sum, line) => sum + line.total, 0);
+    const tva = subtotal * 0.18;
+    const total = subtotal + tva;
+    return { subtotal, tva, total };
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR').format(amount) + ' XOF';
+  };
+
+  const resetNewInvoiceForm = () => {
+    setNewInvoiceClient("");
+    setNewInvoiceDate(new Date().toISOString().split('T')[0]);
+    setNewInvoiceDueDate("");
+    setNewInvoicePaymentTerms("30");
+    setNewInvoiceNotes("");
+    setInvoiceLines([]);
+    setSelectedPlacement("");
+  };
+
+  const handleCreateInvoice = (asDraft: boolean = false) => {
+    if (!newInvoiceClient || invoiceLines.length === 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un client et ajouter au moins une ligne.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const client = availableClients.find(c => c.id === newInvoiceClient);
+    const totals = calculateTotals();
+    
+    toast({
+      title: asDraft ? "Brouillon enregistré" : "Facture créée",
+      description: `Facture pour ${client?.name} de ${formatCurrency(totals.total)} ${asDraft ? "enregistrée comme brouillon" : "créée avec succès"}.`,
+    });
+    
+    setShowNewInvoice(false);
+    resetNewInvoiceForm();
+  };
+
+  const handleClientChange = (clientId: string) => {
+    setNewInvoiceClient(clientId);
+    setInvoiceLines([]);
+    setSelectedPlacement("");
+  };
+
+  const handlePaymentTermsChange = (terms: string) => {
+    setNewInvoicePaymentTerms(terms);
+    if (newInvoiceDate && terms !== "custom") {
+      const date = new Date(newInvoiceDate);
+      date.setDate(date.getDate() + parseInt(terms));
+      setNewInvoiceDueDate(date.toISOString().split('T')[0]);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-4">
@@ -249,7 +402,7 @@ export function ClientInvoicing() {
             Gestion des factures et suivi des paiements
           </p>
         </div>
-        <Button data-testid="button-new-invoice">
+        <Button onClick={() => setShowNewInvoice(true)} data-testid="button-new-invoice">
           <Plus className="h-4 w-4 mr-2" />
           Nouvelle facture
         </Button>
@@ -539,6 +692,233 @@ export function ClientInvoicing() {
             <Button onClick={() => selectedInvoice && handleDownloadPDF(selectedInvoice)}>
               <Download className="h-4 w-4 mr-2" />
               Télécharger PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNewInvoice} onOpenChange={(open) => { setShowNewInvoice(open); if (!open) resetNewInvoiceForm(); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Nouvelle Facture
+            </DialogTitle>
+            <DialogDescription>
+              Créer une nouvelle facture pour un client
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="client">Client *</Label>
+                  <Select value={newInvoiceClient} onValueChange={handleClientChange}>
+                    <SelectTrigger id="client" data-testid="select-invoice-client">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Sélectionner un client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableClients.map(client => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="issueDate">Date d'émission</Label>
+                  <Input 
+                    id="issueDate"
+                    type="date"
+                    value={newInvoiceDate}
+                    onChange={(e) => setNewInvoiceDate(e.target.value)}
+                    data-testid="input-invoice-date"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="paymentTerms">Délai de paiement</Label>
+                  <Select value={newInvoicePaymentTerms} onValueChange={handlePaymentTermsChange}>
+                    <SelectTrigger id="paymentTerms" data-testid="select-payment-terms">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Paiement immédiat</SelectItem>
+                      <SelectItem value="15">15 jours</SelectItem>
+                      <SelectItem value="30">30 jours</SelectItem>
+                      <SelectItem value="45">45 jours</SelectItem>
+                      <SelectItem value="60">60 jours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Date d'échéance</Label>
+                  <Input 
+                    id="dueDate"
+                    type="date"
+                    value={newInvoiceDueDate}
+                    onChange={(e) => setNewInvoiceDueDate(e.target.value)}
+                    data-testid="input-due-date"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Lignes de facturation</h4>
+                {newInvoiceClient && (
+                  <div className="flex items-center gap-2">
+                    <Select value={selectedPlacement} onValueChange={setSelectedPlacement}>
+                      <SelectTrigger className="w-64" data-testid="select-placement">
+                        <User className="h-4 w-4 mr-2" />
+                        <SelectValue placeholder="Ajouter un placement" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredPlacements.length === 0 ? (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            Aucun placement disponible
+                          </div>
+                        ) : (
+                          filteredPlacements.map(placement => (
+                            <SelectItem key={placement.id} value={placement.id}>
+                              {placement.candidateName} - {placement.position}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      variant="outline" 
+                      onClick={addInvoiceLine}
+                      disabled={!selectedPlacement}
+                      data-testid="button-add-line"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {!newInvoiceClient && (
+                <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                  <Building2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Sélectionnez d'abord un client pour voir les placements disponibles</p>
+                </div>
+              )}
+
+              {newInvoiceClient && invoiceLines.length === 0 && (
+                <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Ajoutez des placements à facturer</p>
+                </div>
+              )}
+
+              {invoiceLines.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Candidat / Prestation</TableHead>
+                        <TableHead className="w-24">Quantité</TableHead>
+                        <TableHead className="text-right">Prix unitaire</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoiceLines.map(line => (
+                        <TableRow key={line.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{line.candidateName}</p>
+                              <p className="text-sm text-muted-foreground">{line.position}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Input 
+                              type="number"
+                              min="1"
+                              value={line.quantity}
+                              onChange={(e) => updateLineQuantity(line.id, parseInt(e.target.value) || 1)}
+                              className="w-20"
+                              data-testid={`input-quantity-${line.id}`}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">{formatCurrency(line.unitPrice)}</TableCell>
+                          <TableCell className="text-right font-medium">{formatCurrency(line.total)}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => removeInvoiceLine(line.id)}
+                              className="text-destructive"
+                              data-testid={`button-remove-line-${line.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {invoiceLines.length > 0 && (
+                <div className="flex justify-end">
+                  <div className="w-72 space-y-2 border rounded-lg p-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Sous-total HT</span>
+                      <span>{formatCurrency(calculateTotals().subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">TVA (18%)</span>
+                      <span>{formatCurrency(calculateTotals().tva)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total TTC</span>
+                      <span>{formatCurrency(calculateTotals().total)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes / Conditions particulières</Label>
+              <Textarea 
+                id="notes"
+                placeholder="Conditions de paiement, remarques..."
+                value={newInvoiceNotes}
+                onChange={(e) => setNewInvoiceNotes(e.target.value)}
+                rows={3}
+                data-testid="textarea-notes"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowNewInvoice(false); resetNewInvoiceForm(); }}>
+              Annuler
+            </Button>
+            <Button variant="outline" onClick={() => handleCreateInvoice(true)} data-testid="button-save-draft">
+              <Save className="h-4 w-4 mr-2" />
+              Enregistrer brouillon
+            </Button>
+            <Button onClick={() => handleCreateInvoice(false)} data-testid="button-create-invoice">
+              <Send className="h-4 w-4 mr-2" />
+              Créer et envoyer
             </Button>
           </DialogFooter>
         </DialogContent>
