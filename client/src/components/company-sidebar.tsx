@@ -191,6 +191,24 @@ const menuSections: MenuSection[] = [
     title: "Configuration",
     items: [
       {
+        href: "/company/departments",
+        icon: Building2,
+        label: "Départements",
+        subItems: [
+          { href: "/company/departments", icon: ClipboardList, label: "Liste des départements" },
+          { href: "/company/departments/add", icon: UserPlus, label: "Ajouter département" },
+        ],
+      },
+      {
+        href: "/company/positions",
+        icon: Briefcase,
+        label: "Postes",
+        subItems: [
+          { href: "/company/positions", icon: ClipboardList, label: "Liste des postes" },
+          { href: "/company/positions/add", icon: UserPlus, label: "Ajouter poste" },
+        ],
+      },
+      {
         href: "/company/settings",
         icon: Settings,
         label: "Paramètres",

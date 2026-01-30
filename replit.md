@@ -237,6 +237,8 @@ Complete enterprise HR and recruitment management system accessible at `/company
 - `/company/leaves` - Leave and absence management
 - `/company/payroll` - Payroll and payslips
 - `/company/orgchart` - Organization chart
+- `/company/departments` - Department management (create, edit, delete)
+- `/company/positions` - Position management (with salary ranges, levels)
 
 ## Development
 ```bash

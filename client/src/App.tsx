@@ -128,6 +128,10 @@ function CompanyRouter() {
         <Route path="/company/payroll" component={CompanyDashboardPage} />
         <Route path="/company/payroll/:subsection" component={CompanyDashboardPage} />
         <Route path="/company/orgchart" component={CompanyDashboardPage} />
+        <Route path="/company/departments" component={CompanyDashboardPage} />
+        <Route path="/company/departments/:subsection" component={CompanyDashboardPage} />
+        <Route path="/company/positions" component={CompanyDashboardPage} />
+        <Route path="/company/positions/:subsection" component={CompanyDashboardPage} />
         <Route path="/company/settings" component={CompanyDashboardPage} />
         <Route path="/company/settings/:subsection" component={CompanyDashboardPage} />
         <Route path="/company/support" component={CompanyDashboardPage} />
