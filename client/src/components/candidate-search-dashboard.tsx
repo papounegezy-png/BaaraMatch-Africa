@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,6 +174,7 @@ const availabilityOptions = [
 ];
 
 export function CandidateSearchDashboard() {
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [minScore, setMinScore] = useState(0);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -528,6 +530,8 @@ export function CandidateSearchDashboard() {
                       )}
                       <Button 
                         size="sm"
+                        className="bg-orange-500 hover:bg-orange-600 text-white border-orange-600"
+                        onClick={() => setLocation(`/agency/candidates/${candidate.id}`)}
                         data-testid={`button-view-profile-${candidate.id}`}
                       >
                         <Eye className="h-4 w-4 mr-1" />
