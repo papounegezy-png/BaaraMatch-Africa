@@ -30,8 +30,15 @@ import {
   ArrowLeft,
   Save,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  FileText,
+  Upload,
+  File,
+  Trash2,
+  Award,
+  IdCard,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -65,10 +72,20 @@ const availabilityOptions = [
   { value: "3_months", label: "3 mois" },
 ];
 
+interface UploadedFile {
+  file: File;
+  type: "cv" | "diploma" | "certificate" | "id" | "other";
+  name: string;
+}
+
 export function NewCandidateForm() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [skillInput, setSkillInput] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [documents, setDocuments] = useState<UploadedFile[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -129,6 +146,82 @@ export function NewCandidateForm() {
     } else {
       setFormData({ ...formData, languages: [...formData.languages, lang] });
     }
+  };
+
+  const handleCvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: "Le CV doit faire moins de 5 Mo",
+          variant: "destructive",
+        });
+        return;
+      }
+      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: "Format non supporté",
+          description: "Veuillez télécharger un fichier PDF ou Word",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCvFile(file);
+    }
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>, docType: UploadedFile["type"]) => {
+    const files = e.target.files;
+    if (files) {
+      const newDocs: UploadedFile[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "Fichier trop volumineux",
+            description: `${file.name} doit faire moins de 5 Mo`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        newDocs.push({ file, type: docType, name: file.name });
+      }
+      setDocuments([...documents, ...newDocs]);
+    }
+  };
+
+  const removeDocument = (index: number) => {
+    setDocuments(documents.filter((_, i) => i !== index));
+  };
+
+  const getDocTypeLabel = (type: UploadedFile["type"]) => {
+    const labels: Record<UploadedFile["type"], string> = {
+      cv: "CV",
+      diploma: "Diplôme",
+      certificate: "Certificat",
+      id: "Pièce d'identité",
+      other: "Autre",
+    };
+    return labels[type];
+  };
+
+  const getDocTypeIcon = (type: UploadedFile["type"]) => {
+    const icons: Record<UploadedFile["type"], React.ReactNode> = {
+      cv: <FileText className="h-4 w-4" />,
+      diploma: <GraduationCap className="h-4 w-4" />,
+      certificate: <Award className="h-4 w-4" />,
+      id: <IdCard className="h-4 w-4" />,
+      other: <File className="h-4 w-4" />,
+    };
+    return icons[type];
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' Mo';
   };
 
   const handleSubmit = () => {
@@ -447,6 +540,187 @@ export function NewCandidateForm() {
                   </Badge>
                 ))}
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5 text-primary" />
+              CV & Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Curriculum Vitae (CV)
+              </Label>
+              <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                {cvFile ? (
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium text-sm truncate max-w-[200px]">{cvFile.name}</p>
+                        <p className="text-xs text-muted-foreground">{formatFileSize(cvFile.size)}</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setCvFile(null)}
+                      data-testid="button-remove-cv"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Glissez-déposez votre CV ou cliquez pour sélectionner
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-3">PDF ou Word, max 5 Mo</p>
+                    <label htmlFor="cv-upload">
+                      <Button variant="outline" size="sm" asChild>
+                        <span className="cursor-pointer">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choisir un fichier
+                        </span>
+                      </Button>
+                    </label>
+                    <input
+                      id="cv-upload"
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleCvUpload}
+                      className="hidden"
+                      data-testid="input-cv-upload"
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <File className="h-4 w-4" />
+                Documents complémentaires
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <label htmlFor="diploma-upload" className="cursor-pointer">
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors">
+                    <GraduationCap className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-xs font-medium">Diplômes</p>
+                    <p className="text-xs text-muted-foreground">PDF, Images</p>
+                  </div>
+                  <input
+                    id="diploma-upload"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleDocumentUpload(e, "diploma")}
+                    className="hidden"
+                    data-testid="input-diploma-upload"
+                  />
+                </label>
+
+                <label htmlFor="certificate-upload" className="cursor-pointer">
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors">
+                    <Award className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-xs font-medium">Certificats</p>
+                    <p className="text-xs text-muted-foreground">PDF, Images</p>
+                  </div>
+                  <input
+                    id="certificate-upload"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleDocumentUpload(e, "certificate")}
+                    className="hidden"
+                    data-testid="input-certificate-upload"
+                  />
+                </label>
+
+                <label htmlFor="id-upload" className="cursor-pointer">
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors">
+                    <IdCard className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-xs font-medium">Pièce d'identité</p>
+                    <p className="text-xs text-muted-foreground">PDF, Images</p>
+                  </div>
+                  <input
+                    id="id-upload"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleDocumentUpload(e, "id")}
+                    className="hidden"
+                    data-testid="input-id-upload"
+                  />
+                </label>
+
+                <label htmlFor="other-upload" className="cursor-pointer">
+                  <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors">
+                    <File className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-xs font-medium">Autres</p>
+                    <p className="text-xs text-muted-foreground">PDF, Images</p>
+                  </div>
+                  <input
+                    id="other-upload"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => handleDocumentUpload(e, "other")}
+                    className="hidden"
+                    data-testid="input-other-upload"
+                  />
+                </label>
+              </div>
+
+              {documents.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  <p className="text-sm font-medium">{documents.length} document(s) ajouté(s)</p>
+                  <div className="space-y-2">
+                    {documents.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center">
+                            {getDocTypeIcon(doc.type)}
+                          </div>
+                          <div>
+                            <p className="text-sm truncate max-w-[200px]">{doc.name}</p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">{getDocTypeLabel(doc.type)}</Badge>
+                              <span className="text-xs text-muted-foreground">{formatFileSize(doc.file.size)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => removeDocument(index)}
+                          data-testid={`button-remove-doc-${index}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isUploading && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Téléchargement en cours...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
