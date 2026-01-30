@@ -13,6 +13,7 @@ import { PlacementReports } from "@/components/placement-reports";
 import { FinancialSettings } from "@/components/financial-settings";
 import { ClientInvoicing } from "@/components/client-invoicing";
 import { SalaryManagement } from "@/components/salary-management";
+import { CommissionManagement } from "@/components/commission-management";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -166,12 +167,16 @@ export default function AgencyDashboardPage() {
       return <SalaryManagement />;
     }
     
+    if (location === "/agency/billing/commissions") {
+      return <CommissionManagement />;
+    }
+    
     if (location.startsWith("/agency/billing")) {
       return (
         <ComingSoonPage 
           title="Paie & Facturation" 
           icon={Receipt}
-          description="Commissions agence, états de paiement et export comptable."
+          description="États de paiement et export comptable."
         />
       );
     }
