@@ -190,6 +190,26 @@ const invoiceStats = {
   avgPaymentTime: 12,
 };
 
+const companyInfo = {
+  name: "RH Connect SARL",
+  address: "123 Avenue Cheikh Anta Diop",
+  city: "Dakar, Sénégal",
+  phone: "+221 33 123 45 67",
+  email: "contact@rhconnect.sn",
+  website: "www.rhconnect.sn",
+  siret: "SN-2024-RH-00456",
+  tva: "SN123456789",
+};
+
+const bankInfo = {
+  bankName: "BICIS Sénégal",
+  accountName: "RH Connect SARL",
+  iban: "SN08 SN00 0000 0000 0000 0000 4521",
+  bic: "BICISNDAXXX",
+  orangeMoney: "+221 77 123 45 67",
+  wave: "+221 76 987 65 43",
+};
+
 interface Client {
   id: string;
   name: string;
@@ -711,9 +731,24 @@ export function ClientInvoicing() {
           
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Émetteur</h4>
+                <div className="space-y-1">
+                  <p className="font-bold text-lg">{companyInfo.name}</p>
+                  <p className="text-sm">{companyInfo.address}</p>
+                  <p className="text-sm">{companyInfo.city}</p>
+                  <p className="text-sm">{companyInfo.phone}</p>
+                  <p className="text-sm">{companyInfo.email}</p>
+                  <div className="pt-2 space-y-1">
+                    <p className="text-xs text-muted-foreground">NINEA: {companyInfo.siret}</p>
+                    <p className="text-xs text-muted-foreground">N° TVA: {companyInfo.tva}</p>
+                  </div>
+                </div>
+              </div>
+              
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="client">Client *</Label>
+                  <Label htmlFor="client">Client destinataire *</Label>
                   <Select value={newInvoiceClient} onValueChange={handleClientChange}>
                     <SelectTrigger id="client" data-testid="select-invoice-client">
                       <Building2 className="h-4 w-4 mr-2" />
@@ -728,46 +763,52 @@ export function ClientInvoicing() {
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="issueDate">Date d'émission</Label>
-                  <Input 
-                    id="issueDate"
-                    type="date"
-                    value={newInvoiceDate}
-                    onChange={(e) => setNewInvoiceDate(e.target.value)}
-                    data-testid="input-invoice-date"
-                  />
-                </div>
+                {newInvoiceClient && (
+                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-3 text-sm">
+                    <p className="font-medium">{availableClients.find(c => c.id === newInvoiceClient)?.name}</p>
+                    <p className="text-muted-foreground">Dakar, Sénégal</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="issueDate">Date d'émission</Label>
+                <Input 
+                  id="issueDate"
+                  type="date"
+                  value={newInvoiceDate}
+                  onChange={(e) => setNewInvoiceDate(e.target.value)}
+                  data-testid="input-invoice-date"
+                />
               </div>
               
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paymentTerms">Délai de paiement</Label>
-                  <Select value={newInvoicePaymentTerms} onValueChange={handlePaymentTermsChange}>
-                    <SelectTrigger id="paymentTerms" data-testid="select-payment-terms">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">Paiement immédiat</SelectItem>
-                      <SelectItem value="15">15 jours</SelectItem>
-                      <SelectItem value="30">30 jours</SelectItem>
-                      <SelectItem value="45">45 jours</SelectItem>
-                      <SelectItem value="60">60 jours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="dueDate">Date d'échéance</Label>
-                  <Input 
-                    id="dueDate"
-                    type="date"
-                    value={newInvoiceDueDate}
-                    onChange={(e) => setNewInvoiceDueDate(e.target.value)}
-                    data-testid="input-due-date"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="paymentTerms">Délai de paiement</Label>
+                <Select value={newInvoicePaymentTerms} onValueChange={handlePaymentTermsChange}>
+                  <SelectTrigger id="paymentTerms" data-testid="select-payment-terms">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Paiement immédiat</SelectItem>
+                    <SelectItem value="15">15 jours</SelectItem>
+                    <SelectItem value="30">30 jours</SelectItem>
+                    <SelectItem value="45">45 jours</SelectItem>
+                    <SelectItem value="60">60 jours</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">Date d'échéance</Label>
+                <Input 
+                  id="dueDate"
+                  type="date"
+                  value={newInvoiceDueDate}
+                  onChange={(e) => setNewInvoiceDueDate(e.target.value)}
+                  data-testid="input-due-date"
+                />
               </div>
             </div>
 
@@ -893,6 +934,65 @@ export function ClientInvoicing() {
                   </div>
                 </div>
               )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h4 className="font-medium flex items-center gap-2">
+                <Receipt className="h-4 w-4" />
+                Informations de Paiement
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Building2 className="h-4 w-4 text-blue-600" />
+                    Virement Bancaire
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Banque</span>
+                      <span className="font-medium">{bankInfo.bankName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Titulaire</span>
+                      <span className="font-medium">{bankInfo.accountName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">IBAN</span>
+                      <span className="font-mono text-xs">{bankInfo.iban}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">BIC/SWIFT</span>
+                      <span className="font-mono">{bankInfo.bic}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="text-sm font-medium">Paiement Mobile</div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-2 bg-orange-50 dark:bg-orange-950/20 rounded">
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-full bg-orange-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">OM</span>
+                        </div>
+                        <span className="text-sm">Orange Money</span>
+                      </div>
+                      <span className="font-mono text-sm">{bankInfo.orangeMoney}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">W</span>
+                        </div>
+                        <span className="text-sm">Wave</span>
+                      </div>
+                      <span className="font-mono text-sm">{bankInfo.wave}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
