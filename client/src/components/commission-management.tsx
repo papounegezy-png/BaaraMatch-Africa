@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { jsPDF } from "jspdf";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -252,79 +253,145 @@ export function CommissionManagement() {
     const companyInfo = {
       name: "RH Connect SARL",
       address: "123 Avenue Cheikh Anta Diop",
-      city: "Dakar, Sénégal",
+      city: "Dakar, Senegal",
       phone: "+221 33 123 45 67",
       email: "contact@rhconnect.sn",
       ninea: "005123456 2G3",
       tva: "SN 123456789"
     };
 
-    const content = `
-═══════════════════════════════════════════════════════════════
-                    DÉTAIL DE COMMISSION
-═══════════════════════════════════════════════════════════════
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
 
-ÉMETTEUR
-────────────────────────────────────────────────────────────────
-${companyInfo.name}
-${companyInfo.address}
-${companyInfo.city}
-Tél: ${companyInfo.phone}
-Email: ${companyInfo.email}
-NINEA: ${companyInfo.ninea}
-N° TVA: ${companyInfo.tva}
-
-═══════════════════════════════════════════════════════════════
-                    INFORMATIONS DU PLACEMENT
-═══════════════════════════════════════════════════════════════
-
-Numéro de facture:     ${commission.invoiceNumber || 'N/A'}
-Date de placement:     ${formatDate(commission.placementDate)}
-Statut:                ${getStatusBadge(commission.status).label}
-
-CANDIDAT PLACÉ
-────────────────────────────────────────────────────────────────
-Nom:                   ${commission.candidateName}
-Poste:                 ${commission.candidatePosition}
-
-ENTREPRISE CLIENTE
-────────────────────────────────────────────────────────────────
-Nom:                   ${commission.companyName}
-Type de contrat:       ${commission.contractType}
-
-═══════════════════════════════════════════════════════════════
-                    DÉTAIL FINANCIER
-═══════════════════════════════════════════════════════════════
-
-Valeur annuelle du contrat:    ${formatCurrency(commission.contractValue)}
-Taux de commission:            ${commission.commissionRate}%
-────────────────────────────────────────────────────────────────
-MONTANT DE LA COMMISSION:      ${formatCurrency(commission.commissionAmount)}
-
-═══════════════════════════════════════════════════════════════
-
-${commission.paymentDate ? `
-PAIEMENT REÇU
-────────────────────────────────────────────────────────────────
-Date de paiement: ${formatDate(commission.paymentDate)}
-` : ''}
-
-Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}
-`;
-
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `commission_${commission.invoiceNumber || commission.id}_${commission.candidateName.replace(/\s+/g, '_')}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Header with gradient effect (using rectangles)
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("DETAIL DE COMMISSION", pageWidth / 2, 25, { align: "center" });
+    
+    y = 55;
+    
+    // Company info
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(companyInfo.name, 15, y);
+    doc.text(companyInfo.address, 15, y + 5);
+    doc.text(companyInfo.city, 15, y + 10);
+    doc.text(`Tel: ${companyInfo.phone}`, 15, y + 15);
+    doc.text(`Email: ${companyInfo.email}`, 15, y + 20);
+    
+    // Right side - Invoice info
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.text(`N° Facture: ${commission.invoiceNumber || 'N/A'}`, pageWidth - 15, y, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.text(`Date: ${formatDate(commission.placementDate)}`, pageWidth - 15, y + 7, { align: "right" });
+    doc.text(`Statut: ${getStatusBadge(commission.status).label}`, pageWidth - 15, y + 14, { align: "right" });
+    
+    y = 95;
+    
+    // Separator line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, y, pageWidth - 15, y);
+    
+    y += 15;
+    
+    // Candidate section
+    doc.setFillColor(249, 250, 251);
+    doc.roundedRect(15, y - 5, pageWidth - 30, 35, 3, 3, 'F');
+    
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("CANDIDAT PLACE", 20, y + 5);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(`Nom: ${commission.candidateName}`, 20, y + 15);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Poste: ${commission.candidatePosition}`, 20, y + 23);
+    
+    y += 45;
+    
+    // Company client section
+    doc.setFillColor(249, 250, 251);
+    doc.roundedRect(15, y - 5, pageWidth - 30, 35, 3, 3, 'F');
+    
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("ENTREPRISE CLIENTE", 20, y + 5);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(`Nom: ${commission.companyName}`, 20, y + 15);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Type de contrat: ${commission.contractType}`, 20, y + 23);
+    
+    y += 50;
+    
+    // Financial details
+    doc.setFillColor(239, 246, 255);
+    doc.roundedRect(15, y - 5, pageWidth - 30, 60, 3, 3, 'F');
+    
+    doc.setTextColor(59, 130, 246);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("DETAIL FINANCIER", 20, y + 5);
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    
+    doc.text("Valeur annuelle du contrat:", 20, y + 18);
+    doc.text(formatCurrency(commission.contractValue), pageWidth - 20, y + 18, { align: "right" });
+    
+    doc.text("Taux de commission:", 20, y + 28);
+    doc.text(`${commission.commissionRate}%`, pageWidth - 20, y + 28, { align: "right" });
+    
+    doc.setDrawColor(59, 130, 246);
+    doc.line(20, y + 35, pageWidth - 20, y + 35);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(34, 197, 94);
+    doc.text("MONTANT DE LA COMMISSION:", 20, y + 48);
+    doc.text(formatCurrency(commission.commissionAmount), pageWidth - 20, y + 48, { align: "right" });
+    
+    y += 70;
+    
+    // Payment status if paid
+    if (commission.paymentDate) {
+      doc.setFillColor(220, 252, 231);
+      doc.roundedRect(15, y - 5, pageWidth - 30, 25, 3, 3, 'F');
+      
+      doc.setTextColor(22, 163, 74);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("PAIEMENT RECU", 20, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Date de paiement: ${formatDate(commission.paymentDate)}`, 20, y + 15);
+    }
+    
+    // Footer
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    const footerY = doc.internal.pageSize.getHeight() - 15;
+    doc.text(`Document genere le ${new Date().toLocaleDateString('fr-FR')} - ${companyInfo.name}`, pageWidth / 2, footerY, { align: "center" });
+    doc.text(`NINEA: ${companyInfo.ninea} | TVA: ${companyInfo.tva}`, pageWidth / 2, footerY + 5, { align: "center" });
+    
+    // Save the PDF
+    doc.save(`commission_${commission.invoiceNumber || commission.id}_${commission.candidateName.replace(/\s+/g, '_')}.pdf`);
 
     toast({
-      title: "Téléchargement réussi",
-      description: `Détail de commission pour ${commission.candidateName} téléchargé.`,
+      title: "PDF telecharge",
+      description: `Detail de commission pour ${commission.candidateName} telecharge.`,
     });
   };
 
