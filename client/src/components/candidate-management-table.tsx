@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,6 +174,7 @@ interface MatchingResponse {
 }
 
 export function CandidateManagementTable() {
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -190,6 +192,11 @@ export function CandidateManagementTable() {
   const [interviewNotes, setInterviewNotes] = useState("");
   const { toast } = useToast();
   const itemsPerPage = 5;
+
+  const navigateToProfile = (candidateId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setLocation(`/agency/candidates/${candidateId}`);
+  };
 
   // Fetch all candidates from the database
   const { data: allCandidatesData = [], isLoading: isLoadingAllCandidates } = useQuery<(User & { profile?: CandidateProfile })[]>({
@@ -437,7 +444,13 @@ export function CandidateManagementTable() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <p className="font-medium truncate">{candidate.name}</p>
+                          <button 
+                            className="font-medium truncate text-left hover:text-primary hover:underline cursor-pointer"
+                            onClick={(e) => navigateToProfile(candidate.id, e)}
+                            data-testid={`link-candidate-name-${candidate.id}`}
+                          >
+                            {candidate.name}
+                          </button>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Briefcase className="h-3 w-3" />
                             <span>{candidate.experience} ans</span>
@@ -728,24 +741,39 @@ export function CandidateManagementTable() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t">
+              <div className="space-y-3 pt-4 border-t">
                 <Button 
-                  className="flex-1" 
-                  data-testid="button-contact-candidate"
-                  onClick={() => setShowContactDialog(true)}
+                  className="w-full" 
+                  variant="default"
+                  data-testid="button-view-full-profile"
+                  onClick={() => {
+                    setSelectedCandidate(null);
+                    navigateToProfile(selectedCandidate.id);
+                  }}
                 >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Contacter
+                  <UserIcon className="h-4 w-4 mr-2" />
+                  Voir le profil complet
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1" 
-                  data-testid="button-add-to-mission"
-                  onClick={() => setShowMissionDialog(true)}
-                >
-                  <CalendarPlus className="h-4 w-4 mr-2" />
-                  Planifier
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1" 
+                    variant="outline"
+                    data-testid="button-contact-candidate"
+                    onClick={() => setShowContactDialog(true)}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Contacter
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1" 
+                    data-testid="button-add-to-mission"
+                    onClick={() => setShowMissionDialog(true)}
+                  >
+                    <CalendarPlus className="h-4 w-4 mr-2" />
+                    Planifier
+                  </Button>
+                </div>
               </div>
             </div>
           )}

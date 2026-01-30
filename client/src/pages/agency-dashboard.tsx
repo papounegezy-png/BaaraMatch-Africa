@@ -8,6 +8,7 @@ import { CandidateManagementTable } from "@/components/candidate-management-tabl
 import { MissionsManagement } from "@/components/missions-management";
 import { NewCandidateForm } from "@/components/new-candidate-form";
 import { CvAttachmentsManager } from "@/components/cv-attachments-manager";
+import { CandidateProfileView } from "@/components/candidate-profile-view";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -118,6 +119,11 @@ export default function AgencyDashboardPage() {
     
     if (location === "/agency/candidates/documents") {
       return <CvAttachmentsManager />;
+    }
+    
+    const candidateProfileMatch = location.match(/^\/agency\/candidates\/([^/]+)$/);
+    if (candidateProfileMatch && candidateProfileMatch[1] !== "create" && candidateProfileMatch[1] !== "documents") {
+      return <CandidateProfileView candidateId={candidateProfileMatch[1]} />;
     }
     
     if (location.startsWith("/agency/candidates")) {

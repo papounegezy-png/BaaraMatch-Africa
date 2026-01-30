@@ -365,6 +365,25 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/candidates/:id", async (req, res) => {
+    try {
+      const candidateId = req.params.id;
+      const candidate = await storage.getUser(candidateId);
+      
+      if (!candidate || candidate.userType !== "candidate") {
+        return res.status(404).json({ message: "Candidat non trouvé" });
+      }
+
+      const profile = await storage.getCandidateProfile(candidateId);
+      const { password: _, ...candidateWithoutPassword } = candidate;
+      
+      res.json({ ...candidateWithoutPassword, profile });
+    } catch (error) {
+      console.error("Error fetching candidate:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération du candidat" });
+    }
+  });
+
   app.get("/api/agencies", async (req, res) => {
     try {
       const agencies = await storage.getAllAgencies();
