@@ -11,6 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  Tooltip,
+} from "recharts";
+import {
   Building2,
   Users,
   Briefcase,
@@ -28,6 +41,11 @@ import {
   UserCheck,
   Eye,
   Edit,
+  Clock,
+  Flag,
+  MessageSquare,
+  Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -39,6 +57,77 @@ const mockStats = {
   companiesWithModules: 12,
   pendingVerifications: 5,
 };
+
+const userGrowthData = [
+  { month: "Août", candidates: 180, companies: 8, agencies: 3 },
+  { month: "Sept", candidates: 245, companies: 12, agencies: 4 },
+  { month: "Oct", candidates: 320, companies: 15, agencies: 5 },
+  { month: "Nov", candidates: 410, companies: 22, agencies: 7 },
+  { month: "Déc", candidates: 520, companies: 35, agencies: 12 },
+  { month: "Jan", candidates: 680, companies: 42, agencies: 18 },
+  { month: "Fév", candidates: 850, companies: 47, agencies: 23 },
+];
+
+const matchingDistributionData = [
+  { name: "90-100%", value: 125, color: "#10b981" },
+  { name: "75-89%", value: 287, color: "#3b82f6" },
+  { name: "60-74%", value: 412, color: "#f59e0b" },
+  { name: "40-59%", value: 198, color: "#ef4444" },
+  { name: "<40%", value: 78, color: "#6b7280" },
+];
+
+const moderationQueue = [
+  {
+    id: "1",
+    type: "profile",
+    user: "Ibrahima Touré",
+    userType: "candidate",
+    reason: "Contenu inapproprié dans la bio",
+    reportedBy: "Système auto",
+    createdAt: "2026-02-02 09:15",
+    priority: "high",
+  },
+  {
+    id: "2",
+    type: "job",
+    user: "BTP Sénégal SA",
+    userType: "company",
+    reason: "Offre d'emploi suspecte",
+    reportedBy: "3 signalements",
+    createdAt: "2026-02-02 08:45",
+    priority: "medium",
+  },
+  {
+    id: "3",
+    type: "message",
+    user: "Recrutement Express",
+    userType: "agency",
+    reason: "Spam potentiel",
+    reportedBy: "Filtre anti-spam",
+    createdAt: "2026-02-01 18:30",
+    priority: "low",
+  },
+  {
+    id: "4",
+    type: "document",
+    user: "Fatou Diallo",
+    userType: "candidate",
+    reason: "CV avec informations fausses suspectées",
+    reportedBy: "Gold Coast Mining",
+    createdAt: "2026-02-01 16:20",
+    priority: "medium",
+  },
+  {
+    id: "5",
+    type: "profile",
+    user: "Mining Solutions Ltd",
+    userType: "company",
+    reason: "Identité d'entreprise non vérifiée",
+    reportedBy: "Vérification KYC",
+    createdAt: "2026-02-01 14:00",
+    priority: "high",
+  },
+];
 
 const mockCompanies = [
   {
@@ -269,6 +358,201 @@ function DashboardOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              Croissance Utilisateurs
+            </CardTitle>
+            <CardDescription>Évolution des inscriptions sur 7 mois</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={userGrowthData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="candidates" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2}
+                    name="Candidats"
+                    dot={{ fill: '#8b5cf6', strokeWidth: 2 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="companies" 
+                    stroke="#f97316" 
+                    strokeWidth={2}
+                    name="Entreprises"
+                    dot={{ fill: '#f97316', strokeWidth: 2 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="agencies" 
+                    stroke="#10b981" 
+                    strokeWidth={2}
+                    name="Agences"
+                    dot={{ fill: '#10b981', strokeWidth: 2 }}
+                  />
+                  <Legend />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-500" />
+              Distribution Matching IA
+            </CardTitle>
+            <CardDescription>Répartition des scores de matching candidat-offre</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={matchingDistributionData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    labelLine={false}
+                  >
+                    {matchingDistributionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-background border rounded-lg p-2 shadow-lg">
+                            <p className="font-medium">{payload[0].payload.name}</p>
+                            <p className="text-sm text-muted-foreground">{payload[0].value} matchings</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 grid grid-cols-5 gap-2 text-center text-xs">
+              {matchingDistributionData.map((item) => (
+                <div key={item.name} className="flex flex-col items-center">
+                  <div className="w-3 h-3 rounded-full mb-1" style={{ backgroundColor: item.color }} />
+                  <span className="text-muted-foreground">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Moderation Queue */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Flag className="h-5 w-5 text-red-500" />
+                File de Modération
+              </CardTitle>
+              <CardDescription>Éléments signalés nécessitant une révision</CardDescription>
+            </div>
+            <Badge variant="destructive" className="text-sm">
+              {moderationQueue.length} en attente
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Type</TableHead>
+                <TableHead>Utilisateur</TableHead>
+                <TableHead>Raison</TableHead>
+                <TableHead>Signalé par</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Priorité</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {moderationQueue.map((item) => (
+                <TableRow key={item.id} data-testid={`moderation-row-${item.id}`}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {item.type === "profile" && <Users className="h-4 w-4 text-blue-500" />}
+                      {item.type === "job" && <Briefcase className="h-4 w-4 text-green-500" />}
+                      {item.type === "message" && <MessageSquare className="h-4 w-4 text-purple-500" />}
+                      {item.type === "document" && <FileText className="h-4 w-4 text-orange-500" />}
+                      <span className="capitalize">{item.type === "profile" ? "Profil" : item.type === "job" ? "Offre" : item.type === "message" ? "Message" : "Document"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{item.user}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{item.userType === "candidate" ? "Candidat" : item.userType === "company" ? "Entreprise" : "Agence"}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-[200px]">
+                    <p className="truncate" title={item.reason}>{item.reason}</p>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{item.reportedBy}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {item.createdAt}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={item.priority === "high" ? "destructive" : item.priority === "medium" ? "default" : "secondary"}
+                    >
+                      {item.priority === "high" ? "Haute" : item.priority === "medium" ? "Moyenne" : "Basse"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="icon" variant="ghost" title="Voir les détails" data-testid={`button-view-moderation-${item.id}`}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="text-green-600 hover:text-green-700" title="Approuver" data-testid={`button-approve-moderation-${item.id}`}>
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="text-red-600 hover:text-red-700" title="Rejeter" data-testid={`button-reject-moderation-${item.id}`}>
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
