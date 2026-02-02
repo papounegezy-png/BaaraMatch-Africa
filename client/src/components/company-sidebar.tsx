@@ -44,6 +44,10 @@ import {
   History,
   Database,
   UserX,
+  HardHat,
+  FileCheck,
+  AlertTriangle,
+  Wrench,
 } from "lucide-react";
 import {
   Sidebar,
@@ -188,6 +192,52 @@ const menuSections: MenuSection[] = [
         href: "/company/orgchart",
         icon: Network,
         label: "Organigramme",
+      },
+    ],
+  },
+  {
+    title: "Modules BTP/Mines",
+    items: [
+      {
+        href: "/company/sites",
+        icon: HardHat,
+        label: "Chantiers & Sites",
+        subItems: [
+          { href: "/company/sites", icon: ClipboardList, label: "Liste des sites" },
+          { href: "/company/sites/affectations", icon: Users, label: "Affectations" },
+          { href: "/company/sites/rotations", icon: Calendar, label: "Rotations" },
+          { href: "/company/sites/accommodations", icon: Building2, label: "Hébergements" },
+        ],
+      },
+      {
+        href: "/company/certifications",
+        icon: FileCheck,
+        label: "Habilitations",
+        subItems: [
+          { href: "/company/certifications", icon: ClipboardList, label: "Certifications" },
+          { href: "/company/certifications/medical", icon: UserCheck, label: "Visites médicales" },
+          { href: "/company/certifications/alerts", icon: Bell, label: "Alertes expiration" },
+        ],
+      },
+      {
+        href: "/company/epi",
+        icon: Shield,
+        label: "EPI & Équipements",
+        subItems: [
+          { href: "/company/epi", icon: ClipboardList, label: "Inventaire" },
+          { href: "/company/epi/allocations", icon: Users, label: "Attributions" },
+          { href: "/company/epi/conformity", icon: AlertTriangle, label: "Non-conformités" },
+        ],
+      },
+      {
+        href: "/company/hse",
+        icon: AlertTriangle,
+        label: "HSE",
+        subItems: [
+          { href: "/company/hse", icon: AlertTriangle, label: "Incidents" },
+          { href: "/company/hse/trainings", icon: FileText, label: "Formations" },
+          { href: "/company/hse/statistics", icon: BarChart3, label: "Statistiques" },
+        ],
       },
     ],
   },

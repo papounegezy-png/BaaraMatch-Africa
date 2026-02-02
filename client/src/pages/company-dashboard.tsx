@@ -65,6 +65,10 @@ import { RecruitmentStatistics } from "@/components/recruitment-statistics";
 import { DepartmentManagement } from "@/components/department-management";
 import { PositionManagement } from "@/components/position-management";
 import { SecurityManagement } from "@/components/security-management";
+import { SitesManagement } from "@/components/sites-management";
+import { CertificationsManagement } from "@/components/certifications-management";
+import { EPIManagement } from "@/components/epi-management";
+import { HSEManagement } from "@/components/hse-management";
 
 const mockJobs = [
   { id: 1, title: "Développeur Full Stack", department: "Tech", location: "Dakar", type: "CDI", applications: 24, newApplications: 8, status: "active", postedAt: "2026-01-15", salary: "800K - 1.2M FCFA" },
@@ -644,6 +648,22 @@ export default function CompanyDashboardPage() {
     
     if (location.startsWith("/company/security")) {
       return <SecurityManagement />;
+    }
+    
+    if (location.startsWith("/company/sites")) {
+      return <SitesManagement />;
+    }
+    
+    if (location.startsWith("/company/certifications")) {
+      return <CertificationsManagement />;
+    }
+    
+    if (location.startsWith("/company/epi")) {
+      return <EPIManagement />;
+    }
+    
+    if (location.startsWith("/company/hse")) {
+      return <HSEManagement />;
     }
     
     if (location.startsWith("/company/settings")) {
