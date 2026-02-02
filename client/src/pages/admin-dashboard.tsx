@@ -46,6 +46,7 @@ import {
   MessageSquare,
   Image as ImageIcon,
   FileText,
+  ScrollText,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -816,6 +817,321 @@ function ModulesOverview() {
   );
 }
 
+function ModerationPage() {
+  const [filter, setFilter] = useState("all");
+  
+  const filteredItems = filter === "all" 
+    ? moderationQueue 
+    : moderationQueue.filter(item => item.priority === filter);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-moderation-title">Modération</h1>
+          <p className="text-muted-foreground">Gérez les contenus signalés sur la plateforme</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="destructive">{moderationQueue.filter(i => i.priority === "high").length} urgents</Badge>
+          <Badge variant="secondary">{moderationQueue.length} total</Badge>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">En attente</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{moderationQueue.length}</div>
+            <p className="text-xs text-muted-foreground">Éléments à traiter</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Priorité haute</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{moderationQueue.filter(i => i.priority === "high").length}</div>
+            <p className="text-xs text-muted-foreground">À traiter en urgence</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Traités aujourd'hui</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">12</div>
+            <p className="text-xs text-muted-foreground">Éléments résolus</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Temps moyen</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">2.4h</div>
+            <p className="text-xs text-muted-foreground">Délai de traitement</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="all" onValueChange={setFilter}>
+        <TabsList>
+          <TabsTrigger value="all" data-testid="tab-moderation-all">Tous ({moderationQueue.length})</TabsTrigger>
+          <TabsTrigger value="high" data-testid="tab-moderation-high">Urgents ({moderationQueue.filter(i => i.priority === "high").length})</TabsTrigger>
+          <TabsTrigger value="medium" data-testid="tab-moderation-medium">Moyens ({moderationQueue.filter(i => i.priority === "medium").length})</TabsTrigger>
+          <TabsTrigger value="low" data-testid="tab-moderation-low">Faibles ({moderationQueue.filter(i => i.priority === "low").length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value={filter} className="mt-4">
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Utilisateur</TableHead>
+                    <TableHead>Raison</TableHead>
+                    <TableHead>Signalé par</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Priorité</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredItems.map((item) => (
+                    <TableRow key={item.id} data-testid={`moderation-item-${item.id}`}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {item.type === "profile" && <Users className="h-4 w-4 text-blue-500" />}
+                          {item.type === "job" && <Briefcase className="h-4 w-4 text-green-500" />}
+                          {item.type === "message" && <MessageSquare className="h-4 w-4 text-purple-500" />}
+                          {item.type === "document" && <FileText className="h-4 w-4 text-orange-500" />}
+                          <span className="capitalize">{item.type === "profile" ? "Profil" : item.type === "job" ? "Offre" : item.type === "message" ? "Message" : "Document"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{item.user}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{item.userType === "candidate" ? "Candidat" : item.userType === "company" ? "Entreprise" : "Agence"}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <p className="truncate" title={item.reason}>{item.reason}</p>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{item.reportedBy}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {item.createdAt}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={item.priority === "high" ? "destructive" : item.priority === "medium" ? "default" : "secondary"}>
+                          {item.priority === "high" ? "Haute" : item.priority === "medium" ? "Moyenne" : "Basse"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="icon" variant="ghost" title="Voir les détails">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="text-green-600 hover:text-green-700" title="Approuver">
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="text-red-600 hover:text-red-700" title="Rejeter">
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+const mockLogs = [
+  { id: "1", action: "login", user: "admin@workmatch.africa", ip: "192.168.1.100", timestamp: "2026-02-02 10:15:32", status: "success", details: "Connexion réussie" },
+  { id: "2", action: "module_toggle", user: "admin@workmatch.africa", ip: "192.168.1.100", timestamp: "2026-02-02 10:12:18", status: "success", details: "Module HSE activé pour Afrique Mining Corp" },
+  { id: "3", action: "company_verify", user: "admin@workmatch.africa", ip: "192.168.1.100", timestamp: "2026-02-02 09:45:00", status: "success", details: "Entreprise BTP Sénégal SA vérifiée" },
+  { id: "4", action: "moderation", user: "admin@workmatch.africa", ip: "192.168.1.100", timestamp: "2026-02-02 09:30:22", status: "warning", details: "Profil utilisateur suspendu: spam détecté" },
+  { id: "5", action: "backup", user: "system", ip: "localhost", timestamp: "2026-02-02 03:00:00", status: "success", details: "Sauvegarde automatique complétée" },
+  { id: "6", action: "login_failed", user: "unknown@test.com", ip: "45.33.32.156", timestamp: "2026-02-01 23:45:12", status: "error", details: "Tentative de connexion échouée (5 essais)" },
+  { id: "7", action: "export", user: "admin@workmatch.africa", ip: "192.168.1.100", timestamp: "2026-02-01 17:22:45", status: "success", details: "Export CSV des utilisateurs" },
+  { id: "8", action: "settings_change", user: "admin@workmatch.africa", ip: "192.168.1.100", timestamp: "2026-02-01 16:10:33", status: "success", details: "Modification des paramètres de notification" },
+  { id: "9", action: "api_error", user: "system", ip: "localhost", timestamp: "2026-02-01 14:55:00", status: "error", details: "Échec API OpenAI: rate limit" },
+  { id: "10", action: "user_delete", user: "admin@workmatch.africa", ip: "192.168.1.100", timestamp: "2026-02-01 11:30:00", status: "warning", details: "Compte utilisateur supprimé: inactivité 12 mois" },
+];
+
+function LogsPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filteredLogs = mockLogs.filter(log => {
+    const matchesSearch = log.action.includes(searchTerm.toLowerCase()) || 
+                         log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.details.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || log.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "success": return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "warning": return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case "error": return <XCircle className="h-4 w-4 text-red-500" />;
+      default: return null;
+    }
+  };
+
+  const getActionLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      login: "Connexion",
+      login_failed: "Échec connexion",
+      module_toggle: "Module activé/désactivé",
+      company_verify: "Vérification entreprise",
+      moderation: "Action modération",
+      backup: "Sauvegarde",
+      export: "Export données",
+      settings_change: "Modification paramètres",
+      api_error: "Erreur API",
+      user_delete: "Suppression utilisateur",
+    };
+    return labels[action] || action;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-logs-title">Logs d'activité</h1>
+          <p className="text-muted-foreground">Historique des actions sur la plateforme</p>
+        </div>
+        <Button variant="outline" data-testid="button-export-logs">
+          <FileText className="h-4 w-4 mr-2" />
+          Exporter
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total logs</CardTitle>
+            <ScrollText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mockLogs.length}</div>
+            <p className="text-xs text-muted-foreground">Dernières 24h</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Succès</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{mockLogs.filter(l => l.status === "success").length}</div>
+            <p className="text-xs text-muted-foreground">Actions réussies</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avertissements</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{mockLogs.filter(l => l.status === "warning").length}</div>
+            <p className="text-xs text-muted-foreground">À surveiller</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Erreurs</CardTitle>
+            <XCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{mockLogs.filter(l => l.status === "error").length}</div>
+            <p className="text-xs text-muted-foreground">Incidents</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <CardTitle>Historique des logs</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Rechercher..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-logs-search"
+                />
+              </div>
+              <Tabs defaultValue="all" onValueChange={setStatusFilter}>
+                <TabsList>
+                  <TabsTrigger value="all">Tous</TabsTrigger>
+                  <TabsTrigger value="success">Succès</TabsTrigger>
+                  <TabsTrigger value="warning">Avertissements</TabsTrigger>
+                  <TabsTrigger value="error">Erreurs</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Statut</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Utilisateur</TableHead>
+                <TableHead>Adresse IP</TableHead>
+                <TableHead>Détails</TableHead>
+                <TableHead>Date/Heure</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLogs.map((log) => (
+                <TableRow key={log.id} data-testid={`log-row-${log.id}`}>
+                  <TableCell>{getStatusIcon(log.status)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{getActionLabel(log.action)}</Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">{log.user}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-sm">{log.ip}</TableCell>
+                  <TableCell className="max-w-[250px]">
+                    <p className="truncate" title={log.details}>{log.details}</p>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {log.timestamp}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function ComingSoonPage({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-[60vh] text-center">
@@ -854,6 +1170,14 @@ export default function AdminDashboardPage() {
 
     if (location.startsWith("/admin/settings")) {
       return <ComingSoonPage title="Paramètres" description="Les paramètres globaux seront bientôt disponibles." />;
+    }
+
+    if (location.startsWith("/admin/moderation")) {
+      return <ModerationPage />;
+    }
+
+    if (location.startsWith("/admin/logs")) {
+      return <LogsPage />;
     }
 
     return <DashboardOverview />;

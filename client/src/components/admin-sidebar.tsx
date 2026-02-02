@@ -20,6 +20,8 @@ import {
   Shield,
   ToggleRight,
   LogOut,
+  Flag,
+  ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -43,6 +45,19 @@ const mainMenuItems = [
     title: "Utilisateurs",
     url: "/admin/users",
     icon: Users,
+  },
+];
+
+const supervisionMenuItems = [
+  {
+    title: "Modération",
+    url: "/admin/moderation",
+    icon: Flag,
+  },
+  {
+    title: "Logs",
+    url: "/admin/logs",
+    icon: ScrollText,
   },
 ];
 
@@ -87,6 +102,28 @@ export function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.startsWith(item.url)}
+                    data-testid={`link-admin-${item.url.split('/').pop()}`}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Supervision</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {supervisionMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
