@@ -21,6 +21,7 @@ import AgencyJobsPage from "@/pages/agency-jobs";
 import { AgencyLayout } from "@/components/agency-layout";
 import CompanyDashboardPage from "@/pages/company-dashboard";
 import { CompanyLayout } from "@/components/company-layout";
+import AdminDashboardPage from "@/pages/admin-dashboard";
 import CandidateJobsPage from "@/pages/candidate-jobs";
 import JobDetailPage from "@/pages/job-detail";
 import NotificationsPage from "@/pages/notifications";
@@ -145,6 +146,10 @@ function CompanyRouter() {
 
 function AppRouter() {
   const [location] = useLocation();
+  
+  if (location.startsWith("/admin")) {
+    return <AdminDashboardPage />;
+  }
   
   if (location.startsWith("/agency")) {
     return <AgencyRouter />;
