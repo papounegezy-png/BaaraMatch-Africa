@@ -8,3 +8,11 @@ vite.config.ts.*
 test-results
 playwright-report
 storage/reports
+
+# Local artifacts (never source)
+.local/
+*.log
+/audit-*.png
+/query
+# Stray copy of a Windows temp path created inside the repo by a tool run
+/UsersMAMARY~1AppDataLocalTemp/
