@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  ArrowLeft,
   Search,
   MapPin,
   Briefcase,
@@ -22,7 +23,6 @@ import {
   DollarSign,
   ChevronRight,
   Heart,
-  Share2,
   X,
   Loader2,
   Navigation,
@@ -31,49 +31,99 @@ import {
 import { LandmarkSearch } from "@/components/landmark-search";
 import { useAuth } from "@/lib/auth";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
-import type { JobPosting } from "@shared/schema";
+import type { CandidateProfile, JobPosting, User } from "@shared/schema";
+import { calculateMatchScore, explainMatchScore } from "@shared/matching";
+import { formatJobType } from "@/lib/job-type-labels";
+import { formatJobPostedLabel } from "@/lib/format-posted-date";
+import { contractTypeOptions, jobCategoryOptions } from "@/components/offer-form";
+import { stripJobDescriptionHtml } from "@/lib/sanitize-html";
+import { formatJobSalary } from "@/lib/format-job-salary";
+import { useSavedJobs } from "@/hooks/use-saved-jobs";
+import { ShareJobMenu } from "@/components/share-job-menu";
 
-const jobCategories = [
-  "Technologie",
-  "Finance",
-  "Marketing",
-  "Ressources Humaines",
-  "Ventes",
-  "Administration",
-  "Ingénierie",
-  "Santé",
-  "Éducation",
-  "Construction",
-];
+// Same vocabulary OfferForm writes when a job is actually posted — this used
+// to be a separate, disagreeing list ("Finance", "Construction"...) that
+// couldn't match jobs posted through the real posting form (which writes
+// "Finance & Comptabilité", "BTP & Construction"...), so filtering by
+// category silently returned zero results.
+const jobCategories = jobCategoryOptions;
 
-const jobTypes = [
-  { value: "cdi", label: "CDI" },
-  { value: "cdd", label: "CDD" },
-  { value: "stage", label: "Stage" },
-  { value: "freelance", label: "Freelance" },
-  { value: "temps-partiel", label: "Temps partiel" },
-];
+// Same vocabulary OfferForm writes (cdi/cdd/interim/stage/journalier/
+// prestation) — this used to be a separate, disagreeing list (cdi/cdd/stage/
+// freelance/temps-partiel) that couldn't actually match jobs posted through
+// the real posting form.
+const jobTypes = contractTypeOptions;
 
-const experienceLevels = [
-  { value: "junior", label: "Junior (0-2 ans)" },
-  { value: "intermediate", label: "Intermédiaire (2-5 ans)" },
-  { value: "senior", label: "Senior (5-10 ans)" },
-  { value: "expert", label: "Expert (10+ ans)" },
-];
+// No "Niveau d'expérience" filter: no posting form (OfferForm, agency,
+// admin) ever writes experienceMin/experienceMax, so every job read as
+// "0 to ∞ years" and matched every level — the filter changed nothing.
+// À rebrancher quand le champ existera dans OfferForm (filtrer alors sur
+// job.experienceMin/experienceMax).
+
+function MatchBadge({ match }: { match: { score: number; explanation: string } | null }) {
+  if (!match) return null;
+  return (
+    <div
+      className="flex items-center gap-1.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full px-2.5 py-1 shrink-0"
+      title={`Correspondance : ${match.explanation}`}
+    >
+      <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+      <span className="font-bold text-xs" aria-label={`Correspondance ${match.score} %, ${match.explanation}`}>
+        {match.score}%
+      </span>
+    </div>
+  );
+}
 
 export default function JobsPage() {
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [locationQuery, setLocationQuery] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const agencyIdFilter = searchParams.get("agencyId");
+  const companyIdFilter = searchParams.get("companyId");
+  const employerNameFilter = searchParams.get("employerName");
+  const isEmployerFilteredView = Boolean(agencyIdFilter || companyIdFilter);
+  const employerProfileHref = companyIdFilter
+    ? `/companies/${companyIdFilter}`
+    : agencyIdFilter
+      ? `/agencies/${agencyIdFilter}`
+      : null;
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
+  const [locationQuery, setLocationQuery] = useState(() => searchParams.get("location") ?? "");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
+    const category = searchParams.get("category");
+    return category ? [category] : [];
+  });
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState("recent");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"search" | "landmarks">("search");
   const [selectedLandmark, setSelectedLandmark] = useState<any>(null);
 
-  const { data: jobs = [], isLoading, error } = useQuery<JobPosting[]>({
+  const { data: jobs = [], isLoading, error } = useQuery<(JobPosting & { organizationName: string | null })[]>({
     queryKey: ["/api/jobs"],
   });
+
+  const { savedJobIds, toggleSave } = useSavedJobs();
+
+  const isCandidate = user?.userType === "candidate";
+  const { data: profileData } = useQuery<{ user: User; profile: CandidateProfile | null }>({
+    queryKey: ["/api/profile"],
+    enabled: isCandidate,
+  });
+  const candidateProfile = profileData?.profile ?? null;
+
+  // Real V0 score (shared/matching.ts, same as the dashboard) — this badge
+  // used to show Math.random() between 70 and 94 %. No profile (visitor,
+  // non-candidate, profile not created / still loading / failed): no badge
+  // at all rather than an invented number.
+  const getMatch = (job: JobPosting) => {
+    if (!isCandidate || !candidateProfile) return null;
+    const result = calculateMatchScore(
+      { skills: candidateProfile.skills, city: user?.city, experienceYears: candidateProfile.experienceYears },
+      { requiredSkills: job.requiredSkills, location: job.location, experienceMin: job.experienceMin },
+    );
+    return { score: result.score, explanation: explainMatchScore(result.details) };
+  };
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -94,21 +144,39 @@ export default function JobsPage() {
     setLocationQuery("");
   };
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLocation =
-      locationQuery === "" || job.location.toLowerCase().includes(locationQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategories.length === 0 || (job.category && selectedCategories.includes(job.category));
-    const matchesType =
-      selectedTypes.length === 0 ||
-      selectedTypes.some((t) => job.jobType.toLowerCase().includes(t.toLowerCase()));
+  const filteredJobs = jobs
+    .filter((job) => {
+      const matchesEmployer =
+        (!agencyIdFilter || job.agencyId === agencyIdFilter) &&
+        (!companyIdFilter || job.companyId === companyIdFilter);
+      const matchesSearch =
+        searchQuery === "" ||
+        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesLocation =
+        locationQuery === "" || job.location.toLowerCase().includes(locationQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategories.length === 0 || (job.category && selectedCategories.includes(job.category));
+      const matchesType =
+        selectedTypes.length === 0 ||
+        selectedTypes.some((t) => job.jobType.toLowerCase().includes(t.toLowerCase()));
 
-    return matchesSearch && matchesLocation && matchesCategory && matchesType;
-  });
+      return matchesEmployer && matchesSearch && matchesLocation && matchesCategory && matchesType;
+    })
+    .sort((a, b) => {
+      if (sortBy === "salary-high" || sortBy === "salary-low") {
+        // Jobs with no numeric salary (none set, or only the legacy
+        // free-text salaryRange) go last either way — treating them as 0
+        // put them first under "Salaire croissant".
+        const high = sortBy === "salary-high";
+        const va = high ? a.salaryMax ?? a.salaryMin : a.salaryMin ?? a.salaryMax;
+        const vb = high ? b.salaryMax ?? b.salaryMin : b.salaryMin ?? b.salaryMax;
+        if (va == null || vb == null) return va == null ? (vb == null ? 0 : 1) : -1;
+        return high ? vb - va : va - vb;
+      }
+      if (sortBy === "popular") return (b.viewCount ?? 0) + (b.applicationCount ?? 0) - ((a.viewCount ?? 0) + (a.applicationCount ?? 0));
+      return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
+    });
 
   const activeFiltersCount = selectedCategories.length + selectedTypes.length;
 
@@ -158,26 +226,6 @@ export default function JobsPage() {
         </div>
       </div>
 
-      <div>
-        <h3 className="font-medium mb-3">Niveau d'expérience</h3>
-        <div className="space-y-2">
-          {experienceLevels.map((level) => (
-            <div key={level.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`exp-${level.value}`}
-                data-testid={`checkbox-experience-${level.value}`}
-              />
-              <Label
-                htmlFor={`exp-${level.value}`}
-                className="text-sm font-normal cursor-pointer"
-              >
-                {level.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {activeFiltersCount > 0 && (
         <Button
           variant="outline"
@@ -198,28 +246,143 @@ export default function JobsPage() {
         <header className="sticky top-0 z-40 bg-background border-b">
           <div className="p-4">
             <h1 className="text-xl font-bold" data-testid="text-jobs-page-title-mobile">
-              Rechercher un emploi
+              {isEmployerFilteredView ? `Offres de ${employerNameFilter || "cet employeur"}` : "Rechercher un emploi"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {filteredJobs.length} offres disponibles à Bamako
+              {filteredJobs.length} offre{filteredJobs.length > 1 ? "s" : ""} disponible{filteredJobs.length > 1 ? "s" : ""}
             </p>
+            {isEmployerFilteredView && (
+              <div className="flex flex-wrap gap-2 pt-3">
+                <Link href="/agencies">
+                  <Button variant="outline" size="sm" className="gap-2" data-testid="button-back-employers-mobile">
+                    <ArrowLeft className="h-4 w-4" />
+                    Retour
+                  </Button>
+                </Link>
+                {employerProfileHref && (
+                  <Link href={employerProfileHref}>
+                    <Button size="sm" className="gap-2" data-testid="button-view-employer-profile-mobile">
+                      <Building2 className="h-4 w-4" />
+                      Voir profil
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
-          <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as any)} className="px-4 pb-2">
-            <TabsList className="w-full">
-              <TabsTrigger value="search" className="flex-1 gap-1" data-testid="tab-search">
-                <Search className="h-3.5 w-3.5" />
-                Recherche
-              </TabsTrigger>
-              <TabsTrigger value="landmarks" className="flex-1 gap-1" data-testid="tab-landmarks">
-                <Navigation className="h-3.5 w-3.5" />
-                Par repères
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {!isEmployerFilteredView && (
+            <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as any)} className="px-4 pb-2">
+              <TabsList className="w-full">
+                <TabsTrigger value="search" className="flex-1 gap-1" data-testid="tab-search">
+                  <Search className="h-3.5 w-3.5" />
+                  Recherche
+                </TabsTrigger>
+                <TabsTrigger value="landmarks" className="flex-1 gap-1" data-testid="tab-landmarks">
+                  <Navigation className="h-3.5 w-3.5" />
+                  Par repères
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
         </header>
 
         <div className="p-4 space-y-4">
-          {mobileTab === "search" ? (
+          {isEmployerFilteredView ? (
+            <>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-32 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredJobs.map((job) => (
+                    <Card key={job.id} className="overflow-hidden" data-testid={`job-card-mobile-${job.id}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                              <Building2 className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold truncate">{job.title}</h3>
+                              <p className="text-sm text-muted-foreground truncate" style={{ minHeight: 20 }}>
+                                {job.organizationName || (isLoading ? (
+                                  <span className="inline-block w-24 h-4 bg-muted animate-pulse rounded" />
+                                ) : (
+                                  "Entreprise inconnue"
+                                ))}
+                              </p>
+                            </div>
+                          </div>
+                          <MatchBadge match={getMatch(job)} />
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <MapPin className="h-3 w-3" />
+                            {job.location}
+                          </Badge>
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <Briefcase className="h-3 w-3" />
+                            {formatJobType(job.jobType)}
+                          </Badge>
+                          {formatJobSalary(job) && (
+                            <Badge variant="outline" className="text-xs">
+                              {formatJobSalary(job)}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                          <span className="text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 inline mr-1" />
+                            {formatJobPostedLabel(job.createdAt)}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleSave(job.id)}
+                              aria-pressed={savedJobIds.has(job.id)}
+                              aria-label={savedJobIds.has(job.id) ? "Retirer des offres sauvegardées" : "Sauvegarder cette offre"}
+                              data-testid={`button-save-${job.id}`}
+                            >
+                              <Heart className={`h-4 w-4 ${savedJobIds.has(job.id) ? "fill-current text-destructive" : ""}`} />
+                            </Button>
+                            <Link href={`/jobs/${job.id}`}>
+                              <Button size="sm" data-testid={`button-apply-${job.id}`}>
+                                Postuler
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {error && !isLoading && (
+                <div className="text-center py-12" role="alert">
+                  <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+                  <h3 className="font-medium text-lg">Erreur de chargement</h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Impossible de charger les offres. Réessayez plus tard.
+                  </p>
+                </div>
+              )}
+
+              {filteredJobs.length === 0 && !isLoading && !error && (
+                <div className="text-center py-12">
+                  <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+                  <h3 className="font-medium text-lg">Aucune offre trouvée</h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Cet employeur n'a pas d'offres actives pour le moment
+                  </p>
+                </div>
+              )}
+            </>
+          ) : mobileTab === "search" ? (
             <>
               <div className="space-y-3">
                 <div className="relative">
@@ -274,13 +437,14 @@ export default function JobsPage() {
                             </div>
                             <div className="min-w-0">
                               <h3 className="font-semibold truncate">{job.title}</h3>
-                              <p className="text-sm text-muted-foreground truncate">{job.companyId}</p>
+                              {job.organizationName && (
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {job.organizationName}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full px-2.5 py-1 shrink-0">
-                            <Sparkles className="h-3.5 w-3.5 text-primary" />
-                            <span className="font-bold text-xs">{Math.floor(70 + Math.random() * 25)}%</span>
-                          </div>
+                          <MatchBadge match={getMatch(job)} />
                         </div>
                         <div className="flex flex-wrap gap-2 mt-3">
                           <Badge variant="secondary" className="gap-1 text-xs">
@@ -289,22 +453,29 @@ export default function JobsPage() {
                           </Badge>
                           <Badge variant="secondary" className="gap-1 text-xs">
                             <Briefcase className="h-3 w-3" />
-                            {job.jobType}
+                            {formatJobType(job.jobType)}
                           </Badge>
-                          {job.salaryRange && (
+                          {formatJobSalary(job) && (
                             <Badge variant="outline" className="text-xs">
-                              {job.salaryRange}
+                              {formatJobSalary(job)}
                             </Badge>
                           )}
                         </div>
                         <div className="flex items-center justify-between mt-3 pt-3 border-t">
                           <span className="text-xs text-muted-foreground">
                             <Clock className="h-3 w-3 inline mr-1" />
-                            Il y a 2 jours
+                            {formatJobPostedLabel(job.createdAt)}
                           </span>
                           <div className="flex gap-2">
-                            <Button variant="ghost" size="icon" data-testid={`button-save-${job.id}`}>
-                              <Heart className="h-4 w-4" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleSave(job.id)}
+                              aria-pressed={savedJobIds.has(job.id)}
+                              aria-label={savedJobIds.has(job.id) ? "Retirer des offres sauvegardées" : "Sauvegarder cette offre"}
+                              data-testid={`button-save-${job.id}`}
+                            >
+                              <Heart className={`h-4 w-4 ${savedJobIds.has(job.id) ? "fill-current text-destructive" : ""}`} />
                             </Button>
                             <Link href={`/jobs/${job.id}`}>
                               <Button size="sm" data-testid={`button-apply-${job.id}`}>
@@ -319,7 +490,17 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {filteredJobs.length === 0 && !isLoading && (
+              {error && !isLoading && (
+                <div className="text-center py-12" role="alert">
+                  <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
+                  <h3 className="font-medium text-lg">Erreur de chargement</h3>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    Impossible de charger les offres. Réessayez plus tard.
+                  </p>
+                </div>
+              )}
+
+              {filteredJobs.length === 0 && !isLoading && !error && (
                 <div className="text-center py-12">
                   <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
                   <h3 className="font-medium text-lg">Aucune offre trouvée</h3>
@@ -349,43 +530,70 @@ export default function JobsPage() {
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="text-center space-y-2">
               <h1 className="text-3xl font-bold" data-testid="text-jobs-page-title">
-                Offres d'emploi
+                {isEmployerFilteredView ? `Offres de ${employerNameFilter || "cet employeur"}` : "Offres d'emploi"}
               </h1>
               <p className="text-muted-foreground">
                 Découvrez {filteredJobs.length} opportunités disponibles
               </p>
             </div>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Poste, entreprise ou mot-clé..."
-                      className="pl-10"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      data-testid="input-job-search"
-                    />
-                  </div>
-                  <div className="relative flex-1">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Ville ou pays..."
-                      className="pl-10"
-                      value={locationQuery}
-                      onChange={(e) => setLocationQuery(e.target.value)}
-                      data-testid="input-location-search"
-                    />
-                  </div>
-                  <Button className="gap-2" data-testid="button-search-jobs">
-                    <Search className="h-4 w-4" />
-                    Rechercher
+            {isEmployerFilteredView && (
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link href="/agencies">
+                  <Button variant="outline" className="gap-2" data-testid="button-back-employers">
+                    <ArrowLeft className="h-4 w-4" />
+                    Retour
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </Link>
+                {employerProfileHref && (
+                  <Link href={employerProfileHref}>
+                    <Button className="gap-2" data-testid="button-view-employer-profile">
+                      <Building2 className="h-4 w-4" />
+                      Voir profil
+                    </Button>
+                  </Link>
+                )}
+                <Link href="/jobs">
+                  <Button variant="ghost" className="gap-2" data-testid="button-clear-employer-jobs-filter">
+                    <X className="h-4 w-4" />
+                    Toutes les offres
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {!isEmployerFilteredView && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Poste, entreprise ou mot-clé..."
+                        className="pl-10"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        data-testid="input-job-search"
+                      />
+                    </div>
+                    <div className="relative flex-1">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Ville ou pays..."
+                        className="pl-10"
+                        value={locationQuery}
+                        onChange={(e) => setLocationQuery(e.target.value)}
+                        data-testid="input-location-search"
+                      />
+                    </div>
+                    <Button className="gap-2" data-testid="button-search-jobs">
+                      <Search className="h-4 w-4" />
+                      Rechercher
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
@@ -445,7 +653,7 @@ export default function JobsPage() {
                   </SheetContent>
                 </Sheet>
 
-                <Select defaultValue="recent">
+                <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-40" data-testid="select-sort">
                     <SelectValue placeholder="Trier par" />
                   </SelectTrigger>
@@ -542,23 +750,30 @@ export default function JobsPage() {
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-muted-foreground">Entreprise partenaire</p>
+                            <p className="text-muted-foreground text-sm mb-1" style={{ minHeight: 20 }}>
+                              {job.organizationName || (isLoading ? (
+                                <span className="inline-block w-24 h-4 bg-muted animate-pulse rounded" />
+                              ) : (
+                                "Entreprise inconnue"
+                              ))}
+                            </p>
                           </div>
                           <div className="flex gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
+                              onClick={() => toggleSave(job.id)}
+                              aria-pressed={savedJobIds.has(job.id)}
+                              aria-label={savedJobIds.has(job.id) ? "Retirer des offres sauvegardées" : "Sauvegarder cette offre"}
                               data-testid={`button-save-job-${job.id}`}
                             >
-                              <Heart className="h-4 w-4" />
+                              <Heart className={`h-4 w-4 ${savedJobIds.has(job.id) ? "fill-current text-destructive" : ""}`} />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              data-testid={`button-share-job-${job.id}`}
-                            >
-                              <Share2 className="h-4 w-4" />
-                            </Button>
+                            <ShareJobMenu
+                              job={{ title: job.title, organizationName: job.organizationName }}
+                              url={`${window.location.origin}/jobs/${job.id}`}
+                              testIdPrefix={`share-job-${job.id}`}
+                            />
                           </div>
                         </div>
 
@@ -569,22 +784,22 @@ export default function JobsPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Briefcase className="h-4 w-4" />
-                            {job.jobType}
+                            {formatJobType(job.jobType)}
                           </span>
-                          {job.salaryRange && (
+                          {formatJobSalary(job) && (
                           <span className="flex items-center gap-1">
                             <DollarSign className="h-4 w-4" />
-                            {job.salaryRange}
+                            {formatJobSalary(job)}
                           </span>
                           )}
                           <span className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
-                            Récent
+                            {formatJobPostedLabel(job.createdAt)}
                           </span>
                         </div>
 
                         <p className="text-sm text-muted-foreground line-clamp-2">
-                          {job.description}
+                          {stripJobDescriptionHtml(job.description)}
                         </p>
 
                         {job.requirements && job.requirements.length > 0 && (
@@ -616,7 +831,19 @@ export default function JobsPage() {
                 </Card>
               ))}
               
-              {filteredJobs.length === 0 && (
+              {error && !isLoading && (
+                <Card>
+                  <CardContent className="p-12 text-center" role="alert">
+                    <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Erreur de chargement</h3>
+                    <p className="text-muted-foreground">
+                      Impossible de charger les offres. Réessayez plus tard.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {filteredJobs.length === 0 && !isLoading && !error && (
                 <Card>
                   <CardContent className="p-12 text-center">
                     <Briefcase className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

@@ -2,10 +2,11 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { CompanySidebar } from "@/components/company-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Bell, Search, LogOut } from "lucide-react";
+import { Search, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
+import { NotificationBell } from "@/components/notification-bell";
 
 interface CompanyLayoutProps {
   children: React.ReactNode;
@@ -38,9 +39,7 @@ export function CompanyLayout({ children }: CompanyLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" data-testid="button-notifications">
-                <Bell className="h-4 w-4" />
-              </Button>
+              <NotificationBell />
               <ThemeToggle />
               <Link href="/">
                 <Button 

@@ -1,0 +1,1 @@
+ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS positions integer NOT NULL DEFAULT 1;

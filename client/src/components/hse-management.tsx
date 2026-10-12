@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { useOperationalModuleState } from "@/hooks/use-operational-module-state";
 import {
   AlertTriangle,
   Search,
@@ -22,7 +24,6 @@ import {
   Shield,
   Activity,
   Users,
-  TrendingDown,
   TrendingUp,
   XCircle,
   BookOpen,
@@ -30,153 +31,130 @@ import {
   Flame,
 } from "lucide-react";
 
-const mockIncidents = [
-  {
-    id: "1",
-    date: "2026-01-28",
-    time: "14:30",
-    site: "Mine d'Or Kédougou",
-    type: "Accident de travail",
-    severity: "serious",
-    description: "Chute de plain-pied dans la zone de stockage",
-    injured: "Ousmane Ba",
-    injuries: "Entorse cheville gauche",
-    daysLost: 5,
-    status: "investigating",
-    rootCause: null,
-    correctiveActions: null,
-  },
-  {
-    id: "2",
-    date: "2026-01-25",
-    time: "09:15",
-    site: "Chantier Autoroute Dakar-AIBD",
-    type: "Presqu'accident",
-    severity: "minor",
-    description: "Chute d'outil depuis un échafaudage",
-    injured: null,
-    injuries: null,
-    daysLost: 0,
-    status: "closed",
-    rootCause: "Mauvaise fixation des outils",
-    correctiveActions: "Formation rappel sécurité + inspection échafaudages",
-  },
-  {
-    id: "3",
-    date: "2026-01-20",
-    time: "16:45",
-    site: "Mine de Bauxite Sangarédi",
-    type: "Accident de travail",
-    severity: "minor",
-    description: "Coupure superficielle lors de manipulation d'équipement",
-    injured: "Alpha Condé",
-    injuries: "Coupure main droite",
-    daysLost: 1,
-    status: "closed",
-    rootCause: "Port de gants inadapté",
-    correctiveActions: "Remplacement gants + sensibilisation",
-  },
-  {
-    id: "4",
-    date: "2026-01-15",
-    time: "11:00",
-    site: "Mine d'Or Kédougou",
-    type: "Incident environnemental",
-    severity: "moderate",
-    description: "Fuite mineure de carburant sur zone de ravitaillement",
-    injured: null,
-    injuries: null,
-    daysLost: 0,
-    status: "closed",
-    rootCause: "Joint défectueux sur pompe",
-    correctiveActions: "Remplacement pompe + bac de rétention installé",
-  },
-];
-
-const mockTrainings = [
-  {
-    id: "1",
-    title: "Formation SST (Sauveteur Secouriste)",
-    type: "Obligatoire",
-    duration: "14h",
-    participants: 25,
-    completedBy: 22,
-    nextSession: "2026-02-15",
-    site: "Tous sites",
-    instructor: "Croix Rouge",
-  },
-  {
-    id: "2",
-    title: "Travail en hauteur",
-    type: "Obligatoire",
-    duration: "8h",
-    participants: 40,
-    completedBy: 38,
-    nextSession: "2026-03-01",
-    site: "BTP uniquement",
-    instructor: "APAVE",
-  },
-  {
-    id: "3",
-    title: "Manipulation extincteurs",
-    type: "Obligatoire",
-    duration: "4h",
-    participants: 150,
-    completedBy: 145,
-    nextSession: "2026-02-20",
-    site: "Tous sites",
-    instructor: "Pompiers de Dakar",
-  },
-  {
-    id: "4",
-    title: "Risques chimiques",
-    type: "Spécifique",
-    duration: "8h",
-    participants: 30,
-    completedBy: 28,
-    nextSession: "2026-04-10",
-    site: "Mines",
-    instructor: "Bureau Veritas",
-  },
-  {
-    id: "5",
-    title: "Conduite défensive",
-    type: "Recommandée",
-    duration: "4h",
-    participants: 60,
-    completedBy: 45,
-    nextSession: "2026-02-28",
-    site: "Tous sites",
-    instructor: "Auto-école Pro",
-  },
-];
-
-const mockStats = {
-  accidentsThisYear: 8,
-  accidentsLastYear: 12,
-  daysLostThisYear: 45,
-  daysLostLastYear: 78,
-  frequencyRate: 12.5,
-  gravityRate: 0.35,
-  nearMisses: 15,
-  trainingsCompleted: 420,
-  complianceRate: 94,
+type Incident = {
+  id: string;
+  date: string;
+  time: string;
+  site: string;
+  type: string;
+  severity: string;
+  description: string;
+  injured: string | null;
+  injuries: string | null;
+  daysLost: number;
+  status: string;
+  rootCause: string | null;
+  correctiveActions: string | null;
 };
 
-const monthlySafetyData = [
-  { month: "Jan", accidents: 2, nearMisses: 3 },
-  { month: "Fév", accidents: 1, nearMisses: 2 },
-  { month: "Mar", accidents: 0, nearMisses: 4 },
-  { month: "Avr", accidents: 1, nearMisses: 2 },
-  { month: "Mai", accidents: 0, nearMisses: 1 },
-  { month: "Jun", accidents: 2, nearMisses: 3 },
-];
+interface Training {
+  id: string;
+  title: string;
+  type: string;
+  duration: string;
+  participants: number;
+  completedBy: number;
+  nextSession: string;
+  site: string;
+  instructor: string;
+}
+
+interface HseSite {
+  id: string;
+  name: string;
+}
+
+const incidentTypeLabels: Record<string, string> = {
+  accident: "Accident de travail",
+  near_miss: "Presqu'accident",
+  environmental: "Incident environnemental",
+  property: "Dommage matériel",
+};
+
+const emptyIncidentForm = {
+  date: "",
+  time: "",
+  type: "",
+  severity: "",
+  site: "",
+  description: "",
+};
+
+const emptyTrainingForm = {
+  title: "",
+  type: "",
+  duration: "",
+  participants: "",
+  nextSession: "",
+  site: "",
+  instructor: "",
+};
+
+// Groups real incidents by calendar month, for the last 6 months, instead
+// of a hand-typed fake bar chart — "accident" = anything whose type label
+// contains "Accident", "near miss" = exactly "Presqu'accident".
+function computeMonthlySafetySeries(incidents: Incident[]) {
+  const months: { key: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      key: `${d.getFullYear()}-${d.getMonth()}`,
+      label: d.toLocaleDateString("fr-FR", { month: "short" }),
+    });
+  }
+  return months.map(({ key, label }) => {
+    const [year, month] = key.split("-").map(Number);
+    const monthIncidents = incidents.filter((i) => {
+      const d = new Date(i.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+    return {
+      month: label,
+      accidents: monthIncidents.filter((i) => i.type.includes("Accident")).length,
+      nearMisses: monthIncidents.filter((i) => i.type === "Presqu'accident").length,
+    };
+  });
+}
 
 export function HSEManagement() {
+  const { toast } = useToast();
+  const { moduleState, saveModuleState, isSavingModuleState } = useOperationalModuleState("hse", {
+    incidents: [] as Incident[],
+    trainings: [] as Training[],
+  });
+  const incidents = moduleState.incidents ?? [];
+  const trainings = moduleState.trainings ?? [];
+  // Read-only: sources the incident "Site" picker from the real sites
+  // directory (see sites-management.tsx) instead of a hardcoded 3-site list.
+  const { moduleState: sitesModuleState } = useOperationalModuleState("sites", {
+    sites: [] as HseSite[],
+  });
+  const realSites = sitesModuleState.sites ?? [];
+
+  const currentYear = new Date().getFullYear();
+  const incidentsThisYear = incidents.filter((i) => new Date(i.date).getFullYear() === currentYear);
+  const accidentsThisYear = incidentsThisYear.length;
+  const daysLostThisYear = incidentsThisYear.reduce((sum, i) => sum + i.daysLost, 0);
+  const totalParticipants = trainings.reduce((sum, t) => sum + t.participants, 0);
+  const totalCompleted = trainings.reduce((sum, t) => sum + t.completedBy, 0);
+  const complianceRate = totalParticipants > 0 ? Math.round((totalCompleted / totalParticipants) * 100) : 0;
+  const mostRecentIncidentDate = incidents.length > 0
+    ? incidents.reduce((latest, i) => (new Date(i.date) > new Date(latest) ? i.date : latest), incidents[0].date)
+    : null;
+  const daysSinceLastIncident = mostRecentIncidentDate
+    ? Math.floor((Date.now() - new Date(mostRecentIncidentDate).getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const safetySeries = computeMonthlySafetySeries(incidents);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("incidents");
+  const [showIncidentDialog, setShowIncidentDialog] = useState(false);
+  const [incidentForm, setIncidentForm] = useState(emptyIncidentForm);
+  const [showTrainingDialog, setShowTrainingDialog] = useState(false);
+  const [trainingForm, setTrainingForm] = useState(emptyTrainingForm);
 
-  const filteredIncidents = mockIncidents.filter(
+  const filteredIncidents = incidents.filter(
     (incident) =>
       incident.site.toLowerCase().includes(searchTerm.toLowerCase()) ||
       incident.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -208,6 +186,97 @@ export function HSEManagement() {
     }
   };
 
+  const handleAddIncident = async () => {
+    if (!incidentForm.date || !incidentForm.type || !incidentForm.severity || !incidentForm.site || !incidentForm.description.trim()) {
+      toast({
+        title: "Champs requis",
+        description: "Date, type, gravité, site et description sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const nextId = (incidents.reduce((max, i) => Math.max(max, Number(i.id) || 0), 0) + 1).toString();
+    const site = realSites.find((s) => s.id === incidentForm.site);
+    const newIncident: Incident = {
+      id: nextId,
+      date: incidentForm.date,
+      time: incidentForm.time,
+      site: site?.name ?? incidentForm.site,
+      type: incidentTypeLabels[incidentForm.type] ?? incidentForm.type,
+      severity: incidentForm.severity,
+      description: incidentForm.description.trim(),
+      injured: null,
+      injuries: null,
+      daysLost: 0,
+      status: "investigating",
+      rootCause: null,
+      correctiveActions: null,
+    };
+
+    try {
+      await saveModuleState({
+        incidents: [newIncident, ...incidents],
+        trainings,
+      });
+      toast({
+        title: "Incident déclaré",
+        description: "L'incident a été enregistré avec succès.",
+      });
+      setIncidentForm(emptyIncidentForm);
+      setShowIncidentDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer l'incident.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddTraining = async () => {
+    if (!trainingForm.title.trim() || !trainingForm.type || !trainingForm.duration.trim() || !trainingForm.nextSession) {
+      toast({
+        title: "Champs requis",
+        description: "Titre, type, durée et date de session sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const nextId = (trainings.reduce((max, t) => Math.max(max, Number(t.id) || 0), 0) + 1).toString();
+    const newTraining: Training = {
+      id: nextId,
+      title: trainingForm.title.trim(),
+      type: trainingForm.type,
+      duration: trainingForm.duration.trim(),
+      participants: Number(trainingForm.participants) || 0,
+      completedBy: 0,
+      nextSession: trainingForm.nextSession,
+      site: trainingForm.site.trim(),
+      instructor: trainingForm.instructor.trim(),
+    };
+
+    try {
+      await saveModuleState({
+        incidents,
+        trainings: [...trainings, newTraining],
+      });
+      toast({
+        title: "Formation planifiée",
+        description: "La formation a été ajoutée avec succès.",
+      });
+      setTrainingForm(emptyTrainingForm);
+      setShowTrainingDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible de planifier la formation.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -226,7 +295,7 @@ export function HSEManagement() {
               data-testid="input-search-hse"
             />
           </div>
-          <Dialog>
+          <Dialog open={showIncidentDialog} onOpenChange={setShowIncidentDialog}>
             <DialogTrigger asChild>
               <Button variant="destructive" data-testid="button-report-incident">
                 <AlertTriangle className="w-4 h-4 mr-2" />
@@ -242,18 +311,30 @@ export function HSEManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="incident-date">Date</Label>
-                    <Input id="incident-date" type="date" />
+                    <Input
+                      id="incident-date"
+                      type="date"
+                      value={incidentForm.date}
+                      onChange={(e) => setIncidentForm({ ...incidentForm, date: e.target.value })}
+                      data-testid="input-incident-date"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="incident-time">Heure</Label>
-                    <Input id="incident-time" type="time" />
+                    <Input
+                      id="incident-time"
+                      type="time"
+                      value={incidentForm.time}
+                      onChange={(e) => setIncidentForm({ ...incidentForm, time: e.target.value })}
+                      data-testid="input-incident-time"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="incident-type">Type</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select value={incidentForm.type} onValueChange={(v) => setIncidentForm({ ...incidentForm, type: v })}>
+                      <SelectTrigger data-testid="select-incident-type">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
@@ -266,8 +347,8 @@ export function HSEManagement() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="severity">Gravité</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select value={incidentForm.severity} onValueChange={(v) => setIncidentForm({ ...incidentForm, severity: v })}>
+                      <SelectTrigger data-testid="select-incident-severity">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
@@ -280,25 +361,41 @@ export function HSEManagement() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="site">Site</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner le site" />
+                  <Select
+                    value={incidentForm.site}
+                    onValueChange={(v) => setIncidentForm({ ...incidentForm, site: v })}
+                    disabled={realSites.length === 0}
+                  >
+                    <SelectTrigger data-testid="select-incident-site">
+                      <SelectValue placeholder={realSites.length === 0 ? "Aucun site enregistré" : "Sélectionner le site"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="site1">Mine d'Or Kédougou</SelectItem>
-                      <SelectItem value="site2">Chantier Autoroute Dakar-AIBD</SelectItem>
-                      <SelectItem value="site3">Mine de Bauxite Sangarédi</SelectItem>
+                      {realSites.map((site) => (
+                        <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" placeholder="Décrivez l'incident en détail..." />
+                  <Textarea
+                    id="description"
+                    placeholder="Décrivez l'incident en détail..."
+                    value={incidentForm.description}
+                    onChange={(e) => setIncidentForm({ ...incidentForm, description: e.target.value })}
+                    data-testid="input-incident-description"
+                  />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" variant="destructive" data-testid="button-save-incident">
-                  Enregistrer l'incident
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  onClick={handleAddIncident}
+                  disabled={isSavingModuleState}
+                  data-testid="button-save-incident"
+                >
+                  {isSavingModuleState ? "Enregistrement..." : "Enregistrer l'incident"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -309,15 +406,12 @@ export function HSEManagement() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Accidents 2026</CardTitle>
+            <CardTitle className="text-sm font-medium">Accidents {currentYear}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.accidentsThisYear}</div>
-            <div className="flex items-center text-xs">
-              <TrendingDown className="w-3 h-3 mr-1 text-green-500" />
-              <span className="text-green-600">-33% vs 2025</span>
-            </div>
+            <div className="text-2xl font-bold">{accidentsThisYear}</div>
+            <p className="text-xs text-muted-foreground">incidents déclarés cette année</p>
           </CardContent>
         </Card>
         <Card>
@@ -326,21 +420,20 @@ export function HSEManagement() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.daysLostThisYear}</div>
-            <div className="flex items-center text-xs">
-              <TrendingDown className="w-3 h-3 mr-1 text-green-500" />
-              <span className="text-green-600">-42% vs 2025</span>
-            </div>
+            <div className="text-2xl font-bold">{daysLostThisYear}</div>
+            <p className="text-xs text-muted-foreground">jours d'arrêt cette année</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taux de fréquence</CardTitle>
+            <CardTitle className="text-sm font-medium">Jours sans accident</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.frequencyRate}</div>
-            <p className="text-xs text-muted-foreground">Accidents / million h</p>
+            <div className="text-2xl font-bold">{daysSinceLastIncident ?? "-"}</div>
+            <p className="text-xs text-muted-foreground">
+              {daysSinceLastIncident !== null ? "depuis le dernier incident" : "aucun incident déclaré"}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -349,8 +442,8 @@ export function HSEManagement() {
             <BookOpen className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{mockStats.complianceRate}%</div>
-            <Progress value={mockStats.complianceRate} className="h-1.5 mt-2" />
+            <div className="text-2xl font-bold text-green-600">{complianceRate}%</div>
+            <Progress value={complianceRate} className="h-1.5 mt-2" />
           </CardContent>
         </Card>
       </div>
@@ -392,6 +485,15 @@ export function HSEManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {filteredIncidents.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                        {incidents.length === 0
+                          ? "Aucun incident déclaré pour le moment."
+                          : "Aucun incident ne correspond à cette recherche."}
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {filteredIncidents.map((incident) => (
                     <TableRow key={incident.id} data-testid={`row-incident-${incident.id}`}>
                       <TableCell>
@@ -436,10 +538,111 @@ export function HSEManagement() {
                 <CardTitle>Formations sécurité</CardTitle>
                 <CardDescription>Suivi des formations obligatoires et recommandées</CardDescription>
               </div>
-              <Button data-testid="button-add-training">
-                <Plus className="w-4 h-4 mr-2" />
-                Planifier formation
-              </Button>
+              <Dialog open={showTrainingDialog} onOpenChange={setShowTrainingDialog}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-training">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Planifier formation
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Planifier une formation</DialogTitle>
+                    <DialogDescription>Ajoutez une nouvelle formation sécurité au programme</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="training-title">Titre</Label>
+                      <Input
+                        id="training-title"
+                        placeholder="Titre de la formation"
+                        value={trainingForm.title}
+                        onChange={(e) => setTrainingForm({ ...trainingForm, title: e.target.value })}
+                        data-testid="input-training-title"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="training-type">Type</Label>
+                        <Select value={trainingForm.type} onValueChange={(v) => setTrainingForm({ ...trainingForm, type: v })}>
+                          <SelectTrigger data-testid="select-training-type">
+                            <SelectValue placeholder="Sélectionner" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Obligatoire">Obligatoire</SelectItem>
+                            <SelectItem value="Spécifique">Spécifique</SelectItem>
+                            <SelectItem value="Recommandée">Recommandée</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="training-duration">Durée</Label>
+                        <Input
+                          id="training-duration"
+                          placeholder="ex: 8h"
+                          value={trainingForm.duration}
+                          onChange={(e) => setTrainingForm({ ...trainingForm, duration: e.target.value })}
+                          data-testid="input-training-duration"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="training-participants">Participants</Label>
+                        <Input
+                          id="training-participants"
+                          type="number"
+                          placeholder="0"
+                          value={trainingForm.participants}
+                          onChange={(e) => setTrainingForm({ ...trainingForm, participants: e.target.value })}
+                          data-testid="input-training-participants"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="training-next-session">Prochaine session</Label>
+                        <Input
+                          id="training-next-session"
+                          type="date"
+                          value={trainingForm.nextSession}
+                          onChange={(e) => setTrainingForm({ ...trainingForm, nextSession: e.target.value })}
+                          data-testid="input-training-next-session"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="training-site">Sites</Label>
+                        <Input
+                          id="training-site"
+                          placeholder="ex: Tous sites"
+                          value={trainingForm.site}
+                          onChange={(e) => setTrainingForm({ ...trainingForm, site: e.target.value })}
+                          data-testid="input-training-site"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="training-instructor">Formateur</Label>
+                        <Input
+                          id="training-instructor"
+                          placeholder="Nom du formateur"
+                          value={trainingForm.instructor}
+                          onChange={(e) => setTrainingForm({ ...trainingForm, instructor: e.target.value })}
+                          data-testid="input-training-instructor"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleAddTraining}
+                      disabled={isSavingModuleState}
+                      data-testid="button-save-training"
+                    >
+                      {isSavingModuleState ? "Enregistrement..." : "Planifier"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -455,8 +658,17 @@ export function HSEManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockTrainings.map((training) => {
-                    const completionRate = Math.round((training.completedBy / training.participants) * 100);
+                  {trainings.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                        Aucune formation planifiée pour le moment.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {trainings.map((training) => {
+                    const completionRate = training.participants > 0
+                      ? Math.round((training.completedBy / training.participants) * 100)
+                      : 0;
                     return (
                       <TableRow key={training.id} data-testid={`row-training-${training.id}`}>
                         <TableCell className="font-medium">{training.title}</TableCell>
@@ -505,7 +717,7 @@ export function HSEManagement() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {monthlySafetyData.map((data) => (
+                  {safetySeries.map((data) => (
                     <div key={data.month} className="flex items-center gap-4">
                       <span className="w-12 text-sm font-medium">{data.month}</span>
                       <div className="flex-1 flex gap-2">
@@ -542,39 +754,29 @@ export function HSEManagement() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Taux de fréquence (TF)</span>
-                    <Badge variant="outline">{mockStats.frequencyRate}</Badge>
+                    <span className="text-sm font-medium">Taux de fréquence / Taux de gravité</span>
+                    <Badge variant="outline">Bientôt disponible</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Nombre d'accidents avec arrêt × 1 000 000 / Heures travaillées
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Taux de gravité (TG)</span>
-                    <Badge variant="outline">{mockStats.gravityRate}</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Jours perdus × 1 000 / Heures travaillées
+                    Ces indicateurs nécessitent le suivi des heures travaillées, pas encore disponible dans BaaraMatch.
                   </p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Jours sans accident</span>
-                    <Badge className="bg-green-500">28 jours</Badge>
+                    <Badge className="bg-green-500">{daysSinceLastIncident ?? "-"}</Badge>
                   </div>
-                  <Progress value={70} className="h-2" />
                   <p className="text-xs text-muted-foreground">
-                    Objectif: 40 jours consécutifs
+                    {daysSinceLastIncident !== null ? "Depuis le dernier incident déclaré" : "Aucun incident déclaré pour le moment"}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Formations à jour</span>
-                    <Badge className="bg-green-500">{mockStats.trainingsCompleted}</Badge>
+                    <span className="text-sm font-medium">Formations complétées</span>
+                    <Badge className="bg-green-500">{totalCompleted}/{totalParticipants}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Employés formés cette année
+                    Employés formés sur le total inscrit
                   </p>
                 </div>
               </CardContent>

@@ -15,15 +15,24 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  UserCheck,
   Briefcase,
   Settings,
   Shield,
+  ShieldCheck,
   ToggleRight,
   LogOut,
   Flag,
   ScrollText,
+  Building,
+  FileBarChart,
+  BarChart3,
+  Ticket,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
+import { hasAdminPermission } from "@shared/schema";
 
 const mainMenuItems = [
   {
@@ -42,6 +51,11 @@ const mainMenuItems = [
     icon: Briefcase,
   },
   {
+    title: "Candidats",
+    url: "/admin/candidates",
+    icon: UserCheck,
+  },
+  {
     title: "Utilisateurs",
     url: "/admin/users",
     icon: Users,
@@ -54,12 +68,60 @@ const supervisionMenuItems = [
     url: "/admin/moderation",
     icon: Flag,
   },
+];
+
+const statisticsMenuItems = [
   {
-    title: "Logs",
-    url: "/admin/logs",
-    icon: ScrollText,
+    title: "Statistiques",
+    url: "/admin/statistics",
+    icon: BarChart3,
+  },
+  {
+    title: "Rapports",
+    url: "/admin/reports",
+    icon: FileBarChart,
   },
 ];
+
+// The audit journal (who viewed what, including candidate profile
+// consultations) is only meaningful if the admins it watches can't read
+// it — restricted to super_admin, same as adminAccountsMenuItem below.
+const logsMenuItem = {
+  title: "Logs",
+  url: "/admin/logs",
+  icon: ScrollText,
+};
+
+// Third-party job management is restricted to super_admin/admin server-side
+// (requireAdminLevel) — hidden here too so a moderateur never even sees the
+// entry point.
+const thirdPartyMenuItem = {
+  title: "Organisations tiers",
+  url: "/admin/organizations",
+  icon: Building,
+};
+
+// Shows candidate names + phone numbers: same permission as full candidate
+// profiles server-side (candidats:consulter_profil_complet).
+const whatsappPendingMenuItem = {
+  title: "WhatsApp en attente",
+  url: "/admin/whatsapp-pending",
+  icon: MessageCircle,
+};
+
+// Same permission as thirdPartyMenuItem server-side (organisations:gerer).
+const invitationCodesMenuItem = {
+  title: "Codes d'invitation",
+  url: "/admin/invitation-codes",
+  icon: Ticket,
+};
+
+// Managing who else has admin access is super_admin only.
+const adminAccountsMenuItem = {
+  title: "Comptes admin",
+  url: "/admin/accounts",
+  icon: ShieldCheck,
+};
 
 const configMenuItems = [
   {
@@ -81,6 +143,23 @@ const configMenuItems = [
 
 export function AdminSidebar() {
   const [location] = useLocation();
+  const { user } = useAuth();
+  const adminLevel = user?.adminLevel;
+  const canManageThirdParty = hasAdminPermission(adminLevel, "organisations:gerer");
+  const canManageAdminAccounts = hasAdminPermission(adminLevel, "admins:gerer");
+  const canViewCandidateContacts = hasAdminPermission(adminLevel, "candidats:consulter_profil_complet");
+  const supervisionItemsWithWhatsApp = canViewCandidateContacts
+    ? [...supervisionMenuItems, whatsappPendingMenuItem]
+    : supervisionMenuItems;
+  const visibleSupervisionItems = canManageThirdParty
+    ? [...supervisionItemsWithWhatsApp, thirdPartyMenuItem, invitationCodesMenuItem]
+    : supervisionItemsWithWhatsApp;
+  const visibleConfigItems = canManageAdminAccounts
+    ? [adminAccountsMenuItem, ...configMenuItems]
+    : configMenuItems;
+  const visibleSupervisionItemsWithLogs = canManageAdminAccounts
+    ? [...visibleSupervisionItems, logsMenuItem]
+    : visibleSupervisionItems;
 
   return (
     <Sidebar className="border-r">
@@ -123,7 +202,29 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Supervision</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {supervisionMenuItems.map((item) => (
+              {visibleSupervisionItemsWithLogs.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.startsWith(item.url)}
+                    data-testid={`link-admin-${item.url.split('/').pop()}`}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Statistique & rapport</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {statisticsMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -145,7 +246,7 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Configuration</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {configMenuItems.map((item) => (
+              {visibleConfigItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild

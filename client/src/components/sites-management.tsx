@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { useOperationalModuleState } from "@/hooks/use-operational-module-state";
 import {
   MapPin,
   Users,
-  Calendar,
   Search,
   Plus,
   Edit,
@@ -24,212 +25,251 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Truck,
   HardHat,
 } from "lucide-react";
 
-const mockSites = [
-  {
-    id: "1",
-    name: "Mine d'Or Kédougou",
-    location: "Kédougou, Sénégal",
-    type: "Mine",
-    status: "active",
-    capacity: 250,
-    currentStaff: 218,
-    rotationType: "14/14",
-    manager: "Mamadou Diallo",
-    startDate: "2024-03-15",
-    endDate: null,
-    accommodation: true,
-    accommodationCapacity: 300,
-  },
-  {
-    id: "2",
-    name: "Chantier Autoroute Dakar-AIBD",
-    location: "Diamniadio, Sénégal",
-    type: "BTP",
-    status: "active",
-    capacity: 180,
-    currentStaff: 156,
-    rotationType: "21/7",
-    manager: "Fatou Sarr",
-    startDate: "2025-01-10",
-    endDate: "2026-12-31",
-    accommodation: false,
-    accommodationCapacity: 0,
-  },
-  {
-    id: "3",
-    name: "Mine de Bauxite Sangarédi",
-    location: "Boké, Guinée",
-    type: "Mine",
-    status: "active",
-    capacity: 400,
-    currentStaff: 385,
-    rotationType: "28/14",
-    manager: "Alpha Condé",
-    startDate: "2023-06-01",
-    endDate: null,
-    accommodation: true,
-    accommodationCapacity: 450,
-  },
-  {
-    id: "4",
-    name: "Construction Port Ndayane",
-    location: "Ndayane, Sénégal",
-    type: "BTP",
-    status: "planning",
-    capacity: 300,
-    currentStaff: 45,
-    rotationType: "14/7",
-    manager: "Ibrahima Ndiaye",
-    startDate: "2026-03-01",
-    endDate: "2028-06-30",
-    accommodation: true,
-    accommodationCapacity: 200,
-  },
-];
+interface Site {
+  id: string;
+  name: string;
+  location: string;
+  type: string;
+  status: string;
+  capacity: number;
+  currentStaff: number;
+  rotationType: string;
+  manager: string;
+  startDate: string;
+  endDate: string | null;
+  accommodation: boolean;
+  accommodationCapacity: number;
+}
 
-const mockAffectations = [
-  {
-    id: "1",
-    employeeName: "Ousmane Ba",
-    employeeRole: "Opérateur Engin",
-    siteId: "1",
-    siteName: "Mine d'Or Kédougou",
-    startDate: "2026-01-15",
-    endDate: "2026-01-29",
-    status: "on_site",
-    accommodation: "Camp A - Bloc 3",
-  },
-  {
-    id: "2",
-    employeeName: "Aminata Diop",
-    employeeRole: "Ingénieur HSE",
-    siteId: "1",
-    siteName: "Mine d'Or Kédougou",
-    startDate: "2026-01-20",
-    endDate: "2026-02-03",
-    status: "on_site",
-    accommodation: "Camp B - Bloc 1",
-  },
-  {
-    id: "3",
-    employeeName: "Moussa Fall",
-    employeeRole: "Chef d'équipe",
-    siteId: "2",
-    siteName: "Chantier Autoroute Dakar-AIBD",
-    startDate: "2026-01-10",
-    endDate: "2026-01-31",
-    status: "on_site",
-    accommodation: null,
-  },
-  {
-    id: "4",
-    employeeName: "Cheikh Sy",
-    employeeRole: "Soudeur",
-    siteId: "3",
-    siteName: "Mine de Bauxite Sangarédi",
-    startDate: "2026-02-01",
-    endDate: "2026-03-01",
-    status: "scheduled",
-    accommodation: "Camp Principal - Bloc 5",
-  },
-  {
-    id: "5",
-    employeeName: "Aissatou Bah",
-    employeeRole: "Géologue",
-    siteId: "1",
-    siteName: "Mine d'Or Kédougou",
-    startDate: "2025-12-15",
-    endDate: "2025-12-29",
-    status: "completed",
-    accommodation: "Camp A - Bloc 2",
-  },
-];
+interface Affectation {
+  id: string;
+  employeeId?: number;
+  employeeName: string;
+  employeeRole: string;
+  siteId: string;
+  siteName: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  accommodation: string | null;
+}
 
-const mockRotations = [
-  {
-    id: "1",
-    siteId: "1",
-    siteName: "Mine d'Or Kédougou",
-    rotationType: "14/14",
-    currentCycle: "Cycle A",
-    nextRotation: "2026-02-01",
-    employeesRotating: 85,
-    status: "upcoming",
-  },
-  {
-    id: "2",
-    siteId: "3",
-    siteName: "Mine de Bauxite Sangarédi",
-    rotationType: "28/14",
-    currentCycle: "Cycle B",
-    nextRotation: "2026-02-15",
-    employeesRotating: 120,
-    status: "upcoming",
-  },
-  {
-    id: "3",
-    siteId: "2",
-    siteName: "Chantier Autoroute Dakar-AIBD",
-    rotationType: "21/7",
-    currentCycle: "Cycle A",
-    nextRotation: "2026-01-31",
-    employeesRotating: 52,
-    status: "in_progress",
-  },
-];
+interface Rotation {
+  id: string;
+  siteId: string;
+  siteName: string;
+  rotationType: string;
+  currentCycle: string;
+  nextRotation: string;
+  employeesRotating: number;
+  status: string;
+}
 
-const mockAccommodations = [
-  {
-    id: "1",
-    siteId: "1",
-    name: "Camp A",
-    type: "Permanent",
-    capacity: 150,
-    occupied: 138,
-    blocks: 6,
-    amenities: ["Cantine", "Infirmerie", "Salle de sport", "WiFi"],
-  },
-  {
-    id: "2",
-    siteId: "1",
-    name: "Camp B",
-    type: "Permanent",
-    capacity: 100,
-    occupied: 80,
-    blocks: 4,
-    amenities: ["Cantine", "Infirmerie"],
-  },
-  {
-    id: "3",
-    siteId: "3",
-    name: "Camp Principal",
-    type: "Permanent",
-    capacity: 350,
-    occupied: 320,
-    blocks: 12,
-    amenities: ["Cantine", "Infirmerie", "Salle de sport", "WiFi", "Piscine"],
-  },
-  {
-    id: "4",
-    siteId: "4",
-    name: "Camp Temporaire",
-    type: "Modulaire",
-    capacity: 100,
-    occupied: 45,
-    blocks: 5,
-    amenities: ["Cantine"],
-  },
-];
+interface Accommodation {
+  id: string;
+  siteId: string;
+  name: string;
+  type: string;
+  capacity: number;
+  occupied: number;
+  blocks: number;
+  amenities: string[];
+}
+
+interface SiteEmployee {
+  id: number;
+  name: string;
+  position: string;
+}
+
+const emptySiteForm = {
+  name: "",
+  type: "",
+  rotationType: "",
+  location: "",
+  capacity: "",
+  manager: "",
+};
+
+const emptyAffectationForm = {
+  employeeId: "",
+  employeeName: "",
+  employeeRole: "",
+  siteId: "",
+  startDate: "",
+  endDate: "",
+  accommodation: "",
+};
+
+const emptyAccommodationForm = {
+  name: "",
+  type: "",
+  siteId: "",
+  capacity: "",
+  blocks: "",
+  amenities: "",
+};
 
 export function SitesManagement() {
+  const { toast } = useToast();
+  const { moduleState, saveModuleState, isSavingModuleState } = useOperationalModuleState("sites", {
+    sites: [] as Site[],
+    affectations: [] as Affectation[],
+    rotations: [] as Rotation[],
+    accommodations: [] as Accommodation[],
+  });
+  const sites = moduleState.sites ?? [];
+  const affectations = moduleState.affectations ?? [];
+  const rotations = moduleState.rotations ?? [];
+  const accommodations = moduleState.accommodations ?? [];
+  // Read-only: sources the "Employé" picker from the real employee
+  // directory (see employee-management.tsx) instead of free-text entry.
+  const { moduleState: employeeModuleState } = useOperationalModuleState("employee", {
+    employees: [] as SiteEmployee[],
+  });
+  const rosterEmployees = employeeModuleState.employees ?? [];
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("sites");
+  const [showAddSiteDialog, setShowAddSiteDialog] = useState(false);
+  const [siteForm, setSiteForm] = useState(emptySiteForm);
+  const [showAddAffectationDialog, setShowAddAffectationDialog] = useState(false);
+  const [affectationForm, setAffectationForm] = useState(emptyAffectationForm);
+  const [showAddAccommodationDialog, setShowAddAccommodationDialog] = useState(false);
+  const [accommodationForm, setAccommodationForm] = useState(emptyAccommodationForm);
 
-  const filteredSites = mockSites.filter(
+  const handleAddSite = async () => {
+    if (!siteForm.name.trim() || !siteForm.location.trim()) {
+      toast({
+        title: "Champs requis",
+        description: "Le nom et la localisation sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const nextId = (sites.reduce((max, s) => Math.max(max, Number(s.id) || 0), 0) + 1).toString();
+    const newSite: Site = {
+      id: nextId,
+      name: siteForm.name.trim(),
+      location: siteForm.location.trim(),
+      type: siteForm.type || "Autre",
+      status: "planning",
+      capacity: Number(siteForm.capacity) || 0,
+      currentStaff: 0,
+      rotationType: siteForm.rotationType || "14/14",
+      manager: siteForm.manager.trim(),
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: null,
+      accommodation: false,
+      accommodationCapacity: 0,
+    };
+
+    try {
+      await saveModuleState({ sites: [...sites, newSite], affectations, rotations, accommodations });
+      toast({
+        title: "Site créé",
+        description: "Le nouveau site a été ajouté avec succès.",
+      });
+      setSiteForm(emptySiteForm);
+      setShowAddSiteDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer le nouveau site.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddAffectation = async () => {
+    if (!affectationForm.employeeId || !affectationForm.siteId || !affectationForm.startDate || !affectationForm.endDate) {
+      toast({
+        title: "Champs requis",
+        description: "L'employé, le site et les dates sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const site = sites.find((s) => s.id === affectationForm.siteId);
+    const employee = rosterEmployees.find((e) => e.id.toString() === affectationForm.employeeId);
+    const nextId = (affectations.reduce((max, a) => Math.max(max, Number(a.id) || 0), 0) + 1).toString();
+    const newAffectation: Affectation = {
+      id: nextId,
+      employeeId: employee?.id,
+      employeeName: employee?.name ?? affectationForm.employeeName,
+      employeeRole: affectationForm.employeeRole.trim(),
+      siteId: affectationForm.siteId,
+      siteName: site?.name ?? "",
+      startDate: affectationForm.startDate,
+      endDate: affectationForm.endDate,
+      status: "scheduled",
+      accommodation: affectationForm.accommodation.trim() || null,
+    };
+
+    try {
+      await saveModuleState({ sites, affectations: [...affectations, newAffectation], rotations, accommodations });
+      toast({
+        title: "Affectation créée",
+        description: "La nouvelle affectation a été ajoutée avec succès.",
+      });
+      setAffectationForm(emptyAffectationForm);
+      setShowAddAffectationDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer la nouvelle affectation.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddAccommodation = async () => {
+    if (!accommodationForm.name.trim() || !accommodationForm.siteId || !accommodationForm.capacity) {
+      toast({
+        title: "Champs requis",
+        description: "Le nom, le site et la capacité sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const nextId = (accommodations.reduce((max, a) => Math.max(max, Number(a.id) || 0), 0) + 1).toString();
+    const newAccommodation: Accommodation = {
+      id: nextId,
+      siteId: accommodationForm.siteId,
+      name: accommodationForm.name.trim(),
+      type: accommodationForm.type || "Permanent",
+      capacity: Number(accommodationForm.capacity) || 0,
+      occupied: 0,
+      blocks: Number(accommodationForm.blocks) || 0,
+      amenities: accommodationForm.amenities
+        .split(",")
+        .map((a) => a.trim())
+        .filter(Boolean),
+    };
+
+    try {
+      await saveModuleState({ sites, affectations, rotations, accommodations: [...accommodations, newAccommodation] });
+      toast({
+        title: "Hébergement créé",
+        description: "Le nouvel hébergement a été ajouté avec succès.",
+      });
+      setAccommodationForm(emptyAccommodationForm);
+      setShowAddAccommodationDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer le nouvel hébergement.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredSites = sites.filter(
     (site) =>
       site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       site.location.toLowerCase().includes(searchTerm.toLowerCase())
@@ -283,7 +323,7 @@ export function SitesManagement() {
               data-testid="input-search-sites"
             />
           </div>
-          <Dialog>
+          <Dialog open={showAddSiteDialog} onOpenChange={setShowAddSiteDialog}>
             <DialogTrigger asChild>
               <Button data-testid="button-add-site">
                 <Plus className="w-4 h-4 mr-2" />
@@ -298,27 +338,33 @@ export function SitesManagement() {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="site-name">Nom du site</Label>
-                  <Input id="site-name" placeholder="Ex: Mine d'Or Kédougou" />
+                  <Input
+                    id="site-name"
+                    placeholder="Ex: Mine d'Or Kédougou"
+                    value={siteForm.name}
+                    onChange={(e) => setSiteForm({ ...siteForm, name: e.target.value })}
+                    data-testid="input-site-name"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="site-type">Type</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select value={siteForm.type} onValueChange={(v) => setSiteForm({ ...siteForm, type: v })}>
+                      <SelectTrigger data-testid="select-site-type">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="mine">Mine</SelectItem>
-                        <SelectItem value="btp">BTP</SelectItem>
-                        <SelectItem value="oil_gas">Pétrole & Gaz</SelectItem>
-                        <SelectItem value="other">Autre</SelectItem>
+                        <SelectItem value="Mine">Mine</SelectItem>
+                        <SelectItem value="BTP">BTP</SelectItem>
+                        <SelectItem value="Pétrole & Gaz">Pétrole & Gaz</SelectItem>
+                        <SelectItem value="Autre">Autre</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="rotation">Rotation</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select value={siteForm.rotationType} onValueChange={(v) => setSiteForm({ ...siteForm, rotationType: v })}>
+                      <SelectTrigger data-testid="select-site-rotation">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
@@ -332,21 +378,46 @@ export function SitesManagement() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="location">Localisation</Label>
-                  <Input id="location" placeholder="Ville, Pays" />
+                  <Input
+                    id="location"
+                    placeholder="Ville, Pays"
+                    value={siteForm.location}
+                    onChange={(e) => setSiteForm({ ...siteForm, location: e.target.value })}
+                    data-testid="input-site-location"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="capacity">Capacité</Label>
-                    <Input id="capacity" type="number" placeholder="250" />
+                    <Input
+                      id="capacity"
+                      type="number"
+                      placeholder="250"
+                      value={siteForm.capacity}
+                      onChange={(e) => setSiteForm({ ...siteForm, capacity: e.target.value })}
+                      data-testid="input-site-capacity"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="manager">Responsable</Label>
-                    <Input id="manager" placeholder="Nom du responsable" />
+                    <Input
+                      id="manager"
+                      placeholder="Nom du responsable"
+                      value={siteForm.manager}
+                      onChange={(e) => setSiteForm({ ...siteForm, manager: e.target.value })}
+                      data-testid="input-site-manager"
+                    />
                   </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" data-testid="button-save-site">Créer le site</Button>
+                <Button
+                  onClick={handleAddSite}
+                  disabled={isSavingModuleState}
+                  data-testid="button-save-site"
+                >
+                  {isSavingModuleState ? "Création..." : "Créer le site"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -360,8 +431,8 @@ export function SitesManagement() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockSites.filter(s => s.status === "active").length}</div>
-            <p className="text-xs text-muted-foreground">sur {mockSites.length} total</p>
+            <div className="text-2xl font-bold">{sites.filter(s => s.status === "active").length}</div>
+            <p className="text-xs text-muted-foreground">sur {sites.length} total</p>
           </CardContent>
         </Card>
         <Card>
@@ -370,7 +441,7 @@ export function SitesManagement() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockSites.reduce((acc, s) => acc + s.currentStaff, 0)}</div>
+            <div className="text-2xl font-bold">{sites.reduce((acc, s) => acc + s.currentStaff, 0)}</div>
             <p className="text-xs text-muted-foreground">employés affectés</p>
           </CardContent>
         </Card>
@@ -380,7 +451,7 @@ export function SitesManagement() {
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockRotations.filter(r => r.status === "upcoming").length}</div>
+            <div className="text-2xl font-bold">{rotations.filter(r => r.status === "upcoming").length}</div>
             <p className="text-xs text-muted-foreground">cette semaine</p>
           </CardContent>
         </Card>
@@ -390,7 +461,7 @@ export function SitesManagement() {
             <Home className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockAccommodations.reduce((acc, a) => acc + a.occupied, 0)}</div>
+            <div className="text-2xl font-bold">{accommodations.reduce((acc, a) => acc + a.occupied, 0)}</div>
             <p className="text-xs text-muted-foreground">lits occupés</p>
           </CardContent>
         </Card>
@@ -432,6 +503,15 @@ export function SitesManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {filteredSites.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                        {sites.length === 0
+                          ? "Aucun site pour le moment. Ajoutez votre premier site."
+                          : "Aucun site ne correspond à cette recherche."}
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {filteredSites.map((site) => (
                     <TableRow key={site.id} data-testid={`row-site-${site.id}`}>
                       <TableCell>
@@ -461,17 +541,17 @@ export function SitesManagement() {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="text-sm">{site.currentStaff}/{site.capacity}</div>
-                          <Progress value={(site.currentStaff / site.capacity) * 100} className="h-1.5" />
+                          <Progress value={site.capacity > 0 ? (site.currentStaff / site.capacity) * 100 : 0} className="h-1.5" />
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(site.status)}</TableCell>
                       <TableCell>{site.manager}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button size="icon" variant="ghost" data-testid={`button-view-site-${site.id}`}>
+                          <Button size="icon" variant="ghost" disabled title="Bientôt disponible" data-testid={`button-view-site-${site.id}`}>
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" data-testid={`button-edit-site-${site.id}`}>
+                          <Button size="icon" variant="ghost" disabled title="Bientôt disponible" data-testid={`button-edit-site-${site.id}`}>
                             <Edit className="w-4 h-4" />
                           </Button>
                         </div>
@@ -491,10 +571,113 @@ export function SitesManagement() {
                 <CardTitle>Affectations du personnel</CardTitle>
                 <CardDescription>Gérez les affectations des employés sur les sites</CardDescription>
               </div>
-              <Button data-testid="button-add-affectation">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvelle affectation
-              </Button>
+              <Dialog open={showAddAffectationDialog} onOpenChange={setShowAddAffectationDialog}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-affectation">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouvelle affectation
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Ajouter une affectation</DialogTitle>
+                    <DialogDescription>Affectez un employé à un site</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="affectation-employee">Employé</Label>
+                        <Select
+                          value={affectationForm.employeeId}
+                          onValueChange={(v) => {
+                            const employee = rosterEmployees.find((e) => e.id.toString() === v);
+                            setAffectationForm({
+                              ...affectationForm,
+                              employeeId: v,
+                              employeeName: employee?.name ?? "",
+                              employeeRole: employee?.position ?? affectationForm.employeeRole,
+                            });
+                          }}
+                          disabled={rosterEmployees.length === 0}
+                        >
+                          <SelectTrigger id="affectation-employee" data-testid="select-affectation-employee">
+                            <SelectValue placeholder={rosterEmployees.length === 0 ? "Aucun employé enregistré" : "Sélectionner un employé"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {rosterEmployees.map((employee) => (
+                              <SelectItem key={employee.id} value={employee.id.toString()}>{employee.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="affectation-role">Poste</Label>
+                        <Input
+                          id="affectation-role"
+                          placeholder="Ex: Opérateur Engin"
+                          value={affectationForm.employeeRole}
+                          onChange={(e) => setAffectationForm({ ...affectationForm, employeeRole: e.target.value })}
+                          data-testid="input-affectation-role"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="affectation-site">Site</Label>
+                      <Select value={affectationForm.siteId} onValueChange={(v) => setAffectationForm({ ...affectationForm, siteId: v })}>
+                        <SelectTrigger data-testid="select-affectation-site">
+                          <SelectValue placeholder="Sélectionner un site" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sites.map((site) => (
+                            <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="affectation-start">Date de début</Label>
+                        <Input
+                          id="affectation-start"
+                          type="date"
+                          value={affectationForm.startDate}
+                          onChange={(e) => setAffectationForm({ ...affectationForm, startDate: e.target.value })}
+                          data-testid="input-affectation-start"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="affectation-end">Date de fin</Label>
+                        <Input
+                          id="affectation-end"
+                          type="date"
+                          value={affectationForm.endDate}
+                          onChange={(e) => setAffectationForm({ ...affectationForm, endDate: e.target.value })}
+                          data-testid="input-affectation-end"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="affectation-accommodation">Hébergement (optionnel)</Label>
+                      <Input
+                        id="affectation-accommodation"
+                        placeholder="Ex: Camp A - Bloc 3"
+                        value={affectationForm.accommodation}
+                        onChange={(e) => setAffectationForm({ ...affectationForm, accommodation: e.target.value })}
+                        data-testid="input-affectation-accommodation"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleAddAffectation}
+                      disabled={isSavingModuleState}
+                      data-testid="button-save-affectation"
+                    >
+                      {isSavingModuleState ? "Création..." : "Créer l'affectation"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -510,7 +693,14 @@ export function SitesManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockAffectations.map((affectation) => (
+                  {affectations.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                        Aucune affectation pour le moment.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {affectations.map((affectation) => (
                     <TableRow key={affectation.id} data-testid={`row-affectation-${affectation.id}`}>
                       <TableCell className="font-medium">{affectation.employeeName}</TableCell>
                       <TableCell>{affectation.employeeRole}</TableCell>
@@ -533,7 +723,7 @@ export function SitesManagement() {
                       </TableCell>
                       <TableCell>{getAffectationStatusBadge(affectation.status)}</TableCell>
                       <TableCell className="text-right">
-                        <Button size="icon" variant="ghost">
+                        <Button size="icon" variant="ghost" disabled title="Bientôt disponible">
                           <Edit className="w-4 h-4" />
                         </Button>
                       </TableCell>
@@ -551,64 +741,125 @@ export function SitesManagement() {
               <CardTitle>Planning des rotations</CardTitle>
               <CardDescription>Suivi des cycles de rotation par site</CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Site</TableHead>
-                    <TableHead>Type de rotation</TableHead>
-                    <TableHead>Cycle actuel</TableHead>
-                    <TableHead>Prochaine rotation</TableHead>
-                    <TableHead>Employés concernés</TableHead>
-                    <TableHead>Statut</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockRotations.map((rotation) => (
-                    <TableRow key={rotation.id} data-testid={`row-rotation-${rotation.id}`}>
-                      <TableCell className="font-medium">{rotation.siteName}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{rotation.rotationType}</Badge>
-                      </TableCell>
-                      <TableCell>{rotation.currentCycle}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          {new Date(rotation.nextRotation).toLocaleDateString("fr-FR")}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          <Users className="w-3 h-3 mr-1" />
-                          {rotation.employeesRotating}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {rotation.status === "upcoming" ? (
-                          <Badge variant="secondary">
-                            <Clock className="w-3 h-3 mr-1" />
-                            À venir
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-green-500">
-                            <Truck className="w-3 h-3 mr-1" />
-                            En cours
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardContent>
+              <div className="text-center py-12 text-muted-foreground">
+                <RefreshCw className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p>Le suivi des cycles de rotation sera bientôt disponible</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="accommodations" className="mt-4">
+        <TabsContent value="accommodations" className="mt-4 space-y-4">
+          <div className="flex justify-end">
+            <Dialog open={showAddAccommodationDialog} onOpenChange={setShowAddAccommodationDialog}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-add-accommodation">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nouvel hébergement
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Ajouter un hébergement</DialogTitle>
+                  <DialogDescription>Créez un camp ou un logement pour un site</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="accommodation-name">Nom</Label>
+                    <Input
+                      id="accommodation-name"
+                      placeholder="Ex: Camp A"
+                      value={accommodationForm.name}
+                      onChange={(e) => setAccommodationForm({ ...accommodationForm, name: e.target.value })}
+                      data-testid="input-accommodation-name"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="accommodation-site">Site</Label>
+                    <Select value={accommodationForm.siteId} onValueChange={(v) => setAccommodationForm({ ...accommodationForm, siteId: v })}>
+                      <SelectTrigger id="accommodation-site" data-testid="select-accommodation-site">
+                        <SelectValue placeholder={sites.length === 0 ? "Aucun site enregistré" : "Sélectionner un site"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sites.map((site) => (
+                          <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="accommodation-type">Type</Label>
+                      <Select value={accommodationForm.type} onValueChange={(v) => setAccommodationForm({ ...accommodationForm, type: v })}>
+                        <SelectTrigger id="accommodation-type" data-testid="select-accommodation-type">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Permanent">Permanent</SelectItem>
+                          <SelectItem value="Modulaire">Modulaire</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="accommodation-capacity">Capacité (lits)</Label>
+                      <Input
+                        id="accommodation-capacity"
+                        type="number"
+                        placeholder="150"
+                        value={accommodationForm.capacity}
+                        onChange={(e) => setAccommodationForm({ ...accommodationForm, capacity: e.target.value })}
+                        data-testid="input-accommodation-capacity"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="accommodation-blocks">Nombre de blocs</Label>
+                    <Input
+                      id="accommodation-blocks"
+                      type="number"
+                      placeholder="6"
+                      value={accommodationForm.blocks}
+                      onChange={(e) => setAccommodationForm({ ...accommodationForm, blocks: e.target.value })}
+                      data-testid="input-accommodation-blocks"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="accommodation-amenities">Équipements (séparés par des virgules)</Label>
+                    <Input
+                      id="accommodation-amenities"
+                      placeholder="Ex: Cantine, Infirmerie, WiFi"
+                      value={accommodationForm.amenities}
+                      onChange={(e) => setAccommodationForm({ ...accommodationForm, amenities: e.target.value })}
+                      data-testid="input-accommodation-amenities"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    onClick={handleAddAccommodation}
+                    disabled={isSavingModuleState}
+                    data-testid="button-save-accommodation"
+                  >
+                    {isSavingModuleState ? "Création..." : "Créer l'hébergement"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          {accommodations.length === 0 && (
+            <Card>
+              <CardContent className="py-16 text-center text-muted-foreground">
+                Aucun hébergement pour le moment. Ajoutez votre premier hébergement.
+              </CardContent>
+            </Card>
+          )}
           <div className="grid gap-4 md:grid-cols-2">
-            {mockAccommodations.map((accommodation) => {
-              const site = mockSites.find((s) => s.id === accommodation.siteId);
-              const occupancyRate = Math.round((accommodation.occupied / accommodation.capacity) * 100);
+            {accommodations.map((accommodation) => {
+              const site = sites.find((s) => s.id === accommodation.siteId);
+              const occupancyRate = accommodation.capacity > 0
+                ? Math.round((accommodation.occupied / accommodation.capacity) * 100)
+                : 0;
               return (
                 <Card key={accommodation.id} data-testid={`card-accommodation-${accommodation.id}`}>
                   <CardHeader>

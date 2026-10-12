@@ -10,10 +10,26 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye, Edit } from "lucide-react";
 import type { User, CandidateProfile } from "@shared/schema";
 
+const EDITOR_SECTIONS = [
+  "personal",
+  "professional",
+  "cv",
+  "education",
+  "certifications",
+  "experiences",
+  "preferences",
+] as const;
+
+type EditorSection = (typeof EDITOR_SECTIONS)[number];
+
+const isEditorSection = (value: string | null): value is EditorSection =>
+  Boolean(value && EDITOR_SECTIONS.includes(value as EditorSection));
+
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
+  const [targetSection, setTargetSection] = useState<EditorSection | undefined>(undefined);
 
   const { data: profileData } = useQuery<{ user: User; profile: CandidateProfile | null }>({
     queryKey: ["/api/profile"],
@@ -25,6 +41,22 @@ export default function ProfilePage() {
       setLocation("/login");
     }
   }, [user, isLoading, setLocation]);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const section = searchParams.get("section");
+
+    if (isEditorSection(section)) {
+      setTargetSection(section);
+      setIsEditing(true);
+      return;
+    }
+
+    setTargetSection(undefined);
+    if (location.includes("/profile/view")) {
+      setIsEditing(false);
+    }
+  }, [location]);
 
   if (isLoading) {
     return (
@@ -52,7 +84,7 @@ export default function ProfilePage() {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => isEditing ? setIsEditing(false) : setLocation("/dashboard")}
+              onClick={() => isEditing ? setIsEditing(false) : setLocation("/espace-personnel")}
               data-testid="button-back"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -75,6 +107,7 @@ export default function ProfilePage() {
             <MobileProfileEditor 
               user={profileData?.user || user} 
               profile={profileData?.profile || undefined}
+              initialSection={targetSection}
               onSave={handleSave} 
             />
           ) : (
@@ -88,15 +121,26 @@ export default function ProfilePage() {
       </div>
 
       <div className="hidden lg:block">
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold" data-testid="text-profile-title">
-                {isEditing ? "Modifier le profil" : "Mon Profil"}
-              </h1>
-              <p className="text-muted-foreground">
-                {isEditing ? "Modifiez vos informations personnelles" : "Consultez vos informations"}
-              </p>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setLocation("/espace-personnel")}
+                data-testid="button-back-desktop"
+                className="mr-2"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold" data-testid="text-profile-title">
+                  {isEditing ? "Modifier le profil" : "Mon Profil"}
+                </h1>
+                <p className="text-muted-foreground">
+                  {isEditing ? "Modifiez vos informations personnelles" : "Consultez vos informations"}
+                </p>
+              </div>
             </div>
             <Button
               variant="outline"
@@ -121,6 +165,7 @@ export default function ProfilePage() {
             <MobileProfileEditor 
               user={profileData?.user || user} 
               profile={profileData?.profile || undefined}
+              initialSection={targetSection}
               onSave={handleSave} 
             />
           ) : (

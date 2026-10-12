@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { usePageTitle } from "@/lib/page-title";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +60,13 @@ export default function AgencyProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("about");
 
+  // Fire-and-forget — feeds the admin "Top organisations visitées"
+  // statistic. Doesn't touch the existing data fetch below at all.
+  useEffect(() => {
+    if (!id) return;
+    apiRequest("POST", `/api/agencies/${id}/view`).catch(() => {});
+  }, [id]);
+
   const { data: agencies, isLoading } = useQuery<AgencyWithProfile[]>({
     queryKey: ["/api/agencies"],
   });
@@ -67,6 +76,7 @@ export default function AgencyProfilePage() {
   });
 
   const agency = agencies?.find((a) => a.id === id);
+  usePageTitle(agency ? agency.profile?.agencyName || agency.fullName : null, "Agence");
   const jobCount = allJobs?.filter((job) => job.agencyId === id && job.isActive).length || 0;
 
   const getInitials = (name: string) => {
@@ -305,7 +315,7 @@ export default function AgencyProfilePage() {
                   className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none pb-3 px-6"
                   data-testid="tab-about"
                 >
-                  A propos
+                  À propos
                 </TabsTrigger>
                 <TabsTrigger 
                   value="jobs" 
@@ -386,10 +396,10 @@ export default function AgencyProfilePage() {
                   </h3>
                   <p className="text-muted-foreground mb-6">
                     {jobCount > 0 
-                      ? "Consultez les offres d'emploi de cette agence"
-                      : "Cette agence n'a pas d'offres actives actuellement"}
+                      ? "Consultez les offres publiées par cet employeur"
+                      : "Cet employeur n'a pas d'offres actives actuellement"}
                   </p>
-                  <Link href={`/agencies/${id}/jobs`}>
+                  <Link href={`/jobs?agencyId=${id}&employerName=${encodeURIComponent(agencyName)}`}>
                     <Button className="gap-2" data-testid="button-view-agency-jobs">
                       <Briefcase className="h-4 w-4" />
                       Voir toutes les offres

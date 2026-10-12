@@ -7,6 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { sanitizeJobDescriptionHtml } from "@/lib/sanitize-html";
+import { formatJobType } from "@/lib/job-type-labels";
+import { useSavedJobs } from "@/hooks/use-saved-jobs";
+import { ShareJobMenu } from "@/components/share-job-menu";
 import {
   ArrowLeft,
   MapPin,
@@ -15,7 +19,6 @@ import {
   Building2,
   DollarSign,
   Heart,
-  Share2,
   CheckCircle,
   Users,
   GraduationCap,
@@ -23,16 +26,22 @@ import {
   Calendar,
 } from "lucide-react";
 import type { JobPosting } from "@shared/schema";
+import { formatJobSalary as formatSalaryDisplay } from "@/lib/format-job-salary";
+import { usePageTitle } from "@/lib/page-title";
 
 export default function JobDetailPage() {
   const [match, params] = useRoute("/jobs/:id");
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: job, isLoading, error } = useQuery<JobPosting>({
+  const { data: job, isLoading, error } = useQuery<JobPosting & { organizationName: string | null }>({
     queryKey: ["/api/jobs", params?.id],
     enabled: !!params?.id,
   });
+  usePageTitle(job?.title, "Offre d'emploi");
+  const salaryDisplay = job ? formatSalaryDisplay(job) : null;
+  const { savedJobIds, toggleSave, isPending: isSavePending } = useSavedJobs();
+  const isSaved = !!job && savedJobIds.has(job.id);
 
   const handleApply = async () => {
     if (!user) {
@@ -118,16 +127,26 @@ export default function JobDetailPage() {
                         {job.title}
                       </h1>
                       <p className="text-muted-foreground text-lg">
-                        Entreprise partenaire
+                        {job.organizationName || "Entreprise partenaire"}
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" data-testid="button-save">
-                        <Heart className="h-5 w-5" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleSave(job.id)}
+                        disabled={isSavePending}
+                        aria-pressed={isSaved}
+                        aria-label={isSaved ? "Retirer des offres sauvegardées" : "Sauvegarder cette offre"}
+                        data-testid="button-save"
+                      >
+                        <Heart className={`h-5 w-5 ${isSaved ? "fill-current text-destructive" : ""}`} />
                       </Button>
-                      <Button variant="ghost" size="icon" data-testid="button-share">
-                        <Share2 className="h-5 w-5" />
-                      </Button>
+                      <ShareJobMenu
+                        job={{ title: job.title, organizationName: job.organizationName }}
+                        url={typeof window !== "undefined" ? window.location.href : `/jobs/${job.id}`}
+                        testIdPrefix="share"
+                      />
                     </div>
                   </div>
 
@@ -138,7 +157,7 @@ export default function JobDetailPage() {
                     </Badge>
                     <Badge variant="secondary" className="gap-1">
                       <Briefcase className="h-3 w-3" />
-                      {job.jobType}
+                      {formatJobType(job.jobType)}
                     </Badge>
                     {job.category && (
                       <Badge className="bg-primary/10 text-primary">
@@ -156,9 +175,14 @@ export default function JobDetailPage() {
               <CardTitle>Description du poste</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground whitespace-pre-line" data-testid="text-description">
-                {job.description}
-              </p>
+              {/* job.description may contain HTML from the Tiptap-based
+                  offer form — always sanitize before rendering, even though
+                  the only source is an authenticated recruiter/admin. */}
+              <div
+                className="text-muted-foreground prose prose-sm max-w-none [&_p]:whitespace-pre-line"
+                data-testid="text-description"
+                dangerouslySetInnerHTML={{ __html: sanitizeJobDescriptionHtml(job.description) }}
+              />
             </CardContent>
           </Card>
 
@@ -184,14 +208,14 @@ export default function JobDetailPage() {
         <div className="space-y-6">
           <Card className="sticky top-24">
             <CardContent className="p-6 space-y-4">
-              {job.salaryRange && (
+              {salaryDisplay && (
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                     <DollarSign className="h-5 w-5 text-accent" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Salaire</p>
-                    <p className="font-semibold" data-testid="text-salary">{job.salaryRange}</p>
+                    <p className="font-semibold" data-testid="text-salary">{salaryDisplay}</p>
                   </div>
                 </div>
               )}
@@ -202,7 +226,7 @@ export default function JobDetailPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Type de contrat</p>
-                  <p className="font-semibold">{job.jobType}</p>
+                  <p className="font-semibold">{formatJobType(job.jobType)}</p>
                 </div>
               </div>
 
@@ -232,19 +256,45 @@ export default function JobDetailPage() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
-                <Button 
-                  className="w-full" 
-                  size="lg" 
-                  onClick={handleApply}
-                  data-testid="button-apply"
-                >
-                  Postuler maintenant
-                </Button>
-                <p className="text-xs text-center text-muted-foreground mt-2">
-                  Candidature simple et rapide
-                </p>
-              </div>
+              {job.applicationDeadline && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                    <Calendar className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date limite de candidature</p>
+                    <p className="font-semibold" data-testid="text-application-deadline">
+                      {new Date(job.applicationDeadline).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {job.acceptsPlatformApplications !== false ? (
+                <div className="pt-4 border-t">
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={handleApply}
+                    data-testid="button-apply"
+                  >
+                    Postuler maintenant
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground mt-2">
+                    Candidature simple et rapide
+                  </p>
+                </div>
+              ) : (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-center text-muted-foreground" data-testid="text-no-platform-applications">
+                    Cette offre n'accepte pas de candidature directe sur BaaraMatch.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

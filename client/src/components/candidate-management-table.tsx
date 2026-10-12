@@ -1,1008 +1,504 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { 
-  Search, 
-  Filter, 
-  Mic, 
-  Play, 
-  Pause,
+  Briefcase,
+  CalendarPlus,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
-  MapPin,
-  Briefcase,
-  Star,
-  MoreHorizontal,
-  Loader2,
-  Brain,
-  RefreshCw,
-  Mail,
-  Phone,
-  Calendar,
-  X,
-  User as UserIcon,
+  FileSpreadsheet,
   FileText,
-  Award,
-  Clock,
-  MessageSquare,
-  Send,
-  CalendarPlus,
-  CheckCircle
+  Loader2,
+  Mail,
+  MapPin,
+  MessageCircle,
+  MoreHorizontal,
+  Phone,
+  Plus,
+  Search,
+  Star,
+  Target,
+  UserCheck,
+  UserRound,
+  Users,
+  X,
 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { JobPosting, CandidateProfile, User } from "@shared/schema";
 
-interface Candidate {
+type CandidateStatus = "available" | "in_process" | "placed";
+
+type CandidateRow = {
   id: string;
-  name: string;
+  fullName: string;
   email: string;
-  phone: string;
-  city: string;
+  phone: string | null;
+  whatsapp: string | null;
+  city: string | null;
+  country: string | null;
+  avatarUrl: string | null;
+  title: string | null;
   skills: string[];
-  experience: number;
-  matchScore: number;
-  status: "available" | "interviewing" | "placed" | "inactive";
-  hasVoiceCV: boolean;
-  voiceCVUrl?: string;
-  avatarUrl?: string;
-  appliedDate: string;
+  experienceYears: number | null;
+  educationLevel: string | null;
+  languages: string[];
+  availableFrom: string | null;
+  hasCv: boolean;
+  hasVoiceCv: boolean;
+  completeness: number;
+  registeredAt: string | null;
+  status: CandidateStatus;
+  applicationsCount: number;
+  currentProcess: { jobTitle: string; status: string } | null;
+  placementsCount: number;
+  currentPlacement: { position: string | null; endDate: string | null } | null;
+  averageRating: number | null;
+  documentsCount: number;
+  matchScore: number | null;
+};
+
+type AgencyJob = { id: string; title: string; location: string; isActive: boolean | null; requiredSkills: string[] | null; experienceMin: number | null };
+
+const STATUS: Record<CandidateStatus, { label: string; className: string }> = {
+  available: { label: "Disponible", className: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" },
+  in_process: { label: "En processus", className: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
+  placed: { label: "En mission", className: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300" },
+};
+
+const PROCESS_LABEL: Record<string, string> = {
+  shortlisted: "présélectionné",
+  interview_proposed: "créneaux proposés",
+  interview: "entretien",
+  offered: "offre faite",
+};
+
+const PAGE_SIZE = 20;
+const ALL = "all";
+const cardClass = "rounded-2xl border border-border/60 bg-card shadow-sm";
+
+// Must stay in step with applyFilters() in server/agency-candidates.ts, so
+// the Excel export contains exactly the rows on screen.
+const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+type Filters = { search: string; status: string; skill: string; city: string; minExperience: string; hasCv: string };
+const EMPTY_FILTERS: Filters = { search: "", status: ALL, skill: ALL, city: ALL, minExperience: ALL, hasCv: ALL };
+
+function toQuery(filters: Filters, jobId: string) {
+  const params = new URLSearchParams();
+  if (filters.search.trim()) params.set("search", filters.search.trim());
+  if (filters.status !== ALL) params.set("status", filters.status);
+  if (filters.skill !== ALL) params.set("skill", filters.skill);
+  if (filters.city !== ALL) params.set("city", filters.city);
+  if (filters.minExperience !== ALL) params.set("minExperience", filters.minExperience);
+  if (filters.hasCv !== ALL) params.set("hasCv", filters.hasCv);
+  if (jobId !== ALL) params.set("jobId", jobId);
+  return params.toString();
 }
 
-const mockCandidates: Candidate[] = [
-  {
-    id: "1",
-    name: "Amadou Diallo",
-    email: "amadou@example.com",
-    phone: "+221 77 123 4567",
-    city: "Dakar",
-    skills: ["JavaScript", "React", "Node.js"],
-    experience: 5,
-    matchScore: 92,
-    status: "available",
-    hasVoiceCV: true,
-    appliedDate: "2026-01-25",
-  },
-  {
-    id: "2",
-    name: "Fatou Sow",
-    email: "fatou@example.com",
-    phone: "+223 66 789 0123",
-    city: "Bamako",
-    skills: ["Python", "Data Analysis", "SQL"],
-    experience: 3,
-    matchScore: 88,
-    status: "interviewing",
-    hasVoiceCV: true,
-    appliedDate: "2026-01-24",
-  },
-  {
-    id: "3",
-    name: "Ibrahim Koné",
-    email: "ibrahim@example.com",
-    phone: "+225 07 456 7890",
-    city: "Abidjan",
-    skills: ["Java", "Spring Boot", "AWS"],
-    experience: 7,
-    matchScore: 95,
-    status: "available",
-    hasVoiceCV: false,
-    appliedDate: "2026-01-23",
-  },
-  {
-    id: "4",
-    name: "Mariam Traoré",
-    email: "mariam@example.com",
-    phone: "+221 78 234 5678",
-    city: "Dakar",
-    skills: ["UI/UX", "Figma", "Adobe XD"],
-    experience: 4,
-    matchScore: 85,
-    status: "placed",
-    hasVoiceCV: true,
-    appliedDate: "2026-01-22",
-  },
-  {
-    id: "5",
-    name: "Oumar Cissé",
-    email: "oumar@example.com",
-    phone: "+223 65 345 6789",
-    city: "Bamako",
-    skills: ["DevOps", "Docker", "Kubernetes"],
-    experience: 6,
-    matchScore: 90,
-    status: "available",
-    hasVoiceCV: true,
-    appliedDate: "2026-01-21",
-  },
-];
-
-const skillOptions = [
-  "JavaScript", "React", "Node.js", "Python", "Java", 
-  "SQL", "AWS", "Docker", "Kubernetes", "UI/UX"
-];
-
-interface MatchedCandidate {
-  id: string;
-  user: Omit<User, 'password'>;
-  profile?: CandidateProfile;
-  matchScore: number;
+function initialsOf(name: string) {
+  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "?";
 }
 
-interface MatchingResponse {
-  jobId: string;
-  jobTitle: string;
-  candidates: MatchedCandidate[];
-  totalMatches: number;
-  filtersApplied: Record<string, string>;
+const whatsappLink = (number: string) => `https://wa.me/${number.replace(/[^\d]/g, "")}`;
+
+function StatCard({ icon: Icon, value, label, tone, active, onClick }: { icon: React.ElementType; value: number; label: string; tone: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${cardClass} flex items-center gap-3 p-4 text-left transition hover:shadow-md ${active ? "ring-2 ring-primary" : ""}`}
+    >
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon className="h-5 w-5" /></span>
+      <span className="min-w-0">
+        <span className="block text-2xl font-bold tabular-nums text-foreground">{value}</span>
+        <span className="block text-xs leading-tight text-muted-foreground">{label}</span>
+      </span>
+    </button>
+  );
 }
+
+function ShortlistDialog({ candidate, jobs, onClose }: { candidate: CandidateRow | null; jobs: AgencyJob[]; onClose: () => void }) {
+  const { toast } = useToast();
+  const [jobId, setJobId] = useState("");
+  const [note, setNote] = useState("");
+  const [slots, setSlots] = useState<string[]>([""]);
+
+  useEffect(() => {
+    if (candidate) { setJobId(""); setNote(""); setSlots([""]); }
+  }, [candidate?.id]);
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      const application = await (await apiRequest("POST", `/api/agency/candidates/${candidate!.id}/shortlist`, { jobId, note: note.trim() || undefined })).json() as { id: string };
+      const chosen = slots.filter(Boolean).map((value) => new Date(value).toISOString());
+      // Interview proposal goes through the existing candidate-choice flow
+      // (notification + email, candidate picks the slot).
+      if (chosen.length) await apiRequest("POST", `/api/applications/${application.id}/interview-slots`, { slots: chosen });
+      return chosen.length;
+    },
+    onSuccess: (slotCount) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agency/candidate-base"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/agency/jobs-with-applications"] });
+      const job = jobs.find((item) => item.id === jobId);
+      toast({
+        title: "Candidat présélectionné",
+        description: `${candidate!.fullName} est positionné(e) sur « ${job?.title} »${slotCount ? ` — ${slotCount} créneau${slotCount > 1 ? "x" : ""} proposé${slotCount > 1 ? "s" : ""}` : ""}.`,
+      });
+      onClose();
+    },
+    onError: (error: Error) => toast({ title: "Présélection impossible", description: error.message, variant: "destructive" }),
+  });
+
+  // <input type="datetime-local"> works in local time, not UTC.
+  const inOneHour = new Date(Date.now() + 3_600_000);
+  const minSlot = new Date(inOneHour.getTime() - inOneHour.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+
+  return (
+    <Dialog open={!!candidate} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Présélectionner sur une mission</DialogTitle>
+          <DialogDescription>{candidate?.fullName}{candidate?.title ? ` · ${candidate.title}` : ""}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Mission *</Label>
+            <Select value={jobId} onValueChange={setJobId}>
+              <SelectTrigger data-testid="select-shortlist-job"><SelectValue placeholder={jobs.length ? "Choisir une de vos missions" : "Aucune mission"} /></SelectTrigger>
+              <SelectContent>
+                {jobs.map((job) => <SelectItem key={job.id} value={job.id}>{job.title} · {job.location}{job.isActive ? "" : " (brouillon)"}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Proposer des créneaux d'entretien <span className="text-muted-foreground">(optionnel)</span></Label>
+            {slots.map((value, index) => (
+              <div key={index} className="flex gap-2">
+                <Input type="datetime-local" min={minSlot} value={value} onChange={(e) => setSlots((current) => current.map((slot, i) => (i === index ? e.target.value : slot)))} data-testid={`input-slot-${index}`} />
+                {slots.length > 1 && (
+                  <Button type="button" variant="ghost" size="icon" onClick={() => setSlots((current) => current.filter((_, i) => i !== index))} aria-label="Retirer le créneau"><X className="h-4 w-4" /></Button>
+                )}
+              </div>
+            ))}
+            {slots.length < 4 && <Button type="button" variant="ghost" size="sm" onClick={() => setSlots((current) => [...current, ""])}><Plus /> Ajouter un créneau</Button>}
+            <p className="text-xs text-muted-foreground">Le candidat est notifié par email et choisit le créneau qui lui convient.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="shortlist-note">Note interne</Label>
+            <Textarea id="shortlist-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Pourquoi ce profil ? Points à vérifier en entretien…" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={() => submit.mutate()} disabled={!jobId || submit.isPending} data-testid="button-confirm-shortlist">
+            {submit.isPending ? <Loader2 className="animate-spin" /> : <CalendarPlus />} Présélectionner
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type SortKey = "recent" | "name" | "experience" | "completeness" | "score";
 
 export function CandidateManagementTable() {
   const [, setLocation] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSkill, setSelectedSkill] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [playingVoiceCV, setPlayingVoiceCV] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedJobId, setSelectedJobId] = useState<string>("");
-  const [useSemanticSearch, setUseSemanticSearch] = useState(true);
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-  const [showContactDialog, setShowContactDialog] = useState(false);
-  const [showMissionDialog, setShowMissionDialog] = useState(false);
-  const [contactMessage, setContactMessage] = useState("");
-  const [selectedMissionId, setSelectedMissionId] = useState<string>("");
-  const [interviewDate, setInterviewDate] = useState("");
-  const [interviewTime, setInterviewTime] = useState("");
-  const [interviewNotes, setInterviewNotes] = useState("");
-  const { toast } = useToast();
-  const itemsPerPage = 5;
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [jobId, setJobId] = useState(ALL);
+  const [sort, setSort] = useState<SortKey>("recent");
+  const [page, setPage] = useState(1);
+  const [shortlisting, setShortlisting] = useState<CandidateRow | null>(null);
 
-  const navigateToProfile = (candidateId: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setLocation(`/agency/candidates/${candidateId}`);
-  };
-
-  // Fetch all candidates from the database
-  const { data: allCandidatesData = [], isLoading: isLoadingAllCandidates } = useQuery<(User & { profile?: CandidateProfile })[]>({
-    queryKey: ['/api/candidates'],
-  });
-
-  // Fetch jobs for the selector
-  const { data: jobs = [], isLoading: isLoadingJobs } = useQuery<JobPosting[]>({
-    queryKey: ['/api/jobs'],
-  });
-
-  // Fetch matched candidates when a job is selected
-  const { data: matchingData, isLoading: isLoadingMatches, refetch: refetchMatches } = useQuery<MatchingResponse>({
-    queryKey: ['/api/matching/job', selectedJobId, 'candidates', { skill: selectedSkill }],
+  // The whole (lean) base is loaded once and filtered locally for instant
+  // feedback; only a target mission changes the query (server-side scores).
+  const { data, isLoading, isError } = useQuery<{ total: number; rows: CandidateRow[] }>({
+    queryKey: ["/api/agency/candidate-base", jobId],
     queryFn: async () => {
-      if (!selectedJobId || selectedJobId === "none") return { jobId: "", jobTitle: "", candidates: [], totalMatches: 0, filtersApplied: {} };
-      const params = new URLSearchParams();
-      if (selectedSkill && selectedSkill !== "all") params.append("skills", selectedSkill);
-      const response = await fetch(`/api/matching/job/${selectedJobId}/candidates?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch matches");
-      return response.json();
+      const res = await fetch(`/api/agency/candidate-base${jobId !== ALL ? `?jobId=${encodeURIComponent(jobId)}` : ""}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Chargement impossible");
+      return res.json();
     },
-    enabled: useSemanticSearch && !!selectedJobId && selectedJobId !== "none",
   });
+  const { data: jobs = [] } = useQuery<AgencyJob[]>({ queryKey: ["/api/agency/jobs"] });
+  const rows = data?.rows ?? [];
+  const targetJob = jobs.find((job) => job.id === jobId);
 
-  // Convert API candidates to our Candidate interface
-  const dbCandidates: Candidate[] = allCandidatesData.map((c) => ({
-    id: c.id,
-    name: c.fullName,
-    email: c.email,
-    phone: c.phone || "",
-    city: c.city || "",
-    skills: c.profile?.skills || [],
-    experience: c.profile?.experienceYears || 0,
-    matchScore: 0,
-    status: "available" as const,
-    hasVoiceCV: !!c.profile?.voiceCvUrl,
-    voiceCVUrl: c.profile?.voiceCvUrl || undefined,
-    avatarUrl: c.avatarUrl || undefined,
-    appliedDate: c.createdAt?.toString() || new Date().toISOString(),
-  }));
+  useEffect(() => { setSort(jobId !== ALL ? "score" : "recent"); }, [jobId]);
+  useEffect(() => { setPage(1); }, [filters, jobId, sort]);
 
-  // Use API data for semantic search or fallback to all DB candidates
-  const matchedCandidates: Candidate[] = matchingData?.candidates?.map((c) => ({
-    id: c.id,
-    name: c.user.fullName,
-    email: c.user.email,
-    phone: c.user.phone || "",
-    city: c.user.city || "",
-    skills: c.profile?.skills || [],
-    experience: c.profile?.experienceYears || 0,
-    matchScore: c.matchScore,
-    status: "available" as const,
-    hasVoiceCV: !!c.profile?.voiceCvUrl,
-    voiceCVUrl: c.profile?.voiceCvUrl || undefined,
-    avatarUrl: c.user.avatarUrl || undefined,
-    appliedDate: c.profile?.createdAt?.toString() || new Date().toISOString(),
-  })) || [];
-
-  // Use matched candidates if semantic search is enabled and job selected, otherwise use all DB candidates
-  const candidates = useSemanticSearch && selectedJobId && selectedJobId !== "none" 
-    ? matchedCandidates 
-    : (dbCandidates.length > 0 ? dbCandidates : mockCandidates);
-
-  const filteredCandidates = candidates.filter((candidate) => {
-    const matchesSearch = 
-      candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      candidate.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      candidate.skills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesSkill = !selectedSkill || selectedSkill === "all" || candidate.skills.includes(selectedSkill);
-    const matchesStatus = !statusFilter || statusFilter === "all" || candidate.status === statusFilter;
-    
-    return matchesSearch && matchesSkill && matchesStatus;
-  });
-
-  const totalPages = Math.ceil(filteredCandidates.length / itemsPerPage);
-  const paginatedCandidates = filteredCandidates.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const getStatusBadge = (status: Candidate["status"]) => {
-    const variants: Record<Candidate["status"], { label: string; className: string }> = {
-      available: { label: "Disponible", className: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-      interviewing: { label: "En entretien", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-      placed: { label: "Placé", className: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
-      inactive: { label: "Inactif", className: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400" },
-    };
-    return variants[status];
-  };
-
-  const getInitials = (name: string) => {
-    return name.split(" ").map(n => n[0]).join("").toUpperCase();
-  };
-
-  const toggleVoiceCV = (candidateId: string) => {
-    if (playingVoiceCV === candidateId) {
-      setPlayingVoiceCV(null);
-    } else {
-      setPlayingVoiceCV(candidateId);
+  const facets = useMemo(() => {
+    const skillCount = new Map<string, number>();
+    const cities = new Map<string, string>();
+    for (const row of rows) {
+      for (const skill of row.skills) skillCount.set(skill, (skillCount.get(skill) ?? 0) + 1);
+      if (row.city) cities.set(normalize(row.city), row.city);
     }
+    return {
+      skills: Array.from(skillCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 60).map(([skill]) => skill),
+      cities: Array.from(cities.values()).sort((a, b) => a.localeCompare(b)),
+    };
+  }, [rows]);
+
+  const visible = useMemo(() => {
+    const search = normalize(filters.search);
+    const skill = filters.skill === ALL ? "" : normalize(filters.skill);
+    const city = filters.city === ALL ? "" : normalize(filters.city);
+    const minExperience = filters.minExperience === ALL ? null : Number(filters.minExperience);
+    const list = rows.filter((row) =>
+      (!search || [row.fullName, row.email, row.title ?? "", row.city ?? "", ...row.skills].some((value) => normalize(value).includes(search)))
+      && (filters.status === ALL || row.status === filters.status)
+      && (!skill || row.skills.some((value) => normalize(value) === skill))
+      && (!city || normalize(row.city ?? "") === city)
+      && (minExperience === null || (row.experienceYears ?? 0) >= minExperience)
+      && (filters.hasCv === ALL || row.hasCv === (filters.hasCv === "yes")));
+    const sorted = [...list];
+    sorted.sort((a, b) => {
+      switch (sort) {
+        case "name": return a.fullName.localeCompare(b.fullName);
+        case "experience": return (b.experienceYears ?? -1) - (a.experienceYears ?? -1);
+        case "completeness": return b.completeness - a.completeness;
+        case "score": return (b.matchScore ?? 0) - (a.matchScore ?? 0);
+        default: return new Date(b.registeredAt ?? 0).getTime() - new Date(a.registeredAt ?? 0).getTime();
+      }
+    });
+    return sorted;
+  }, [rows, filters, sort]);
+
+  const stats = {
+    total: rows.length,
+    available: rows.filter((row) => row.status === "available").length,
+    inProcess: rows.filter((row) => row.status === "in_process").length,
+    placed: rows.filter((row) => row.status === "placed").length,
   };
 
-  const isLoading = isLoadingJobs || isLoadingMatches;
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = visible.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const activeFilterCount = Object.entries(filters).filter(([key, value]) => (key === "search" ? value.trim() !== "" : value !== ALL)).length;
+  const exportHref = `/api/agency/candidate-base/export${toQuery(filters, jobId) ? `?${toQuery(filters, jobId)}` : ""}`;
+  const set = (key: keyof Filters, value: string) => setFilters((current) => ({ ...current, [key]: value }));
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg">Gestion des Candidatures</CardTitle>
-            <CardDescription>
-              Matching sémantique IA pour trouver les meilleurs candidats
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={useSemanticSearch ? "default" : "outline"}
-              size="sm"
-              onClick={() => setUseSemanticSearch(!useSemanticSearch)}
-              data-testid="button-toggle-semantic"
-            >
-              <Brain className="h-4 w-4 mr-2" />
-              {useSemanticSearch ? "IA Active" : "IA Inactive"}
-            </Button>
-            {useSemanticSearch && selectedJobId && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetchMatches()}
-                disabled={isLoadingMatches}
-                data-testid="button-refresh-matches"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoadingMatches ? 'animate-spin' : ''}`} />
-              </Button>
-            )}
-          </div>
+    <div className="mx-auto max-w-[1600px] space-y-6 pb-8">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Base candidats</h1>
+          <p className="text-sm text-muted-foreground">Recherchez, qualifiez et positionnez les profils sur vos missions.</p>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {useSemanticSearch && (
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Matching IA pour:</span>
-              </div>
-              <Select value={selectedJobId} onValueChange={setSelectedJobId}>
-                <SelectTrigger className="w-full sm:w-[300px]" data-testid="select-job-matching">
-                  <SelectValue placeholder="Sélectionner une offre d'emploi..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucune (données de démo)</SelectItem>
-                  {jobs.map((job) => (
-                    <SelectItem key={job.id} value={job.id}>
-                      {job.title} - {job.location}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isLoadingMatches && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Calcul des scores...
-                </div>
-              )}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild disabled={visible.length === 0}>
+            <a href={exportHref} data-testid="button-export-excel" aria-disabled={visible.length === 0}>
+              <FileSpreadsheet /> Exporter Excel ({visible.length})
+            </a>
+          </Button>
+          <Button size="sm" onClick={() => setLocation("/agency/candidates/create")}><Plus /> Nouveau candidat</Button>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatCard icon={Users} value={stats.total} label="Candidats dans la base" tone="bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300" active={filters.status === ALL} onClick={() => set("status", ALL)} />
+        <StatCard icon={UserRound} value={stats.available} label="Disponibles" tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300" active={filters.status === "available"} onClick={() => set("status", "available")} />
+        <StatCard icon={Target} value={stats.inProcess} label="En processus chez vous" tone="bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-300" active={filters.status === "in_process"} onClick={() => set("status", "in_process")} />
+        <StatCard icon={UserCheck} value={stats.placed} label="En mission avec vous" tone="bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300" active={filters.status === "placed"} onClick={() => set("status", "placed")} />
+      </div>
+
+      <div className={`${cardClass} overflow-hidden`}>
+        <div className="space-y-3 border-b border-border/60 p-4">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input value={filters.search} onChange={(e) => set("search", e.target.value)} placeholder="Nom, métier, compétence, ville, email…" className="pl-10" data-testid="input-search-candidates" />
             </div>
-            {matchingData?.totalMatches !== undefined && selectedJobId && selectedJobId !== "none" && (
-              <p className="text-xs text-muted-foreground mt-2">
-                {matchingData.totalMatches} candidat(s) analysés par le moteur de matching sémantique
-              </p>
-            )}
+            <Select value={jobId} onValueChange={setJobId}>
+              <SelectTrigger data-testid="select-target-job"><Target className="mr-2 h-4 w-4 text-primary" /><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Classer pour une mission…</SelectItem>
+                {jobs.map((job) => <SelectItem key={job.id} value={job.id}>{job.title}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+            <Select value={filters.status} onValueChange={(value) => set("status", value)}>
+              <SelectTrigger data-testid="select-status-filter"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Tous statuts</SelectItem>
+                {Object.entries(STATUS).map(([value, { label }]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.skill} onValueChange={(value) => set("skill", value)}>
+              <SelectTrigger data-testid="select-skill-filter"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Compétences</SelectItem>
+                {facets.skills.map((skill) => <SelectItem key={skill} value={skill}>{skill}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.city} onValueChange={(value) => set("city", value)}>
+              <SelectTrigger data-testid="select-city-filter"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Villes</SelectItem>
+                {facets.cities.map((city) => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.minExperience} onValueChange={(value) => set("minExperience", value)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Expérience</SelectItem>
+                {[1, 2, 3, 5, 10].map((years) => <SelectItem key={years} value={String(years)}>{years}+ an{years > 1 ? "s" : ""}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.hasCv} onValueChange={(value) => set("hasCv", value)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>CV : tous</SelectItem>
+                <SelectItem value="yes">Avec CV</SelectItem>
+                <SelectItem value="no">Sans CV</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={(value) => setSort(value as SortKey)}>
+              <SelectTrigger data-testid="select-sort"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {jobId !== ALL && <SelectItem value="score">Meilleur score</SelectItem>}
+                <SelectItem value="recent">Plus récents</SelectItem>
+                <SelectItem value="name">Nom (A→Z)</SelectItem>
+                <SelectItem value="experience">Expérience</SelectItem>
+                <SelectItem value="completeness">Profil le plus complet</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {targetJob && !targetJob.requiredSkills?.length && targetJob.experienceMin === null && (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+              « {targetJob.title} » n'a ni compétences requises ni expérience minimale : le score ne peut départager les candidats.{" "}
+              <button type="button" className="font-semibold underline" onClick={() => setLocation(`/agency/missions/${targetJob.id}/edit`)}>Compléter la mission</button>
+            </p>
+          )}
+          {activeFilterCount > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">{visible.length} candidat{visible.length > 1 ? "s" : ""} sur {rows.length}</span>
+              <Button variant="ghost" size="sm" onClick={() => setFilters(EMPTY_FILTERS)}><X /> Réinitialiser les filtres</Button>
+            </div>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-2 p-4">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
+        ) : isError ? (
+          <p className="p-10 text-center text-sm text-muted-foreground" role="alert">Impossible de charger la base candidats. Réessayez dans un instant.</p>
+        ) : pageRows.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 p-12 text-center">
+            <Users className="h-10 w-10 text-muted-foreground/60" />
+            <p className="font-medium text-foreground">{rows.length ? "Aucun candidat ne correspond" : "La base est vide"}</p>
+            {rows.length ? <Button variant="outline" size="sm" onClick={() => setFilters(EMPTY_FILTERS)}>Réinitialiser les filtres</Button> : <Button size="sm" onClick={() => setLocation("/agency/candidates/create")}><Plus /> Ajouter un candidat</Button>}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px]" data-testid="candidate-base-table">
+              <thead>
+                <tr className="bg-muted/40 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th className="px-5 py-3">Candidat</th>
+                  <th className="px-3 py-3">Localisation</th>
+                  <th className="px-3 py-3">Exp.</th>
+                  <th className="px-3 py-3">Compétences</th>
+                  <th className="px-3 py-3">Statut agence</th>
+                  <th className="px-3 py-3">Profil</th>
+                  {jobId !== ALL && <th className="px-3 py-3">Score</th>}
+                  <th className="px-5 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {pageRows.map((row) => (
+                  <tr key={row.id} className="cursor-pointer transition-colors hover:bg-muted/30" onClick={() => setLocation(`/agency/candidates/${row.id}`)} data-testid={`row-candidate-${row.id}`}>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={row.avatarUrl ?? undefined} />
+                          <AvatarFallback className="text-xs">{initialsOf(row.fullName)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
+                            {row.fullName}
+                            {row.hasCv && <FileText className="h-3.5 w-3.5 shrink-0 text-blue-600" aria-label="CV disponible" />}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{row.title || "Métier non renseigné"}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-sm text-muted-foreground">{row.city ? <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{row.city}</span> : "—"}</td>
+                    <td className="px-3 py-3 text-sm tabular-nums">{row.experienceYears !== null ? `${row.experienceYears} an${row.experienceYears > 1 ? "s" : ""}` : "—"}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex max-w-[260px] flex-wrap gap-1">
+                        {row.skills.slice(0, 3).map((skill) => <span key={skill} className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground">{skill}</span>)}
+                        {row.skills.length > 3 && <span className="px-1 text-[11px] text-muted-foreground">+{row.skills.length - 3}</span>}
+                        {row.skills.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS[row.status].className}`}>{STATUS[row.status].label}</span>
+                      <p className="mt-0.5 max-w-[200px] truncate text-[11px] text-muted-foreground">
+                        {row.currentPlacement ? row.currentPlacement.position ?? "" : row.currentProcess ? `${row.currentProcess.jobTitle} · ${PROCESS_LABEL[row.currentProcess.status] ?? row.currentProcess.status}` : row.placementsCount ? `${row.placementsCount} placement${row.placementsCount > 1 ? "s" : ""} passé${row.placementsCount > 1 ? "s" : ""}` : ""}
+                        {row.averageRating !== null && <span className="ml-1 inline-flex items-center gap-0.5"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{row.averageRating.toLocaleString("fr-FR")}</span>}
+                      </p>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2" title={`Profil complet à ${row.completeness}%`}>
+                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                          <div className={`h-full rounded-full ${row.completeness >= 80 ? "bg-emerald-500" : row.completeness >= 50 ? "bg-amber-500" : "bg-red-400"}`} style={{ width: `${row.completeness}%` }} />
+                        </div>
+                        <span className="text-xs tabular-nums text-muted-foreground">{row.completeness}%</span>
+                      </div>
+                    </td>
+                    {jobId !== ALL && (
+                      <td className="px-3 py-3">
+                        <span className={`text-sm font-bold tabular-nums ${(row.matchScore ?? 0) >= 70 ? "text-emerald-600" : (row.matchScore ?? 0) >= 40 ? "text-amber-600" : "text-muted-foreground"}`}>{row.matchScore ?? 0}%</span>
+                      </td>
+                    )}
+                    <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="outline" size="sm" className="h-8" onClick={() => setShortlisting(row)} data-testid={`button-shortlist-${row.id}`}>
+                          <Briefcase /> Présélectionner
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Plus d'actions"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setLocation(`/agency/candidates/${row.id}`)}><UserRound /> Voir le profil</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild><a href={`mailto:${row.email}`}><Mail /> {row.email}</a></DropdownMenuItem>
+                            {row.phone && <DropdownMenuItem asChild><a href={`tel:${row.phone.replace(/\s/g, "")}`}><Phone /> {row.phone}</a></DropdownMenuItem>}
+                            {(row.whatsapp || row.phone) && (
+                              <DropdownMenuItem asChild><a href={whatsappLink(row.whatsapp || row.phone!)} target="_blank" rel="noopener noreferrer"><MessageCircle /> WhatsApp</a></DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Recherche sémantique (nom, compétences, localisation)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-              data-testid="input-search-candidates"
-            />
-          </div>
-          
-          <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-            <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-skill-filter">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Compétences" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes</SelectItem>
-              {skillOptions.map((skill) => (
-                <SelectItem key={skill} value={skill}>{skill}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[160px]" data-testid="select-status-filter">
-              <SelectValue placeholder="Statut" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
-              <SelectItem value="available">Disponible</SelectItem>
-              <SelectItem value="interviewing">En entretien</SelectItem>
-              <SelectItem value="placed">Placé</SelectItem>
-              <SelectItem value="inactive">Inactif</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Candidat</TableHead>
-                <TableHead className="hidden md:table-cell">Localisation</TableHead>
-                <TableHead className="hidden lg:table-cell">Compétences</TableHead>
-                <TableHead className="hidden sm:table-cell">Match IA</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>CV Vocal</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedCandidates.map((candidate) => {
-                const statusBadge = getStatusBadge(candidate.status);
-                return (
-                  <TableRow 
-                    key={candidate.id} 
-                    data-testid={`candidate-row-${candidate.id}`}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedCandidate(candidate)}
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={candidate.avatarUrl} />
-                          <AvatarFallback className="text-xs">
-                            {getInitials(candidate.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <button 
-                            className="font-medium truncate text-left hover:text-primary hover:underline cursor-pointer"
-                            onClick={(e) => navigateToProfile(candidate.id, e)}
-                            data-testid={`link-candidate-name-${candidate.id}`}
-                          >
-                            {candidate.name}
-                          </button>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Briefcase className="h-3 w-3" />
-                            <span>{candidate.experience} ans</span>
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-1 text-sm">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        {candidate.city}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {candidate.skills.slice(0, 2).map((skill) => (
-                          <Badge key={skill} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                        {candidate.skills.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{candidate.skills.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                        <span className="font-medium text-sm">{candidate.matchScore}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusBadge.className}>
-                        {statusBadge.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {candidate.hasVoiceCV ? (
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              data-testid={`button-voice-cv-${candidate.id}`}
-                            >
-                              <Mic className="h-4 w-4 text-primary" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>CV Vocal - {candidate.name}</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              <div className="p-4 rounded-lg bg-muted/50">
-                                <div className="flex items-center justify-center gap-4">
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="rounded-full"
-                                    onClick={() => toggleVoiceCV(candidate.id)}
-                                    data-testid={`button-play-voice-cv-${candidate.id}`}
-                                  >
-                                    {playingVoiceCV === candidate.id ? (
-                                      <Pause className="h-4 w-4" />
-                                    ) : (
-                                      <Play className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                  <div className="flex-1">
-                                    <div className="h-1 bg-muted rounded-full overflow-hidden">
-                                      <div 
-                                        className="h-full bg-primary transition-all duration-300"
-                                        style={{ 
-                                          width: playingVoiceCV === candidate.id ? "45%" : "0%" 
-                                        }}
-                                      />
-                                    </div>
-                                    <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                                      <span>0:45</span>
-                                      <span>1:30</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="space-y-2">
-                                <p className="text-sm font-medium">Transcription</p>
-                                <p className="text-sm text-muted-foreground">
-                                  "Bonjour, je suis {candidate.name}. J'ai {candidate.experience} ans 
-                                  d'expérience en {candidate.skills.join(", ")}. Je suis basé à {candidate.city} 
-                                  et je recherche de nouvelles opportunités..."
-                                </p>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {filteredCandidates.length} candidat(s) trouvé(s)
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(currentPage - 1)}
-              data-testid="button-prev-page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">
-              Page {currentPage} / {totalPages || 1}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage(currentPage + 1)}
-              data-testid="button-next-page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-
-      {/* Candidate Details Sheet */}
-      <Sheet open={!!selectedCandidate} onOpenChange={(open) => !open && setSelectedCandidate(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader className="space-y-4 pb-4 border-b">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={selectedCandidate?.avatarUrl} />
-                <AvatarFallback className="text-lg">
-                  {selectedCandidate ? getInitials(selectedCandidate.name) : ""}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <SheetTitle className="text-xl">{selectedCandidate?.name}</SheetTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={selectedCandidate ? getStatusBadge(selectedCandidate.status).className : ""}>
-                    {selectedCandidate ? getStatusBadge(selectedCandidate.status).label : ""}
-                  </Badge>
-                  {selectedCandidate && selectedCandidate.matchScore > 0 && (
-                    <div className="flex items-center gap-1 text-sm">
-                      <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                      <span className="font-medium">{selectedCandidate.matchScore}% match</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </SheetHeader>
-
-          {selectedCandidate && (
-            <div className="space-y-6 pt-6">
-              {/* Contact Information */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Informations de contact
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${selectedCandidate.email}`} className="text-primary hover:underline">
-                      {selectedCandidate.email}
-                    </a>
-                  </div>
-                  {selectedCandidate.phone && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a href={`tel:${selectedCandidate.phone}`} className="hover:underline">
-                        {selectedCandidate.phone}
-                      </a>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedCandidate.city || "Non spécifié"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Experience */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Expérience
-                </h3>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <Briefcase className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="font-medium">{selectedCandidate.experience} ans d'expérience</p>
-                    <p className="text-xs text-muted-foreground">Expérience professionnelle</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Skills */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Compétences
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCandidate.skills.length > 0 ? (
-                    selectedCandidate.skills.map((skill) => (
-                      <Badge key={skill} variant="secondary">
-                        {skill}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Aucune compétence renseignée</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Voice CV */}
-              {selectedCandidate.hasVoiceCV && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    CV Vocal
-                  </h3>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-4">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full"
-                        onClick={() => toggleVoiceCV(selectedCandidate.id)}
-                        data-testid={`button-play-voice-cv-detail-${selectedCandidate.id}`}
-                      >
-                        {playingVoiceCV === selectedCandidate.id ? (
-                          <Pause className="h-4 w-4" />
-                        ) : (
-                          <Play className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <div className="flex-1">
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary transition-all duration-300"
-                            style={{ 
-                              width: playingVoiceCV === selectedCandidate.id ? "45%" : "0%" 
-                            }}
-                          />
-                        </div>
-                        <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                          <span>0:45</span>
-                          <span>1:30</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Registration Date */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Inscription
-                </h3>
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>
-                    Inscrit le {new Date(selectedCandidate.appliedDate).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="space-y-3 pt-4 border-t">
-                <Button 
-                  className="w-full" 
-                  variant="default"
-                  data-testid="button-view-full-profile"
-                  onClick={() => {
-                    setSelectedCandidate(null);
-                    navigateToProfile(selectedCandidate.id);
-                  }}
-                >
-                  <UserIcon className="h-4 w-4 mr-2" />
-                  Voir le profil complet
-                </Button>
-                <div className="flex gap-2">
-                  <Button 
-                    className="flex-1" 
-                    variant="outline"
-                    data-testid="button-contact-candidate"
-                    onClick={() => setShowContactDialog(true)}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Contacter
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="flex-1" 
-                    data-testid="button-add-to-mission"
-                    onClick={() => setShowMissionDialog(true)}
-                  >
-                    <CalendarPlus className="h-4 w-4 mr-2" />
-                    Planifier
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* Contact Dialog */}
-      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              Contacter {selectedCandidate?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  if (selectedCandidate?.email) {
-                    window.open(`mailto:${selectedCandidate.email}`, '_blank');
-                    toast({
-                      title: "Email ouvert",
-                      description: `Ouverture du client mail pour ${selectedCandidate.email}`,
-                    });
-                  }
-                }}
-                data-testid="button-email-candidate"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Email
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  if (selectedCandidate?.phone) {
-                    window.open(`tel:${selectedCandidate.phone}`, '_blank');
-                    toast({
-                      title: "Appel initié",
-                      description: `Appel vers ${selectedCandidate.phone}`,
-                    });
-                  }
-                }}
-                data-testid="button-call-candidate"
-              >
-                <Phone className="h-4 w-4 mr-2" />
-                Appeler
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                onClick={() => {
-                  if (selectedCandidate?.phone) {
-                    const phone = selectedCandidate.phone.replace(/[^0-9]/g, '');
-                    window.open(`https://wa.me/${phone}`, '_blank');
-                    toast({
-                      title: "WhatsApp ouvert",
-                      description: `Ouverture de WhatsApp pour ${selectedCandidate.phone}`,
-                    });
-                  }
-                }}
-                data-testid="button-whatsapp-candidate"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                WhatsApp
-              </Button>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="message">Message personnalisé</Label>
-              <Textarea
-                id="message"
-                placeholder="Bonjour, nous avons une opportunité intéressante pour vous..."
-                value={contactMessage}
-                onChange={(e) => setContactMessage(e.target.value)}
-                rows={4}
-                data-testid="input-contact-message"
-              />
-            </div>
-            
-            <div className="flex gap-2 pt-2">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  setShowContactDialog(false);
-                  setContactMessage("");
-                }}
-              >
-                Annuler
-              </Button>
-              <Button 
-                className="flex-1"
-                onClick={() => {
-                  if (selectedCandidate?.email && contactMessage) {
-                    const subject = encodeURIComponent("Opportunité professionnelle - WorkMatch Africa");
-                    const body = encodeURIComponent(contactMessage);
-                    window.open(`mailto:${selectedCandidate.email}?subject=${subject}&body=${body}`, '_blank');
-                    toast({
-                      title: "Message envoyé",
-                      description: `Email envoyé à ${selectedCandidate.name}`,
-                    });
-                    setShowContactDialog(false);
-                    setContactMessage("");
-                  } else {
-                    toast({
-                      title: "Message requis",
-                      description: "Veuillez saisir un message avant d'envoyer",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                data-testid="button-send-message"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Envoyer par email
-              </Button>
+        {!isLoading && visible.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between border-t border-border/60 px-5 py-3">
+            <p className="text-sm text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, visible.length)} sur {visible.length}</p>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} aria-label="Page précédente"><ChevronLeft className="h-4 w-4" /></Button>
+              <span className="text-sm tabular-nums">{currentPage} / {totalPages}</span>
+              <Button variant="outline" size="icon" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)} aria-label="Page suivante"><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
 
-      {/* Mission Planning Dialog */}
-      <Dialog open={showMissionDialog} onOpenChange={setShowMissionDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CalendarPlus className="h-5 w-5 text-primary" />
-              Planifier {selectedCandidate?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="mission">Sélectionner une mission</Label>
-              <Select value={selectedMissionId} onValueChange={setSelectedMissionId}>
-                <SelectTrigger data-testid="select-mission">
-                  <SelectValue placeholder="Choisir une mission..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobs.length > 0 ? (
-                    jobs.map((job) => (
-                      <SelectItem key={job.id} value={job.id}>
-                        {job.title} - {job.location || "Non spécifié"}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>Aucune mission disponible</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date d'entretien</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={interviewDate}
-                  onChange={(e) => setInterviewDate(e.target.value)}
-                  data-testid="input-interview-date"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="time">Heure</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={interviewTime}
-                  onChange={(e) => setInterviewTime(e.target.value)}
-                  data-testid="input-interview-time"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Notes sur l'entretien ou le placement..."
-                value={interviewNotes}
-                onChange={(e) => setInterviewNotes(e.target.value)}
-                rows={3}
-                data-testid="input-interview-notes"
-              />
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => {
-                  setShowMissionDialog(false);
-                  setSelectedMissionId("");
-                  setInterviewDate("");
-                  setInterviewTime("");
-                  setInterviewNotes("");
-                }}
-              >
-                Annuler
-              </Button>
-              <Button 
-                className="flex-1"
-                disabled={!selectedMissionId || selectedMissionId === "none"}
-                onClick={() => {
-                  const selectedJob = jobs.find(j => j.id === selectedMissionId);
-                  toast({
-                    title: "Entretien planifié",
-                    description: `${selectedCandidate?.name} a été ajouté à la mission "${selectedJob?.title || 'Mission'}"${interviewDate ? ` pour le ${new Date(interviewDate).toLocaleDateString('fr-FR')}` : ''}`,
-                  });
-                  setShowMissionDialog(false);
-                  setSelectedCandidate(null);
-                  setSelectedMissionId("");
-                  setInterviewDate("");
-                  setInterviewTime("");
-                  setInterviewNotes("");
-                }}
-                data-testid="button-confirm-planning"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Confirmer
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </Card>
+      <ShortlistDialog candidate={shortlisting} jobs={jobs} onClose={() => setShortlisting(null)} />
+    </div>
   );
 }

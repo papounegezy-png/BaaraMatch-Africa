@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { jsPDF } from "jspdf";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { User, AgencyProfile, AgencyFinancialSettings, Invoice } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,147 +30,93 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { 
+import {
   Percent,
   Search,
   Filter,
   Download,
   Eye,
-  Calendar,
   Building2,
-  User,
+  User as UserIcon,
   Clock,
   CheckCircle,
   AlertCircle,
-  ArrowUpRight,
-  TrendingUp,
   Briefcase,
   FileText,
-  DollarSign
+  DollarSign,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Raw shape returned by GET /api/agency/placements - a commission IS a placement,
+// there is no separate "commission" table in the backend.
+interface AgencyPlacement {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  companyId: string | null;
+  agencyClientId: string | null;
+  companyName: string;
+  contractType: string | null;
+  status: "active" | "completed" | "terminated" | "on_leave";
+  salary: number | null;
+  salaryCurrency: string | null;
+  commissionRate: number | null;
+  commissionAmount: number | null;
+  startDate: string;
+  endDate: string | null;
+  invoiceNumber: string | null;
+  invoiceStatus: string | null;
+}
+
+// Display shape derived from a placement. Notes on mapping decisions:
+// - candidatePosition: there is no "position" field on a placement record, so it has
+//   been dropped rather than fabricated (contractType is already shown separately).
+// - contractValue: placements only persist a `salary` field. Elsewhere in this codebase
+//   (server/routes.ts, the salary/payroll mapping) that same field is treated as a
+//   MONTHLY rate, so it is annualized here (salary * 12) to preserve the existing
+//   "valeur annuelle du contrat" copy. This is an assumption - if it's wrong, the
+//   fix is a one-line change below.
+// - status: derived from invoiceStatus/invoiceNumber per the rules in deriveStatus().
 interface CommissionRecord {
   id: string;
   candidateName: string;
-  candidatePosition: string;
+  agencyClientId: string | null;
   companyName: string;
-  contractType: "CDI" | "CDD" | "Interim" | "Mission" | "Stage";
+  contractType: string;
   placementDate: string;
-  contractValue: number;
-  commissionRate: number;
-  commissionAmount: number;
+  contractValue: number | null;
+  commissionRate: number | null;
+  commissionAmount: number | null;
   status: "paid" | "pending" | "invoiced" | "cancelled";
-  invoiceNumber?: string;
-  paymentDate?: string;
+  invoiceNumber: string | null;
 }
 
-const initialCommissions: CommissionRecord[] = [
-  {
-    id: "1",
-    candidateName: "Sophie Marchand",
-    candidatePosition: "Développeur Full Stack",
-    companyName: "TechCorp Africa",
-    contractType: "CDI",
-    placementDate: "2026-01-15",
-    contractValue: 10200000,
-    commissionRate: 15,
-    commissionAmount: 1530000,
-    status: "paid",
-    invoiceNumber: "FAC-2026-001",
-    paymentDate: "2026-01-25"
-  },
-  {
-    id: "2",
-    candidateName: "Amadou Diallo",
-    candidatePosition: "Ingénieur DevOps",
-    companyName: "FinBank Sénégal",
-    contractType: "CDI",
-    placementDate: "2026-01-10",
-    contractValue: 8640000,
-    commissionRate: 15,
-    commissionAmount: 1296000,
-    status: "invoiced",
-    invoiceNumber: "FAC-2026-002"
-  },
-  {
-    id: "3",
-    candidateName: "Fatou Sow",
-    candidatePosition: "UX Designer",
-    companyName: "Orange Digital Center",
-    contractType: "CDD",
-    placementDate: "2026-01-20",
-    contractValue: 3300000,
-    commissionRate: 12,
-    commissionAmount: 396000,
-    status: "pending",
-  },
-  {
-    id: "4",
-    candidateName: "Ibrahim Koné",
-    candidatePosition: "Backend Engineer",
-    companyName: "Wave Mobile Money",
-    contractType: "CDI",
-    placementDate: "2026-01-05",
-    contractValue: 9360000,
-    commissionRate: 15,
-    commissionAmount: 1404000,
-    status: "paid",
-    invoiceNumber: "FAC-2026-003",
-    paymentDate: "2026-01-20"
-  },
-  {
-    id: "5",
-    candidateName: "Marie Laurent",
-    candidatePosition: "Product Manager",
-    companyName: "Jumia Sénégal",
-    contractType: "Mission",
-    placementDate: "2026-01-18",
-    contractValue: 2040000,
-    commissionRate: 18,
-    commissionAmount: 367200,
-    status: "pending",
-  },
-  {
-    id: "6",
-    candidateName: "Jean-Pierre Ndiaye",
-    candidatePosition: "Data Analyst",
-    companyName: "TechCorp Africa",
-    contractType: "Interim",
-    placementDate: "2025-12-15",
-    contractValue: 1860000,
-    commissionRate: 20,
-    commissionAmount: 372000,
-    status: "paid",
-    invoiceNumber: "FAC-2025-089",
-    paymentDate: "2025-12-28"
-  },
-  {
-    id: "7",
-    candidateName: "Aissatou Bâ",
-    candidatePosition: "QA Engineer",
-    companyName: "FinBank Sénégal",
-    contractType: "Stage",
-    placementDate: "2026-01-22",
-    contractValue: 720000,
-    commissionRate: 8,
-    commissionAmount: 57600,
-    status: "pending",
-  },
-];
+function deriveStatus(placement: AgencyPlacement): CommissionRecord["status"] {
+  if (placement.invoiceStatus === "paid") return "paid";
+  if (placement.invoiceStatus === "cancelled") return "cancelled";
+  if (placement.invoiceNumber) return "invoiced";
+  return "pending";
+}
 
-const commissionStats = {
-  totalEarned: 4602000,
-  totalPending: 820800,
-  totalInvoiced: 1296000,
-  avgCommissionRate: 14.7,
-  placementsThisMonth: 6,
-  growthPercent: 12
-};
+function mapPlacementToCommission(placement: AgencyPlacement): CommissionRecord {
+  return {
+    id: placement.id,
+    candidateName: placement.candidateName,
+    agencyClientId: placement.agencyClientId,
+    companyName: placement.companyName,
+    contractType: placement.contractType || "N/A",
+    placementDate: placement.startDate,
+    contractValue: placement.salary != null ? placement.salary * 12 : null,
+    commissionRate: placement.commissionRate,
+    commissionAmount: placement.commissionAmount,
+    status: deriveStatus(placement),
+    invoiceNumber: placement.invoiceNumber,
+  };
+}
 
 export function CommissionManagement() {
   const { toast } = useToast();
-  const [commissions, setCommissions] = useState<CommissionRecord[]>(initialCommissions);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [contractFilter, setContractFilter] = useState("all");
@@ -176,11 +125,85 @@ export function CommissionManagement() {
   const [showInvoiceConfirm, setShowInvoiceConfirm] = useState(false);
   const [commissionToInvoice, setCommissionToInvoice] = useState<CommissionRecord | null>(null);
 
-  const generateInvoiceNumber = () => {
-    const year = new Date().getFullYear();
-    const existingInvoices = commissions.filter(c => c.invoiceNumber).length;
-    return `FAC-${year}-${String(existingInvoices + 1).padStart(3, '0')}`;
-  };
+  const { data: placements = [], isLoading } = useQuery<AgencyPlacement[]>({
+    queryKey: ["/api/agency/placements"],
+  });
+
+  const { data: financialSettings } = useQuery<AgencyFinancialSettings>({
+    queryKey: ["/api/agency/financial-settings"],
+  });
+
+  const { data: profileData } = useQuery<{ user: User; profile: AgencyProfile | null }>({
+    queryKey: ["/api/profile"],
+  });
+
+  const commissions: CommissionRecord[] = placements.map(mapPlacementToCommission);
+
+  // No historical baseline exists to compute a real month-over-month growth figure,
+  // so that stat is dropped from the UI entirely rather than showing a fabricated number.
+  const commissionStats = (() => {
+    const totalEarned = commissions
+      .filter(c => c.status === "paid")
+      .reduce((sum, c) => sum + (c.commissionAmount ?? 0), 0);
+    const totalPending = commissions
+      .filter(c => c.status === "pending")
+      .reduce((sum, c) => sum + (c.commissionAmount ?? 0), 0);
+    const totalInvoiced = commissions
+      .filter(c => c.status === "invoiced")
+      .reduce((sum, c) => sum + (c.commissionAmount ?? 0), 0);
+    const ratesKnown = commissions.filter(c => c.commissionRate != null);
+    const avgCommissionRate = ratesKnown.length > 0
+      ? ratesKnown.reduce((sum, c) => sum + (c.commissionRate ?? 0), 0) / ratesKnown.length
+      : 0;
+    const now = new Date();
+    const placementsThisMonth = commissions.filter(c => {
+      const d = new Date(c.placementDate);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+
+    return { totalEarned, totalPending, totalInvoiced, avgCommissionRate, placementsThisMonth };
+  })();
+
+  const generateInvoiceMutation = useMutation({
+    mutationFn: async (commission: CommissionRecord) => {
+      const issueDate = new Date();
+      const paymentTerms = financialSettings?.defaultPaymentTerms ?? 30;
+      const dueDate = new Date(issueDate);
+      dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+      const res = await apiRequest("POST", "/api/agency/invoices", {
+        agencyClientId: commission.agencyClientId,
+        issueDate: issueDate.toISOString(),
+        dueDate: dueDate.toISOString(),
+        lineItems: [
+          {
+            placementId: commission.id,
+            description: `Commission - ${commission.candidateName} - ${commission.companyName}`,
+            quantity: 1,
+            unitPrice: commission.commissionAmount ?? 0,
+          },
+        ],
+      });
+      return res.json() as Promise<Invoice>;
+    },
+    onSuccess: (invoice, commission) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agency/placements"] });
+      setShowInvoiceConfirm(false);
+      setCommissionToInvoice(null);
+      setShowDetail(false);
+      toast({
+        title: "Facture générée avec succès",
+        description: `Facture ${invoice.invoiceNumber} créée pour ${commission.candidateName} - ${formatCurrency(commission.commissionAmount ?? 0)}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de générer la facture",
+        variant: "destructive",
+      });
+    },
+  });
 
   const getStatusBadge = (status: CommissionRecord["status"]) => {
     const variants = {
@@ -192,15 +215,15 @@ export function CommissionManagement() {
     return variants[status];
   };
 
-  const getContractBadge = (type: CommissionRecord["contractType"]) => {
-    const variants = {
+  const getContractBadge = (type: string) => {
+    const variants: Record<string, string> = {
       CDI: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400",
       CDD: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400",
       Interim: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400",
       Mission: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-400",
       Stage: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400",
     };
-    return variants[type];
+    return variants[type] || "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400";
   };
 
   const formatCurrency = (amount: number) => {
@@ -230,34 +253,17 @@ export function CommissionManagement() {
 
   const handleGenerateInvoice = () => {
     if (!commissionToInvoice) return;
-    
-    const invoiceNumber = generateInvoiceNumber();
-    
-    setCommissions(prev => prev.map(c => 
-      c.id === commissionToInvoice.id 
-        ? { ...c, status: "invoiced" as const, invoiceNumber }
-        : c
-    ));
-    
-    setShowInvoiceConfirm(false);
-    setCommissionToInvoice(null);
-    setShowDetail(false);
-    
-    toast({
-      title: "Facture générée avec succès",
-      description: `Facture ${invoiceNumber} créée pour ${commissionToInvoice.candidateName} - ${formatCurrency(commissionToInvoice.commissionAmount)}.`,
-    });
+    generateInvoiceMutation.mutate(commissionToInvoice);
   };
 
   const handleDownload = (commission: CommissionRecord) => {
+    const agencyProfile = profileData?.profile;
+    const agencyUser = profileData?.user;
     const companyInfo = {
-      name: "RH Connect SARL",
-      address: "123 Avenue Cheikh Anta Diop",
-      city: "Dakar, Senegal",
-      phone: "+221 33 123 45 67",
-      email: "contact@rhconnect.sn",
-      ninea: "005123456 2G3",
-      tva: "SN 123456789"
+      name: agencyProfile?.agencyName || agencyUser?.fullName || "Agence",
+      city: [agencyUser?.city, agencyUser?.country].filter(Boolean).join(", "),
+      phone: agencyUser?.phone || "",
+      email: agencyUser?.email || "",
     };
 
     const doc = new jsPDF();
@@ -267,24 +273,33 @@ export function CommissionManagement() {
     // Header with gradient effect (using rectangles)
     doc.setFillColor(59, 130, 246);
     doc.rect(0, 0, pageWidth, 40, 'F');
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.text("DETAIL DE COMMISSION", pageWidth / 2, 25, { align: "center" });
-    
+
     y = 55;
-    
-    // Company info
+
+    // Company info - only real fields are included (no fabricated address/NINEA/TVA)
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(companyInfo.name, 15, y);
-    doc.text(companyInfo.address, 15, y + 5);
-    doc.text(companyInfo.city, 15, y + 10);
-    doc.text(`Tel: ${companyInfo.phone}`, 15, y + 15);
-    doc.text(`Email: ${companyInfo.email}`, 15, y + 20);
-    
+    let issuerY = y;
+    doc.text(companyInfo.name, 15, issuerY);
+    if (companyInfo.city) {
+      issuerY += 5;
+      doc.text(companyInfo.city, 15, issuerY);
+    }
+    if (companyInfo.phone) {
+      issuerY += 5;
+      doc.text(`Tel: ${companyInfo.phone}`, 15, issuerY);
+    }
+    if (companyInfo.email) {
+      issuerY += 5;
+      doc.text(`Email: ${companyInfo.email}`, 15, issuerY);
+    }
+
     // Right side - Invoice info
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
@@ -292,100 +307,96 @@ export function CommissionManagement() {
     doc.setFont("helvetica", "normal");
     doc.text(`Date: ${formatDate(commission.placementDate)}`, pageWidth - 15, y + 7, { align: "right" });
     doc.text(`Statut: ${getStatusBadge(commission.status).label}`, pageWidth - 15, y + 14, { align: "right" });
-    
+
     y = 95;
-    
+
     // Separator line
     doc.setDrawColor(200, 200, 200);
     doc.line(15, y, pageWidth - 15, y);
-    
+
     y += 15;
-    
+
     // Candidate section
     doc.setFillColor(249, 250, 251);
-    doc.roundedRect(15, y - 5, pageWidth - 30, 35, 3, 3, 'F');
-    
+    doc.roundedRect(15, y - 5, pageWidth - 30, 25, 3, 3, 'F');
+
     doc.setTextColor(59, 130, 246);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("CANDIDAT PLACE", 20, y + 5);
-    
+
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
     doc.text(`Nom: ${commission.candidateName}`, 20, y + 15);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Poste: ${commission.candidatePosition}`, 20, y + 23);
-    
-    y += 45;
-    
+
+    y += 35;
+
     // Company client section
     doc.setFillColor(249, 250, 251);
     doc.roundedRect(15, y - 5, pageWidth - 30, 35, 3, 3, 'F');
-    
+
     doc.setTextColor(59, 130, 246);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("ENTREPRISE CLIENTE", 20, y + 5);
-    
+
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
     doc.text(`Nom: ${commission.companyName}`, 20, y + 15);
     doc.setFont("helvetica", "normal");
     doc.text(`Type de contrat: ${commission.contractType}`, 20, y + 23);
-    
+
     y += 50;
-    
+
     // Financial details
     doc.setFillColor(239, 246, 255);
     doc.roundedRect(15, y - 5, pageWidth - 30, 60, 3, 3, 'F');
-    
+
     doc.setTextColor(59, 130, 246);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("DETAIL FINANCIER", 20, y + 5);
-    
+
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    
+
     doc.text("Valeur annuelle du contrat:", 20, y + 18);
-    doc.text(formatCurrency(commission.contractValue), pageWidth - 20, y + 18, { align: "right" });
-    
+    doc.text(commission.contractValue != null ? formatCurrency(commission.contractValue) : "N/A", pageWidth - 20, y + 18, { align: "right" });
+
     doc.text("Taux de commission:", 20, y + 28);
-    doc.text(`${commission.commissionRate}%`, pageWidth - 20, y + 28, { align: "right" });
-    
+    doc.text(commission.commissionRate != null ? `${commission.commissionRate}%` : "N/A", pageWidth - 20, y + 28, { align: "right" });
+
     doc.setDrawColor(59, 130, 246);
     doc.line(20, y + 35, pageWidth - 20, y + 35);
-    
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.setTextColor(34, 197, 94);
     doc.text("MONTANT DE LA COMMISSION:", 20, y + 48);
-    doc.text(formatCurrency(commission.commissionAmount), pageWidth - 20, y + 48, { align: "right" });
-    
+    doc.text(formatCurrency(commission.commissionAmount ?? 0), pageWidth - 20, y + 48, { align: "right" });
+
     y += 70;
-    
-    // Payment status if paid
-    if (commission.paymentDate) {
+
+    // Payment status if paid (no exact payment date is available from this endpoint,
+    // so only the fact of payment is shown, not a fabricated date)
+    if (commission.status === "paid") {
       doc.setFillColor(220, 252, 231);
-      doc.roundedRect(15, y - 5, pageWidth - 30, 25, 3, 3, 'F');
-      
+      doc.roundedRect(15, y - 5, pageWidth - 30, 18, 3, 3, 'F');
+
       doc.setTextColor(22, 163, 74);
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text("PAIEMENT RECU", 20, y + 7);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Date de paiement: ${formatDate(commission.paymentDate)}`, 20, y + 15);
     }
-    
+
     // Footer
     doc.setTextColor(150, 150, 150);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     const footerY = doc.internal.pageSize.getHeight() - 15;
     doc.text(`Document genere le ${new Date().toLocaleDateString('fr-FR')} - ${companyInfo.name}`, pageWidth / 2, footerY, { align: "center" });
-    doc.text(`NINEA: ${companyInfo.ninea} | TVA: ${companyInfo.tva}`, pageWidth / 2, footerY + 5, { align: "center" });
-    
+
     // Save the PDF
     doc.save(`commission_${commission.invoiceNumber || commission.id}_${commission.candidateName.replace(/\s+/g, '_')}.pdf`);
 
@@ -421,10 +432,6 @@ export function CommissionManagement() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Commissions perçues</p>
                 <p className="text-2xl font-bold text-green-600">{formatCurrency(commissionStats.totalEarned)}</p>
-                <div className="flex items-center gap-1 mt-1">
-                  <ArrowUpRight className="h-3 w-3 text-green-500" />
-                  <span className="text-xs text-green-600">+{commissionStats.growthPercent}% vs mois dernier</span>
-                </div>
               </div>
               <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-green-600" />
@@ -468,7 +475,7 @@ export function CommissionManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Taux moyen</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{commissionStats.avgCommissionRate}%</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{commissionStats.avgCommissionRate.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground mt-1">{commissionStats.placementsThisMonth} placements ce mois</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
@@ -528,6 +535,19 @@ export function CommissionManagement() {
           </div>
         </CardHeader>
         <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredCommissions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <Percent className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="font-medium">Aucune commission trouvée</h3>
+              <p className="text-sm text-muted-foreground">
+                Les commissions apparaissent ici dès qu'un placement est enregistré
+              </p>
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -551,12 +571,9 @@ export function CommissionManagement() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-4 w-4 text-primary" />
+                            <UserIcon className="h-4 w-4 text-primary" />
                           </div>
-                          <div>
-                            <p className="font-medium">{commission.candidateName}</p>
-                            <p className="text-sm text-muted-foreground">{commission.candidatePosition}</p>
-                          </div>
+                          <p className="font-medium">{commission.candidateName}</p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -570,10 +587,10 @@ export function CommissionManagement() {
                           {commission.contractType}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">{formatCurrency(commission.contractValue)}</TableCell>
-                      <TableCell className="text-center">{commission.commissionRate}%</TableCell>
+                      <TableCell className="text-right">{commission.contractValue != null ? formatCurrency(commission.contractValue) : "-"}</TableCell>
+                      <TableCell className="text-center">{commission.commissionRate != null ? `${commission.commissionRate}%` : "-"}</TableCell>
                       <TableCell className="text-right font-semibold text-green-600">
-                        {formatCurrency(commission.commissionAmount)}
+                        {commission.commissionAmount != null ? formatCurrency(commission.commissionAmount) : "-"}
                       </TableCell>
                       <TableCell>
                         <Badge className={statusBadge.className}>
@@ -583,8 +600,8 @@ export function CommissionManagement() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             onClick={() => { setSelectedCommission(commission); setShowDetail(true); }}
                             data-testid={`button-view-${commission.id}`}
@@ -592,9 +609,10 @@ export function CommissionManagement() {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {commission.status === "pending" && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
+                              disabled={!commission.commissionAmount}
                               onClick={() => openInvoiceConfirm(commission)}
                               data-testid={`button-invoice-${commission.id}`}
                             >
@@ -609,6 +627,7 @@ export function CommissionManagement() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -627,12 +646,9 @@ export function CommissionManagement() {
             <div className="space-y-6">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-6 w-6 text-primary" />
+                  <UserIcon className="h-6 w-6 text-primary" />
                 </div>
-                <div>
-                  <p className="font-semibold text-lg">{selectedCommission.candidateName}</p>
-                  <p className="text-sm text-muted-foreground">{selectedCommission.candidatePosition}</p>
-                </div>
+                <p className="font-semibold text-lg">{selectedCommission.candidateName}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -654,16 +670,16 @@ export function CommissionManagement() {
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Valeur annuelle du contrat</span>
-                  <span>{formatCurrency(selectedCommission.contractValue)}</span>
+                  <span>{selectedCommission.contractValue != null ? formatCurrency(selectedCommission.contractValue) : "N/A"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Taux de commission</span>
-                  <span className="font-medium">{selectedCommission.commissionRate}%</span>
+                  <span className="font-medium">{selectedCommission.commissionRate != null ? `${selectedCommission.commissionRate}%` : "N/A"}</span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between font-bold text-lg">
                     <span>Commission</span>
-                    <span className="text-green-600">{formatCurrency(selectedCommission.commissionAmount)}</span>
+                    <span className="text-green-600">{formatCurrency(selectedCommission.commissionAmount ?? 0)}</span>
                   </div>
                 </div>
               </div>
@@ -682,15 +698,12 @@ export function CommissionManagement() {
                 </div>
               )}
 
-              {selectedCommission.paymentDate && (
+              {selectedCommission.status === "paid" && (
                 <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                     <CheckCircle className="h-5 w-5" />
                     <span className="font-medium">Commission perçue</span>
                   </div>
-                  <p className="text-sm text-green-600 dark:text-green-500 mt-1">
-                    Paiement reçu le {formatDate(selectedCommission.paymentDate)}
-                  </p>
                 </div>
               )}
             </div>
@@ -700,7 +713,10 @@ export function CommissionManagement() {
               Fermer
             </Button>
             {selectedCommission?.status === "pending" && (
-              <Button onClick={() => openInvoiceConfirm(selectedCommission)}>
+              <Button
+                disabled={!selectedCommission.commissionAmount}
+                onClick={() => selectedCommission && openInvoiceConfirm(selectedCommission)}
+              >
                 <FileText className="h-4 w-4 mr-2" />
                 Générer facture
               </Button>
@@ -746,24 +762,28 @@ export function CommissionManagement() {
                 <div className="border-t pt-3 flex justify-between">
                   <span className="text-muted-foreground">Montant à facturer</span>
                   <span className="font-bold text-lg text-green-600">
-                    {formatCurrency(commissionToInvoice.commissionAmount)}
+                    {formatCurrency(commissionToInvoice.commissionAmount ?? 0)}
                   </span>
                 </div>
               </div>
-              
+
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                 <p className="text-sm text-blue-700 dark:text-blue-400">
-                  Une facture sera générée avec le numéro <span className="font-mono font-medium">{generateInvoiceNumber()}</span> et envoyée au client.
+                  Une facture sera générée et son numéro sera attribué automatiquement à la création.
                 </p>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowInvoiceConfirm(false)}>
+            <Button variant="outline" onClick={() => setShowInvoiceConfirm(false)} disabled={generateInvoiceMutation.isPending}>
               Annuler
             </Button>
-            <Button onClick={handleGenerateInvoice} data-testid="button-confirm-invoice">
-              <CheckCircle className="h-4 w-4 mr-2" />
+            <Button onClick={handleGenerateInvoice} disabled={generateInvoiceMutation.isPending} data-testid="button-confirm-invoice">
+              {generateInvoiceMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              )}
               Confirmer et générer
             </Button>
           </DialogFooter>

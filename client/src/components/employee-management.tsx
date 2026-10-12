@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useOperationalModuleState } from "@/hooks/use-operational-module-state";
 import { 
   Users, 
   UserPlus,
@@ -33,86 +34,35 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-const mockEmployees = [
-  { 
-    id: 1, 
-    name: "Amadou Diallo", 
-    email: "amadou.d@company.com", 
-    phone: "+221 77 123 4567",
-    department: "Tech",
-    position: "Développeur Senior",
-    type: "CDI",
-    startDate: "2024-03-15",
-    status: "active",
-    role: "employee",
-    manager: "Fatou Sow",
-    location: "Dakar"
-  },
-  { 
-    id: 2, 
-    name: "Fatou Sow", 
-    email: "fatou.s@company.com", 
-    phone: "+221 78 234 5678",
-    department: "Tech",
-    position: "Chef de Projet",
-    type: "CDI",
-    startDate: "2023-06-01",
-    status: "active",
-    role: "manager",
-    manager: null,
-    location: "Dakar"
-  },
-  { 
-    id: 3, 
-    name: "Oumar Kane", 
-    email: "oumar.k@company.com", 
-    phone: "+221 70 345 6789",
-    department: "Marketing",
-    position: "Responsable Marketing",
-    type: "CDI",
-    startDate: "2024-01-10",
-    status: "active",
-    role: "manager",
-    manager: null,
-    location: "Abidjan"
-  },
-  { 
-    id: 4, 
-    name: "Aissatou Ba", 
-    email: "aissatou.b@company.com", 
-    phone: "+221 76 456 7890",
-    department: "RH",
-    position: "Chargée RH",
-    type: "CDI",
-    startDate: "2025-02-01",
-    status: "onboarding",
-    role: "employee",
-    manager: "Marie Dupont",
-    location: "Dakar"
-  },
-  { 
-    id: 5, 
-    name: "Moussa Traore", 
-    email: "moussa.t@company.com", 
-    phone: "+221 77 567 8901",
-    department: "Ventes",
-    position: "Commercial",
-    type: "CDD",
-    startDate: "2025-06-15",
-    status: "active",
-    role: "employee",
-    manager: "Jean Martin",
-    location: "Casablanca"
-  },
-];
+interface Employee {
+  id: number;
+  // Present when this fiche was created automatically from a hired job
+  // application (see PATCH /api/applications/:id in server/routes.ts)
+  // rather than added manually — lets that endpoint avoid creating a
+  // duplicate fiche for the same person.
+  candidateId?: string;
+  applicationId?: string;
+  name: string;
+  email: string;
+  phone: string;
+  department: string;
+  position: string;
+  type: string;
+  startDate: string;
+  status: string;
+  role: "admin" | "manager" | "employee";
+  manager: string | null;
+  location: string;
+}
 
-const mockDocuments = [
-  { id: 1, employeeId: 1, name: "Contrat de travail", type: "contract", uploadedAt: "2024-03-15", status: "verified" },
-  { id: 2, employeeId: 1, name: "Pièce d'identité", type: "identity", uploadedAt: "2024-03-15", status: "verified" },
-  { id: 3, employeeId: 1, name: "RIB", type: "banking", uploadedAt: "2024-03-16", status: "verified" },
-  { id: 4, employeeId: 2, name: "Contrat de travail", type: "contract", uploadedAt: "2023-06-01", status: "verified" },
-  { id: 5, employeeId: 4, name: "Contrat de travail", type: "contract", uploadedAt: "2025-02-01", status: "pending" },
-];
+interface EmployeeDocument {
+  id: number;
+  employeeId: number;
+  name: string;
+  type: string;
+  uploadedAt: string;
+  status: string;
+}
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   active: { label: "Actif", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" },
@@ -127,41 +77,99 @@ const roleLabels: Record<string, { label: string; icon: React.ElementType }> = {
   employee: { label: "Employé", icon: Users },
 };
 
+const emptyEmployeeForm = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  department: "",
+  position: "",
+  contractType: "",
+  startDate: "",
+  manager: "",
+  location: "",
+};
+
 export function EmployeeManagement() {
   const { toast } = useToast();
+  const { moduleState, saveModuleState, isSavingModuleState } = useOperationalModuleState("employee", {
+    employees: [] as Employee[],
+    documents: [] as EmployeeDocument[],
+  });
+
+  const employees = moduleState.employees ?? [];
+  const documents = moduleState.documents ?? [];
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<typeof mockEmployees[0] | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showDocumentsDialog, setShowDocumentsDialog] = useState(false);
+  const [employeeForm, setEmployeeForm] = useState(emptyEmployeeForm);
 
-  const filteredEmployees = mockEmployees.filter(emp => 
+  const filteredEmployees = employees.filter(emp => 
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.position.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const stats = [
-    { title: "Total employés", value: mockEmployees.length, icon: Users, color: "text-blue-600" },
-    { title: "En onboarding", value: mockEmployees.filter(e => e.status === "onboarding").length, icon: Clock, color: "text-amber-600" },
-    { title: "Départements", value: new Set(mockEmployees.map(e => e.department)).size, icon: Building2, color: "text-purple-600" },
-    { title: "Localisations", value: new Set(mockEmployees.map(e => e.location)).size, icon: MapPin, color: "text-green-600" },
+    { title: "Total employés", value: employees.length, icon: Users, color: "text-blue-600" },
+    { title: "En onboarding", value: employees.filter(e => e.status === "onboarding").length, icon: Clock, color: "text-amber-600" },
+    { title: "Départements", value: new Set(employees.map(e => e.department)).size, icon: Building2, color: "text-purple-600" },
+    { title: "Localisations", value: new Set(employees.map(e => e.location)).size, icon: MapPin, color: "text-green-600" },
   ];
 
-  const handleAddEmployee = () => {
-    toast({
-      title: "Employé ajouté",
-      description: "Le nouvel employé a été ajouté avec succès.",
-    });
-    setShowAddDialog(false);
+  const handleAddEmployee = async () => {
+    if (!employeeForm.firstName.trim() || !employeeForm.lastName.trim()) {
+      toast({
+        title: "Champs requis",
+        description: "Le prénom et le nom sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const nextId = employees.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+    const newEmployee: Employee = {
+      id: nextId,
+      name: `${employeeForm.firstName.trim()} ${employeeForm.lastName.trim()}`,
+      email: employeeForm.email.trim(),
+      phone: employeeForm.phone.trim(),
+      department: employeeForm.department,
+      position: employeeForm.position.trim(),
+      type: employeeForm.contractType,
+      startDate: employeeForm.startDate,
+      status: "onboarding",
+      role: "employee",
+      manager: employeeForm.manager
+        ? employees.find((e) => e.id.toString() === employeeForm.manager)?.name ?? null
+        : null,
+      location: employeeForm.location.trim(),
+    };
+
+    try {
+      await saveModuleState({ employees: [...employees, newEmployee], documents });
+      toast({
+        title: "Employé ajouté",
+        description: "Le nouvel employé a été ajouté avec succès.",
+      });
+      setEmployeeForm(emptyEmployeeForm);
+      setShowAddDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer le nouvel employé.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleViewDocuments = (employee: typeof mockEmployees[0]) => {
+  const handleViewDocuments = (employee: Employee) => {
     setSelectedEmployee(employee);
     setShowDocumentsDialog(true);
   };
 
   const employeeDocuments = selectedEmployee 
-    ? mockDocuments.filter(d => d.employeeId === selectedEmployee.id)
+    ? documents.filter(d => d.employeeId === selectedEmployee.id)
     : [];
 
   return (
@@ -187,72 +195,109 @@ export function EmployeeManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="firstName">Prénom</Label>
-                  <Input id="firstName" placeholder="Prénom" data-testid="input-first-name" />
+                  <Input
+                    id="firstName"
+                    placeholder="Prénom"
+                    value={employeeForm.firstName}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, firstName: e.target.value })}
+                    data-testid="input-first-name"
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="lastName">Nom</Label>
-                  <Input id="lastName" placeholder="Nom" data-testid="input-last-name" />
+                  <Input
+                    id="lastName"
+                    placeholder="Nom"
+                    value={employeeForm.lastName}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, lastName: e.target.value })}
+                    data-testid="input-last-name"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="email@company.com" data-testid="input-email" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="email@company.com"
+                    value={employeeForm.email}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+                    data-testid="input-email"
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Téléphone</Label>
-                  <Input id="phone" placeholder="+221 77 XXX XXXX" data-testid="input-phone" />
+                  <Input
+                    id="phone"
+                    placeholder="+221 77 XXX XXXX"
+                    value={employeeForm.phone}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, phone: e.target.value })}
+                    data-testid="input-phone"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="department">Département</Label>
-                  <Select>
+                  <Select value={employeeForm.department} onValueChange={(v) => setEmployeeForm({ ...employeeForm, department: v })}>
                     <SelectTrigger data-testid="select-department">
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="tech">Tech</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="finance">Finance</SelectItem>
-                      <SelectItem value="rh">RH</SelectItem>
-                      <SelectItem value="ventes">Ventes</SelectItem>
+                      <SelectItem value="Tech">Tech</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                      <SelectItem value="Finance">Finance</SelectItem>
+                      <SelectItem value="RH">RH</SelectItem>
+                      <SelectItem value="Ventes">Ventes</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="position">Poste</Label>
-                  <Input id="position" placeholder="Titre du poste" data-testid="input-position" />
+                  <Input
+                    id="position"
+                    placeholder="Titre du poste"
+                    value={employeeForm.position}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, position: e.target.value })}
+                    data-testid="input-position"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="contractType">Type de contrat</Label>
-                  <Select>
+                  <Select value={employeeForm.contractType} onValueChange={(v) => setEmployeeForm({ ...employeeForm, contractType: v })}>
                     <SelectTrigger data-testid="select-contract">
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cdi">CDI</SelectItem>
-                      <SelectItem value="cdd">CDD</SelectItem>
-                      <SelectItem value="stage">Stage</SelectItem>
+                      <SelectItem value="CDI">CDI</SelectItem>
+                      <SelectItem value="CDD">CDD</SelectItem>
+                      <SelectItem value="Stage">Stage</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="startDate">Date d'entrée</Label>
-                  <Input id="startDate" type="date" data-testid="input-start-date" />
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={employeeForm.startDate}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, startDate: e.target.value })}
+                    data-testid="input-start-date"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="manager">Manager</Label>
-                  <Select>
+                  <Select value={employeeForm.manager} onValueChange={(v) => setEmployeeForm({ ...employeeForm, manager: v })}>
                     <SelectTrigger data-testid="select-manager">
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockEmployees.filter(e => e.role === "manager").map(m => (
+                      {employees.filter(e => e.role === "manager").map(m => (
                         <SelectItem key={m.id} value={m.id.toString()}>{m.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -260,13 +305,21 @@ export function EmployeeManagement() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="location">Localisation</Label>
-                  <Input id="location" placeholder="Ville" data-testid="input-location" />
+                  <Input
+                    id="location"
+                    placeholder="Ville"
+                    value={employeeForm.location}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, location: e.target.value })}
+                    data-testid="input-location"
+                  />
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>Annuler</Button>
-              <Button onClick={handleAddEmployee} data-testid="button-submit-employee">Ajouter</Button>
+              <Button onClick={handleAddEmployee} disabled={isSavingModuleState} data-testid="button-submit-employee">
+                {isSavingModuleState ? "Ajout..." : "Ajouter"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -309,11 +362,11 @@ export function EmployeeManagement() {
                 data-testid="input-search-employees"
               />
             </div>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" disabled title="Bientôt disponible">
               <Filter className="h-4 w-4" />
               Filtres
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" disabled title="Bientôt disponible">
               <Download className="h-4 w-4" />
               Exporter
             </Button>
@@ -333,6 +386,15 @@ export function EmployeeManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {filteredEmployees.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                      {employees.length === 0
+                        ? "Aucun employé pour le moment. Ajoutez votre premier employé."
+                        : "Aucun employé ne correspond à cette recherche."}
+                    </TableCell>
+                  </TableRow>
+                )}
                 {filteredEmployees.map((employee) => (
                   <TableRow key={employee.id} data-testid={`employee-row-${employee.id}`}>
                     <TableCell>
@@ -366,18 +428,18 @@ export function EmployeeManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Voir profil">
+                        <Button variant="ghost" size="icon" disabled title="Bientôt disponible">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           title="Documents"
                           onClick={() => handleViewDocuments(employee)}
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" title="Modifier">
+                        <Button variant="ghost" size="icon" disabled title="Bientôt disponible">
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>
@@ -406,7 +468,14 @@ export function EmployeeManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockEmployees.map((employee) => {
+                  {employees.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
+                        Aucun employé pour le moment.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {employees.map((employee) => {
                     const RoleIcon = roleLabels[employee.role].icon;
                     return (
                       <TableRow key={employee.id}>
@@ -452,7 +521,7 @@ export function EmployeeManagement() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm">Modifier le rôle</Button>
+                          <Button variant="outline" size="sm" disabled title="Bientôt disponible">Modifier le rôle</Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -470,14 +539,14 @@ export function EmployeeManagement() {
               <CardDescription>Suivez l'intégration des nouveaux employés</CardDescription>
             </CardHeader>
             <CardContent>
-              {mockEmployees.filter(e => e.status === "onboarding").length === 0 ? (
+              {employees.filter(e => e.status === "onboarding").length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
                   <p className="text-muted-foreground">Aucun employé en cours d'onboarding</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {mockEmployees.filter(e => e.status === "onboarding").map((employee) => (
+                  {employees.filter(e => e.status === "onboarding").map((employee) => (
                     <Card key={employee.id} className="bg-muted/50">
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between">
@@ -495,34 +564,10 @@ export function EmployeeManagement() {
                               </p>
                             </div>
                           </div>
-                          <Button variant="outline" size="sm">Voir le parcours</Button>
                         </div>
-                        <div className="mt-4">
-                          <div className="flex items-center justify-between text-sm mb-2">
-                            <span>Progression onboarding</span>
-                            <span>60%</span>
-                          </div>
-                          <div className="h-2 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full w-[60%] bg-gradient-to-r from-violet-500 to-pink-500 rounded-full" />
-                          </div>
-                          <div className="flex gap-4 mt-4">
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span>Contrat signé</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              <span>Documents RH</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <Clock className="h-4 w-4 text-amber-500" />
-                              <span>Formation en cours</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <AlertCircle className="h-4 w-4" />
-                              <span>Accès IT</span>
-                            </div>
-                          </div>
+                        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>Le suivi détaillé du parcours d'intégration n'est pas encore disponible.</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -542,7 +587,7 @@ export function EmployeeManagement() {
           </DialogHeader>
           <div className="py-4">
             <div className="flex justify-end mb-4">
-              <Button className="gap-2">
+              <Button className="gap-2" disabled title="Bientôt disponible">
                 <Upload className="h-4 w-4" />
                 Ajouter un document
               </Button>

@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, AlertTriangle, TrendingUp, Clock, DollarSign } from "lucide-react";
+import { Users, AlertTriangle, TrendingUp, Clock, DollarSign, ArrowUpRight } from "lucide-react";
 
 interface KPIData {
   fillRate: number;
@@ -47,8 +47,9 @@ export function AgencyKPICards({ data, isLoading }: AgencyKPICardsProps) {
       trend: `+${kpiData.trends.fillRate}%`,
       trendLabel: "vs mois dernier",
       trendPositive: true,
-      iconBg: "bg-blue-50 dark:bg-blue-900/30",
-      iconColor: "text-blue-600 dark:text-blue-400",
+      iconBg: "bg-sky-100 dark:bg-sky-900/30",
+      iconColor: "text-sky-700 dark:text-sky-300",
+      accent: "bg-sky-500",
     },
     {
       title: "Missions urgentes",
@@ -57,8 +58,9 @@ export function AgencyKPICards({ data, isLoading }: AgencyKPICardsProps) {
       trend: kpiData.trends.urgentMissions,
       trendLabel: "vs mois dernier",
       trendPositive: false,
-      iconBg: "bg-orange-50 dark:bg-orange-900/30",
-      iconColor: "text-orange-500 dark:text-orange-400",
+      iconBg: "bg-amber-100 dark:bg-amber-900/30",
+      iconColor: "text-amber-700 dark:text-amber-300",
+      accent: "bg-amber-500",
     },
     {
       title: "Candidats placés",
@@ -67,8 +69,9 @@ export function AgencyKPICards({ data, isLoading }: AgencyKPICardsProps) {
       trend: `+${kpiData.trends.placedCandidates}`,
       trendLabel: "ce mois",
       trendPositive: true,
-      iconBg: "bg-green-50 dark:bg-green-900/30",
-      iconColor: "text-green-600 dark:text-green-400",
+      iconBg: "bg-emerald-100 dark:bg-emerald-900/30",
+      iconColor: "text-emerald-700 dark:text-emerald-300",
+      accent: "bg-emerald-500",
     },
     {
       title: "En attente",
@@ -77,8 +80,9 @@ export function AgencyKPICards({ data, isLoading }: AgencyKPICardsProps) {
       trend: `+${kpiData.trends.pendingApplications}`,
       trendLabel: "nouvelles",
       trendPositive: false,
-      iconBg: "bg-purple-50 dark:bg-purple-900/30",
-      iconColor: "text-purple-600 dark:text-purple-400",
+      iconBg: "bg-violet-100 dark:bg-violet-900/30",
+      iconColor: "text-violet-700 dark:text-violet-300",
+      accent: "bg-violet-500",
     },
     {
       title: "Revenus",
@@ -87,18 +91,19 @@ export function AgencyKPICards({ data, isLoading }: AgencyKPICardsProps) {
       trend: `+${kpiData.trends.revenue}%`,
       trendLabel: "vs mois dernier",
       trendPositive: true,
-      iconBg: "bg-emerald-50 dark:bg-emerald-900/30",
-      iconColor: "text-emerald-600 dark:text-emerald-400",
+      iconBg: "bg-teal-100 dark:bg-teal-900/30",
+      iconColor: "text-teal-700 dark:text-teal-300",
+      accent: "bg-teal-500",
     },
   ];
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
         {[1, 2, 3, 4, 5].map((i) => (
-          <Card key={i} className="animate-pulse border border-gray-200 dark:border-gray-800">
-            <CardContent className="p-6">
-              <div className="h-32 bg-muted rounded" />
+          <Card key={i} className="animate-pulse border-0 shadow-sm">
+            <CardContent className="p-5">
+              <div className="h-28 bg-muted rounded-xl" />
             </CardContent>
           </Card>
         ))}
@@ -107,20 +112,24 @@ export function AgencyKPICards({ data, isLoading }: AgencyKPICardsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
       {kpis.map((kpi, index) => (
         <Card 
           key={index} 
-          className="border border-gray-200 dark:border-gray-800 rounded-2xl"
+          className="relative overflow-hidden border-0 shadow-sm rounded-xl bg-card"
           data-testid={`kpi-card-${index}`}
         >
-          <CardContent className="p-6">
-            <div className={`w-12 h-12 rounded-xl ${kpi.iconBg} flex items-center justify-center mb-4`}>
-              <kpi.icon className={`h-6 w-6 ${kpi.iconColor}`} />
+          <div className={`absolute inset-x-0 top-0 h-1 ${kpi.accent}`} />
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className={`w-10 h-10 rounded-lg ${kpi.iconBg} flex items-center justify-center`}>
+                <kpi.icon className={`h-5 w-5 ${kpi.iconColor}`} />
+              </div>
+              <ArrowUpRight className={`h-4 w-4 ${kpi.trendPositive ? "text-emerald-600" : "text-amber-600"}`} />
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{kpi.title}</p>
-            <p className="text-3xl font-semibold text-gray-900 dark:text-white mb-2">{kpi.value}</p>
-            <div className="flex flex-wrap items-center gap-1">
+            <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{kpi.title}</p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-foreground">{kpi.value}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-1 text-xs">
               <span className={`text-sm font-medium ${
                 kpi.trendPositive ? "text-green-600 dark:text-green-400" : "text-orange-500 dark:text-orange-400"
               }`}>

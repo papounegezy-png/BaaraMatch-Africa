@@ -46,6 +46,8 @@ import {
   Building2,
   TrendingUp,
 } from "lucide-react";
+import { useOperationalModuleState } from "@/hooks/use-operational-module-state";
+import { useToast } from "@/hooks/use-toast";
 
 interface Position {
   id: number;
@@ -60,113 +62,6 @@ interface Position {
   status: "active" | "inactive";
   createdAt: string;
 }
-
-const mockPositions: Position[] = [
-  {
-    id: 1,
-    title: "Développeur Full Stack",
-    code: "DEV-FS",
-    department: "Informatique",
-    level: "senior",
-    description: "Développement d'applications web complètes",
-    salaryMin: 45000,
-    salaryMax: 65000,
-    employeeCount: 5,
-    status: "active",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    title: "Chef de Projet",
-    code: "PM-01",
-    department: "Informatique",
-    level: "manager",
-    description: "Gestion de projets informatiques",
-    salaryMin: 55000,
-    salaryMax: 75000,
-    employeeCount: 2,
-    status: "active",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 3,
-    title: "Responsable RH",
-    code: "RH-MGR",
-    department: "Ressources Humaines",
-    level: "manager",
-    description: "Supervision des opérations RH",
-    salaryMin: 50000,
-    salaryMax: 70000,
-    employeeCount: 1,
-    status: "active",
-    createdAt: "2024-02-01",
-  },
-  {
-    id: 4,
-    title: "Chargé de Recrutement",
-    code: "RH-REC",
-    department: "Ressources Humaines",
-    level: "intermediate",
-    description: "Recrutement et intégration des nouveaux employés",
-    salaryMin: 35000,
-    salaryMax: 45000,
-    employeeCount: 3,
-    status: "active",
-    createdAt: "2024-02-15",
-  },
-  {
-    id: 5,
-    title: "Commercial Terrain",
-    code: "COM-TER",
-    department: "Commercial",
-    level: "junior",
-    description: "Prospection et vente terrain",
-    salaryMin: 30000,
-    salaryMax: 40000,
-    employeeCount: 8,
-    status: "active",
-    createdAt: "2024-03-01",
-  },
-  {
-    id: 6,
-    title: "Directeur Commercial",
-    code: "COM-DIR",
-    department: "Commercial",
-    level: "director",
-    description: "Direction stratégique commerciale",
-    salaryMin: 80000,
-    salaryMax: 120000,
-    employeeCount: 1,
-    status: "active",
-    createdAt: "2024-03-15",
-  },
-  {
-    id: 7,
-    title: "Comptable",
-    code: "FIN-CPT",
-    department: "Finance",
-    level: "intermediate",
-    description: "Gestion comptable et fiscale",
-    salaryMin: 38000,
-    salaryMax: 50000,
-    employeeCount: 4,
-    status: "active",
-    createdAt: "2024-04-01",
-  },
-  {
-    id: 8,
-    title: "Stagiaire Marketing",
-    code: "MKT-STG",
-    department: "Marketing",
-    level: "junior",
-    description: "Support aux opérations marketing",
-    salaryMin: 12000,
-    salaryMax: 15000,
-    employeeCount: 0,
-    status: "inactive",
-    createdAt: "2024-04-15",
-  },
-];
 
 const departments = [
   "Ressources Humaines",
@@ -196,7 +91,11 @@ const levelVariants: Record<Position["level"], "default" | "secondary" | "outlin
 };
 
 export function PositionManagement() {
-  const [positions, setPositions] = useState<Position[]>(mockPositions);
+  const { toast } = useToast();
+  const { moduleState, saveModuleState, isSavingModuleState } = useOperationalModuleState("positions", {
+    positions: [] as Position[],
+  });
+  const positions = moduleState.positions ?? [];
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -223,29 +122,35 @@ export function PositionManagement() {
 
   const totalEmployees = positions.reduce((sum, p) => sum + p.employeeCount, 0);
   const activePositions = positions.filter((p) => p.status === "active").length;
-  const avgSalary = Math.round(
-    positions.reduce((sum, p) => sum + (p.salaryMin + p.salaryMax) / 2, 0) /
-      positions.length
-  );
+  const avgSalary = positions.length
+    ? Math.round(positions.reduce((sum, p) => sum + (p.salaryMin + p.salaryMax) / 2, 0) / positions.length)
+    : 0;
 
-  const handleSubmit = () => {
-    if (editingPosition) {
-      setPositions(
-        positions.map((p) =>
-          p.id === editingPosition.id ? { ...p, ...formData } : p
-        )
-      );
-    } else {
-      const maxId = positions.length > 0 ? Math.max(...positions.map((p) => p.id)) : 0;
-      const newPos: Position = {
-        id: maxId + 1,
-        ...formData,
-        employeeCount: 0,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setPositions([...positions, newPos]);
+  const handleSubmit = async () => {
+    const nextPositions = editingPosition
+      ? positions.map((p) => (p.id === editingPosition.id ? { ...p, ...formData } : p))
+      : [
+          ...positions,
+          {
+            id: (positions.length > 0 ? Math.max(...positions.map((p) => p.id)) : 0) + 1,
+            ...formData,
+            employeeCount: 0,
+            createdAt: new Date().toISOString().split("T")[0],
+          },
+        ];
+
+    try {
+      await saveModuleState({ positions: nextPositions });
+      toast({
+        title: editingPosition ? "Poste modifié" : "Poste créé",
+        description: editingPosition
+          ? "Les informations ont été mises à jour."
+          : "Le nouveau poste a été créé.",
+      });
+      resetForm();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'enregistrer le poste.", variant: "destructive" });
     }
-    resetForm();
   };
 
   const resetForm = () => {
@@ -278,8 +183,13 @@ export function PositionManagement() {
     setIsAddDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    setPositions(positions.filter((p) => p.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      await saveModuleState({ positions: positions.filter((p) => p.id !== id) });
+      toast({ title: "Poste supprimé" });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de supprimer le poste.", variant: "destructive" });
+    }
   };
 
   const formatSalary = (amount: number) => {
@@ -448,8 +358,8 @@ export function PositionManagement() {
               <Button variant="outline" onClick={resetForm} data-testid="button-cancel-position">
                 Annuler
               </Button>
-              <Button onClick={handleSubmit} data-testid="button-save-position">
-                {editingPosition ? "Enregistrer" : "Créer"}
+              <Button onClick={handleSubmit} disabled={isSavingModuleState} data-testid="button-save-position">
+                {isSavingModuleState ? "Enregistrement..." : editingPosition ? "Enregistrer" : "Créer"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -547,6 +457,15 @@ export function PositionManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {filteredPositions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                    {positions.length === 0
+                      ? "Aucun poste pour le moment. Ajoutez votre premier poste."
+                      : "Aucun poste ne correspond à cette recherche."}
+                  </TableCell>
+                </TableRow>
+              )}
               {filteredPositions.map((pos) => (
                 <TableRow key={pos.id} data-testid={`position-row-${pos.id}`}>
                   <TableCell>

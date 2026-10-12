@@ -28,6 +28,41 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   return response.data[0].embedding;
 }
 
+function stripTagsKeepText(html: string): string {
+  return html.replace(/<[^>]+>/g, "");
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+// RichTextEditor only ever produces p/strong/em/u/h2/ul/ol/li/a (see
+// client/src/lib/sanitize-html.ts's allowlist) — converts that HTML into
+// plain text that keeps heading/list-item boundaries instead of collapsing
+// everything into one run-on line. This is what actually makes the offer
+// form's "une description structurée améliore le matching IA" tip true:
+// without it, the embedding model saw raw markup ("<h2>Missions</h2>
+// <ul><li><p>...") burning tokens on tags and diluting the semantic signal,
+// with no distinction between a structured description and a wall of text.
+export function jobDescriptionToPlainText(html: string): string {
+  let text = html
+    .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_, inner) => `\n${stripTagsKeepText(inner).trim()}:\n`)
+    .replace(/<p[^>]*>/gi, "")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, inner) => `- ${stripTagsKeepText(inner).trim()}\n`)
+    .replace(/<\/?(ul|ol)[^>]*>/gi, "");
+
+  text = stripTagsKeepText(text);
+  text = decodeHtmlEntities(text);
+  return text.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 export async function generateJobEmbedding(job: {
   title: string;
   description: string;
@@ -38,13 +73,13 @@ export async function generateJobEmbedding(job: {
 }): Promise<number[]> {
   const text = [
     `Poste: ${job.title}`,
-    `Description: ${job.description}`,
+    `Description: ${jobDescriptionToPlainText(job.description)}`,
     job.requirements?.length ? `Exigences: ${job.requirements.join(", ")}` : "",
     job.requiredSkills?.length ? `Compétences requises: ${job.requiredSkills.join(", ")}` : "",
     `Localisation: ${job.location}`,
     job.category ? `Catégorie: ${job.category}` : "",
   ].filter(Boolean).join("\n");
-  
+
   return generateEmbedding(text);
 }
 

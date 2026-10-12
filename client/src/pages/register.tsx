@@ -2,6 +2,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +12,7 @@ import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, Users, Building2, Handshake, Loader2, ArrowLeft, MessageCircle, FileCheck, ShieldCheck } from "lucide-react";
+import { Briefcase, Users, Building2, Handshake, Loader2, ArrowLeft, MessageCircle, FileCheck, ShieldCheck, Building } from "lucide-react";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -36,6 +37,12 @@ const userTypeLabels: Record<UserType, { label: string; description: string; ico
     icon: Building2,
     features: ["Profil B2B", "Gestion des offres", "Tableau de bord RH"],
   },
+  admin: {
+    label: "Admin",
+    description: "Gestion administrateur",
+    icon: ShieldCheck,
+    features: ["Supervision", "Configuration", "Rapports avancés"],
+  },
 };
 
 export default function RegisterPage() {
@@ -48,6 +55,46 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // "Is this your business?" — checked against prospect accounts an admin
+  // may have already created (with a job posted on their behalf) before the
+  // real organization registered.
+  const [prospectMatch, setProspectMatch] = useState<{ organizationName: string } | null>(null);
+  const [claimMode, setClaimMode] = useState(false);
+  const [claimPassword, setClaimPassword] = useState("");
+  const [claimConfirmPassword, setClaimConfirmPassword] = useState("");
+
+  const matchCheckMutation = useMutation({
+    mutationFn: async (data: { userType: "company" | "agency"; phone: string }) => {
+      const response = await apiRequest("POST", "/api/organizations/prospect-match", data);
+      return response.json();
+    },
+    onSuccess: (result: { match: boolean; organizationName?: string }) => {
+      setProspectMatch(result.match ? { organizationName: result.organizationName ?? "" } : null);
+    },
+  });
+
+  const claimByContactMutation = useMutation({
+    mutationFn: async (data: { userType: "company" | "agency"; phone: string; password: string; confirmPassword: string }) => {
+      const response = await apiRequest("POST", "/api/organizations/claim-by-contact", data);
+      return response.json();
+    },
+    onSuccess: (userData) => {
+      queryClient.setQueryData(["/api/auth/me"], userData);
+      toast({
+        title: "Compte récupéré",
+        description: "Vous avez repris le contrôle de votre organisation.",
+      });
+      setLocation(userData.userType === "agency" ? "/agency/dashboard" : "/company/dashboard");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de réclamer ce compte",
+        variant: "destructive",
+      });
+    },
+  });
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -58,9 +105,18 @@ export default function RegisterPage() {
       userType: selectedType || "candidate",
       phone: "",
       city: "",
-      country: "Sénégal",
+      // No pre-selected country: a Bamako candidate who didn't touch the
+      // list used to be saved as "Sénégal". Optional field — never guess.
+      country: undefined,
     },
   });
+
+  const checkProspectMatch = () => {
+    const phone = form.getValues("phone");
+    if ((selectedType === "company" || selectedType === "agency") && phone && phone.length >= 6) {
+      matchCheckMutation.mutate({ userType: selectedType, phone });
+    }
+  };
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
@@ -80,7 +136,7 @@ export default function RegisterPage() {
       } else if (userData.userType === "company") {
         setLocation("/company/dashboard");
       } else {
-        setLocation("/dashboard");
+        setLocation("/espace-personnel");
       }
     },
     onError: (error: Error) => {
@@ -97,10 +153,100 @@ export default function RegisterPage() {
   };
 
   const handleTypeSelect = (type: UserType) => {
+    // Company/agency now go through the detailed organization wizard
+    // (industry, RCCM, pilot invitation codes) — candidates and admins keep
+    // this lighter single-step flow.
+    if (type === "company" || type === "agency") {
+      setLocation("/register/organisation");
+      return;
+    }
     setSelectedType(type);
     form.setValue("userType", type);
     setStep("form");
+    setProspectMatch(null);
+    setClaimMode(false);
   };
+
+  if (claimMode && (selectedType === "company" || selectedType === "agency") && prospectMatch) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-background via-card to-muted">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center space-y-2">
+            <Link href="/" className="inline-flex items-center gap-2 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md gradient-gold">
+                <Briefcase className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-2xl font-bold tracking-tight">
+                Baara<span className="text-gradient-gold">Match</span>
+              </span>
+            </Link>
+            <div className="w-14 h-14 mx-auto rounded-xl bg-primary/10 flex items-center justify-center">
+              <Building className="w-7 h-7 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold">Réclamer "{prospectMatch.organizationName}"</h1>
+            <p className="text-muted-foreground text-sm">
+              Cette organisation existe déjà sur BaaraMatch, créée par un administrateur. Définissez un mot de passe pour en prendre le contrôle.
+            </p>
+          </div>
+
+          <Card>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="claim-contact-password" className="text-sm font-medium">Nouveau mot de passe</label>
+                <PasswordInput
+                  id="claim-contact-password"
+                  autoComplete="new-password"
+                  aria-describedby="claim-contact-password-hint"
+                  value={claimPassword}
+                  onChange={(e) => setClaimPassword(e.target.value)}
+                  data-testid="input-claim-contact-password"
+                />
+                <p id="claim-contact-password-hint" className="text-sm text-muted-foreground">6 caractères minimum.</p>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="claim-contact-confirm-password" className="text-sm font-medium">Confirmer le mot de passe</label>
+                <PasswordInput
+                  id="claim-contact-confirm-password"
+                  autoComplete="new-password"
+                  value={claimConfirmPassword}
+                  onChange={(e) => setClaimConfirmPassword(e.target.value)}
+                  data-testid="input-claim-contact-confirm-password"
+                />
+              </div>
+              <Button
+                className="w-full"
+                disabled={claimByContactMutation.isPending || !claimPassword || claimPassword !== claimConfirmPassword}
+                onClick={() => claimByContactMutation.mutate({
+                  userType: selectedType,
+                  phone: form.getValues("phone") ?? "",
+                  password: claimPassword,
+                  confirmPassword: claimConfirmPassword,
+                })}
+                data-testid="button-claim-contact-submit"
+              >
+                {claimByContactMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Récupération...
+                  </>
+                ) : (
+                  "Activer mon compte"
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => { setClaimMode(false); setProspectMatch(null); }}
+                data-testid="button-cancel-claim-contact"
+              >
+                Ce n'est pas nous — créer un nouveau compte
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-background via-card to-muted">
@@ -223,6 +369,7 @@ export default function RegisterPage() {
                         <FormControl>
                           <Input
                             type="email"
+                            autoComplete="email"
                             placeholder="votre@email.com"
                             {...field}
                             data-testid="input-register-email"
@@ -243,8 +390,18 @@ export default function RegisterPage() {
                           <FormControl>
                             <Input
                               type="tel"
+                              autoComplete="tel"
                               placeholder="+221 77 000 00 00"
                               {...field}
+                              value={field.value ?? ""}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                if (prospectMatch) setProspectMatch(null);
+                              }}
+                              onBlur={(e) => {
+                                field.onBlur();
+                                checkProspectMatch();
+                              }}
                               data-testid="input-register-phone"
                             />
                           </FormControl>
@@ -263,6 +420,7 @@ export default function RegisterPage() {
                             <Input
                               placeholder="Dakar"
                               {...field}
+                              value={field.value ?? ""}
                               data-testid="input-register-city"
                             />
                           </FormControl>
@@ -272,13 +430,38 @@ export default function RegisterPage() {
                     />
                   </div>
 
+                  {prospectMatch && (selectedType === "company" || selectedType === "agency") && (
+                    <Card className="bg-primary/5 border-primary/30">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Building className="h-4 w-4 text-primary" />
+                          Est-ce votre entreprise ?
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Une organisation correspondant à ce numéro, « {prospectMatch.organizationName} », existe déjà sur BaaraMatch — créée par un administrateur, avec peut-être déjà une offre publiée en votre nom.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" onClick={() => setClaimMode(true)} data-testid="button-claim-prospect">
+                            Oui, réclamer ce compte
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setProspectMatch(null)} data-testid="button-dismiss-prospect-match">
+                            Non, continuer l'inscription
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <FormField
                     control={form.control}
                     name="country"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Pays</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          value={(field.value as string | undefined) || undefined}
+                          onValueChange={(value) => field.onChange(value)}
+                        >
                           <FormControl>
                             <SelectTrigger data-testid="select-register-country">
                               <SelectValue placeholder="Sélectionnez un pays" />
@@ -371,13 +554,16 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Mot de passe</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
+                          <PasswordInput
+                            autoComplete="new-password"
                             placeholder="••••••••"
                             {...field}
                             data-testid="input-register-password"
+                            toggleTestId="button-toggle-register-password"
                           />
                         </FormControl>
+                        {/* FormControl wires this into the input's aria-describedby. */}
+                        <FormDescription>6 caractères minimum.</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -390,11 +576,12 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Confirmer le mot de passe</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
+                          <PasswordInput
+                            autoComplete="new-password"
                             placeholder="••••••••"
                             {...field}
                             data-testid="input-register-confirm-password"
+                            toggleTestId="button-toggle-register-confirm-password"
                           />
                         </FormControl>
                         <FormMessage />

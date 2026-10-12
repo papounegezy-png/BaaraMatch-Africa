@@ -44,6 +44,8 @@ import {
   Users,
   Search,
 } from "lucide-react";
+import { useOperationalModuleState } from "@/hooks/use-operational-module-state";
+import { useToast } from "@/hooks/use-toast";
 
 interface Department {
   id: number;
@@ -56,71 +58,12 @@ interface Department {
   createdAt: string;
 }
 
-const mockDepartments: Department[] = [
-  {
-    id: 1,
-    name: "Ressources Humaines",
-    code: "RH",
-    description: "Gestion du personnel et des recrutements",
-    manager: "Marie Dupont",
-    employeeCount: 8,
-    status: "active",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Informatique",
-    code: "IT",
-    description: "Développement et infrastructure technologique",
-    manager: "Jean Martin",
-    employeeCount: 15,
-    status: "active",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 3,
-    name: "Finance",
-    code: "FIN",
-    description: "Comptabilité et gestion financière",
-    manager: "Sophie Leroy",
-    employeeCount: 6,
-    status: "active",
-    createdAt: "2024-02-01",
-  },
-  {
-    id: 4,
-    name: "Commercial",
-    code: "COM",
-    description: "Ventes et développement commercial",
-    manager: "Pierre Durand",
-    employeeCount: 12,
-    status: "active",
-    createdAt: "2024-02-15",
-  },
-  {
-    id: 5,
-    name: "Marketing",
-    code: "MKT",
-    description: "Communication et stratégie marketing",
-    manager: "Isabelle Moreau",
-    employeeCount: 5,
-    status: "active",
-    createdAt: "2024-03-01",
-  },
-  {
-    id: 6,
-    name: "Production",
-    code: "PROD",
-    description: "Fabrication et contrôle qualité",
-    manager: "Non assigné",
-    employeeCount: 0,
-    status: "inactive",
-    createdAt: "2024-03-15",
-  },
-];
-
 export function DepartmentManagement() {
-  const [departments, setDepartments] = useState<Department[]>(mockDepartments);
+  const { toast } = useToast();
+  const { moduleState, saveModuleState, isSavingModuleState } = useOperationalModuleState("departments", {
+    departments: [] as Department[],
+  });
+  const departments = moduleState.departments ?? [];
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
@@ -141,26 +84,31 @@ export function DepartmentManagement() {
   const totalEmployees = departments.reduce((sum, d) => sum + d.employeeCount, 0);
   const activeDepartments = departments.filter((d) => d.status === "active").length;
 
-  const handleSubmit = () => {
-    if (editingDepartment) {
-      setDepartments(
-        departments.map((d) =>
-          d.id === editingDepartment.id
-            ? { ...d, ...formData }
-            : d
-        )
-      );
-    } else {
-      const maxId = departments.length > 0 ? Math.max(...departments.map((d) => d.id)) : 0;
-      const newDept: Department = {
-        id: maxId + 1,
-        ...formData,
-        employeeCount: 0,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setDepartments([...departments, newDept]);
+  const handleSubmit = async () => {
+    const nextDepartments = editingDepartment
+      ? departments.map((d) => (d.id === editingDepartment.id ? { ...d, ...formData } : d))
+      : [
+          ...departments,
+          {
+            id: (departments.length > 0 ? Math.max(...departments.map((d) => d.id)) : 0) + 1,
+            ...formData,
+            employeeCount: 0,
+            createdAt: new Date().toISOString().split("T")[0],
+          },
+        ];
+
+    try {
+      await saveModuleState({ departments: nextDepartments });
+      toast({
+        title: editingDepartment ? "Département modifié" : "Département créé",
+        description: editingDepartment
+          ? "Les informations ont été mises à jour."
+          : "Le nouveau département a été créé.",
+      });
+      resetForm();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible d'enregistrer le département.", variant: "destructive" });
     }
-    resetForm();
   };
 
   const resetForm = () => {
@@ -187,8 +135,13 @@ export function DepartmentManagement() {
     setIsAddDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    setDepartments(departments.filter((d) => d.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      await saveModuleState({ departments: departments.filter((d) => d.id !== id) });
+      toast({ title: "Département supprimé" });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de supprimer le département.", variant: "destructive" });
+    }
   };
 
   return (
@@ -283,8 +236,8 @@ export function DepartmentManagement() {
               <Button variant="outline" onClick={resetForm} data-testid="button-cancel-department">
                 Annuler
               </Button>
-              <Button onClick={handleSubmit} data-testid="button-save-department">
-                {editingDepartment ? "Enregistrer" : "Créer"}
+              <Button onClick={handleSubmit} disabled={isSavingModuleState} data-testid="button-save-department">
+                {isSavingModuleState ? "Enregistrement..." : editingDepartment ? "Enregistrer" : "Créer"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -360,6 +313,15 @@ export function DepartmentManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {filteredDepartments.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                    {departments.length === 0
+                      ? "Aucun département pour le moment. Ajoutez votre premier département."
+                      : "Aucun département ne correspond à cette recherche."}
+                  </TableCell>
+                </TableRow>
+              )}
               {filteredDepartments.map((dept) => (
                 <TableRow key={dept.id} data-testid={`department-row-${dept.id}`}>
                   <TableCell>

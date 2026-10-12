@@ -151,7 +151,7 @@ export default function StatisticsPage() {
     <div className="min-h-screen bg-background pb-24">
       <div className="gradient-gold p-4 pb-6">
         <div className="flex items-center gap-3 mb-4">
-          <Link href="/dashboard">
+          <Link href="/espace-personnel">
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" data-testid="button-back">
               <ArrowLeft className="h-5 w-5" />
             </Button>

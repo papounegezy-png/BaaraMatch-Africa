@@ -2,8 +2,10 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Home, ArrowLeft, Briefcase } from "lucide-react";
+import { usePageTitle } from "@/lib/page-title";
 
 export default function NotFound() {
+  usePageTitle(null, "Page introuvable");
   return (
     <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center p-4 bg-gradient-to-br from-background via-card to-muted">
       <Card className="max-w-md w-full">

@@ -1,10 +1,13 @@
-import { useParams, Link } from "wouter";
+import { useEffect } from "react";
+import { useParams, useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatJobType } from "@/lib/job-type-labels";
+import { stripJobDescriptionHtml } from "@/lib/sanitize-html";
 import {
   MapPin,
   Briefcase,
@@ -48,6 +51,7 @@ interface JobPosting {
 
 export default function AgencyJobsPage() {
   const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
 
   const { data: agencies, isLoading: loadingAgencies } = useQuery<AgencyWithProfile[]>({
     queryKey: ["/api/agencies"],
@@ -61,6 +65,15 @@ export default function AgencyJobsPage() {
   const agencyJobs = allJobs?.filter((job) => job.agencyId === id && job.isActive) || [];
 
   const isLoading = loadingAgencies || loadingJobs;
+
+  useEffect(() => {
+    if (!id) return;
+    setLocation(`/jobs?agencyId=${encodeURIComponent(id)}`);
+  }, [id, setLocation]);
+
+  if (id) {
+    return null;
+  }
 
   const getInitials = (name: string) => {
     return name
@@ -80,17 +93,6 @@ export default function AgencyJobsPage() {
     if (min) return `À partir de ${min.toLocaleString()} ${curr}`;
     if (max) return `Jusqu'à ${max.toLocaleString()} ${curr}`;
     return null;
-  };
-
-  const formatJobType = (type: string | null) => {
-    const types: Record<string, string> = {
-      full_time: "Temps plein",
-      part_time: "Temps partiel",
-      contract: "Contrat",
-      internship: "Stage",
-      freelance: "Freelance",
-    };
-    return type ? types[type] || type : null;
   };
 
   const formatDate = (dateString: string) => {
@@ -240,7 +242,7 @@ export default function AgencyJobsPage() {
 
                       {job.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2">
-                          {job.description}
+                          {stripJobDescriptionHtml(job.description)}
                         </p>
                       )}
 

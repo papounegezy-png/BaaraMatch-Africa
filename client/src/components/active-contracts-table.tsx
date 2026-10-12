@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,60 +10,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface Contract {
+export interface Contract {
   id: string;
   candidateName: string;
   initials: string;
   company: string;
   status: "active" | "pending" | "imminent";
-  endDate: string;
+  endDate: string | null;
   hasAlert?: boolean;
 }
-
-const mockContracts: Contract[] = [
-  {
-    id: "1",
-    candidateName: "Sophie Martin",
-    initials: "SM",
-    company: "Tech Solutions",
-    status: "active",
-    endDate: "15 Avril 2026",
-    hasAlert: true,
-  },
-  {
-    id: "2",
-    candidateName: "Thomas Dubois",
-    initials: "TD",
-    company: "Innovation Labs",
-    status: "active",
-    endDate: "30 Mars 2026",
-  },
-  {
-    id: "3",
-    candidateName: "Claire Bernard",
-    initials: "CB",
-    company: "Digital Services",
-    status: "active",
-    endDate: "08 Fév 2026",
-    hasAlert: true,
-  },
-  {
-    id: "4",
-    candidateName: "Lucas Petit",
-    initials: "LP",
-    company: "Consulting Group",
-    status: "pending",
-    endDate: "20 Mai 2026",
-  },
-  {
-    id: "5",
-    candidateName: "Emma Leroy",
-    initials: "EL",
-    company: "Financial Partners",
-    status: "active",
-    endDate: "12 Avril 2026",
-  },
-];
 
 const statusConfig = {
   active: {
@@ -81,9 +35,7 @@ const statusConfig = {
   },
 };
 
-export function ActiveContractsTable() {
-  const [contracts] = useState<Contract[]>(mockContracts);
-
+export function ActiveContractsTable({ contracts = [] }: { contracts?: Contract[] }) {
   return (
     <Card className="border border-gray-200 dark:border-gray-800 rounded-2xl">
       <CardHeader className="pb-4">
@@ -114,6 +66,13 @@ export function ActiveContractsTable() {
               </tr>
             </thead>
             <tbody>
+              {contracts.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Aucun contrat actif pour le moment.
+                  </td>
+                </tr>
+              )}
               {contracts.map((contract) => (
                 <tr 
                   key={contract.id} 
@@ -151,7 +110,7 @@ export function ActiveContractsTable() {
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm text-gray-900 dark:text-white">
-                        {contract.endDate}
+                        {contract.endDate ? new Date(contract.endDate).toLocaleDateString("fr-FR") : "-"}
                       </span>
                       {contract.hasAlert && contract.status === "active" && (
                         <Badge 

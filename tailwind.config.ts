@@ -30,6 +30,16 @@ export default {
           DEFAULT: "hsl(var(--primary) / <alpha-value>)",
           foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
           border: "var(--primary-border)",
+          dark: "#0D2957",   // header, sidebar — marine profond
+          deeper: "#02133A", // fond login page
+          light: "#EEF4FD",  // fond page, barre progression, footer
+          mid: "#DBEAFE",    // badges, inputs selected, borders
+          text: "#1E40AF",   // texte sur fond clair
+        },
+        gold: {
+          DEFAULT: "#D4A017", // succès virement, score A, activation
+          light: "#FEF3C7",   // fond score élevé, badges réussite
+          dark: "#92400E",    // texte sur fond or
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary) / <alpha-value>)",

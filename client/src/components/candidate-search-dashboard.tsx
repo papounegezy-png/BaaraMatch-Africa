@@ -61,99 +61,6 @@ interface CandidateCardData {
   initials: string;
 }
 
-const mockCandidates: CandidateCardData[] = [
-  {
-    id: "1",
-    name: "Sophie Marchand",
-    title: "Développeur Full Stack Senior",
-    location: "Paris, France",
-    experience: 8,
-    salaryRange: "65-75K €",
-    availability: "immediate",
-    matchScore: 96,
-    aiSummary: "Développeuse full stack passionnée avec 8 ans d'expérience dans la création d'applications web scalables. Expert en React et Node.js, avec une forte compétence en architecture microservices. A dirigé plusieurs équipes de développement et contribué à des projets open source majeurs.",
-    skills: ["React", "Node.js", "TypeScript", "PostgreSQL", "AWS"],
-    hasVoiceCV: true,
-    lastActive: "Il y a 2 heures",
-    initials: "SM"
-  },
-  {
-    id: "2",
-    name: "Thomas Dubois",
-    title: "Data Scientist",
-    location: "Lyon, France",
-    experience: 6,
-    salaryRange: "60-70K €",
-    availability: "immediate",
-    matchScore: 92,
-    aiSummary: "Data scientist spécialisé en machine learning avec 6 ans d'expérience. Expert en modélisation prédictive et traitement du langage naturel. A développé des modèles de recommandation pour des plateformes e-commerce générant +20% de conversion.",
-    skills: ["Python", "Machine Learning", "TensorFlow", "SQL", "AWS"],
-    hasVoiceCV: true,
-    lastActive: "Il y a 5 heures",
-    initials: "TD"
-  },
-  {
-    id: "3",
-    name: "Marie Laurent",
-    title: "Product Manager",
-    location: "Bordeaux, France",
-    experience: 7,
-    salaryRange: "70-85K €",
-    availability: "1_month",
-    matchScore: 89,
-    aiSummary: "Product Manager expérimentée avec une forte orientation data. 7 ans d'expérience à piloter des produits tech de l'idéation au lancement. Track record prouvé avec 3 lancements de produits réussis générant +50M€ de revenus cumulés.",
-    skills: ["Product Strategy", "Agile/Scrum", "Data Analysis", "Figma", "SQL"],
-    hasVoiceCV: true,
-    lastActive: "Il y a 1 jour",
-    initials: "ML"
-  },
-  {
-    id: "4",
-    name: "Amadou Diallo",
-    title: "Ingénieur DevOps",
-    location: "Dakar, Sénégal",
-    experience: 5,
-    salaryRange: "45-55K €",
-    availability: "immediate",
-    matchScore: 87,
-    aiSummary: "Ingénieur DevOps avec 5 ans d'expérience en automatisation d'infrastructures cloud. Expertise en CI/CD, conteneurisation et orchestration Kubernetes. A réduit les temps de déploiement de 80% pour des startups fintech africaines.",
-    skills: ["Docker", "Kubernetes", "AWS", "Terraform", "Jenkins"],
-    hasVoiceCV: true,
-    lastActive: "Il y a 3 heures",
-    initials: "AD"
-  },
-  {
-    id: "5",
-    name: "Fatou Sow",
-    title: "UX Designer Senior",
-    location: "Bamako, Mali",
-    experience: 4,
-    salaryRange: "40-50K €",
-    availability: "2_3_months",
-    matchScore: 84,
-    aiSummary: "Designer UX passionnée par l'accessibilité et le design inclusif. 4 ans d'expérience en conception d'interfaces mobiles pour le marché africain. Expertise en recherche utilisateur et tests d'utilisabilité sur le terrain.",
-    skills: ["Figma", "User Research", "Prototyping", "Design System", "Adobe XD"],
-    hasVoiceCV: false,
-    lastActive: "Il y a 2 jours",
-    initials: "FS"
-  },
-  {
-    id: "6",
-    name: "Ibrahim Koné",
-    title: "Backend Engineer",
-    location: "Abidjan, Côte d'Ivoire",
-    experience: 6,
-    salaryRange: "50-60K €",
-    availability: "immediate",
-    matchScore: 91,
-    aiSummary: "Ingénieur backend spécialisé en systèmes distribués avec 6 ans d'expérience. Expertise en Java et Spring Boot. A conçu des APIs traitant 10M+ requêtes quotidiennes pour des plateformes de paiement mobile africaines.",
-    skills: ["Java", "Spring Boot", "Microservices", "PostgreSQL", "Redis"],
-    hasVoiceCV: true,
-    lastActive: "Il y a 1 heure",
-    initials: "IK"
-  }
-];
-
 const skillOptions = [
   "React", "Node.js", "TypeScript", "Python", "Java",
   "AWS", "Docker", "Kubernetes", "Machine Learning",
@@ -184,6 +91,44 @@ export function CandidateSearchDashboard() {
   const [skillSearch, setSkillSearch] = useState("");
   const [playingVoiceCV, setPlayingVoiceCV] = useState<string | null>(null);
 
+  const { data: candidatesData = [] } = useQuery<(User & { profile?: CandidateProfile })[]>({
+    queryKey: ["/api/candidates"],
+  });
+
+  const liveCandidates: CandidateCardData[] = candidatesData.map((candidate) => {
+    const availableFrom = candidate.profile?.availableFrom?.toLowerCase() ?? "";
+    const availability: CandidateCardData["availability"] = availableFrom.includes("1")
+      ? "1_month"
+      : availableFrom.includes("2") || availableFrom.includes("3")
+      ? "2_3_months"
+      : "immediate";
+
+    return {
+      id: candidate.id,
+      name: candidate.fullName,
+      title: candidate.profile?.title ?? "Profil candidat",
+      location: [candidate.city, candidate.country].filter(Boolean).join(", ") || "Non renseigné",
+      experience: candidate.profile?.experienceYears ?? 0,
+      salaryRange: candidate.profile?.salaryExpectation ?? "À définir",
+      availability,
+      matchScore: Math.min(100, 60 + (candidate.profile?.experienceYears ?? 0) * 5),
+      aiSummary: candidate.profile?.bio ?? "Profil disponible dans la base candidats de l'agence.",
+      skills: candidate.profile?.skills ?? [],
+      hasVoiceCV: !!candidate.profile?.voiceCvUrl,
+      voiceCVUrl: candidate.profile?.voiceCvUrl ?? undefined,
+      avatarUrl: candidate.avatarUrl ?? undefined,
+      lastActive: candidate.updatedAt ? `Mis à jour le ${new Date(candidate.updatedAt).toLocaleDateString("fr-FR")}` : "Activité récente",
+      initials: candidate.fullName
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? "")
+        .join(""),
+    };
+  });
+
+  const sourceCandidates = liveCandidates;
+
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev =>
       prev.includes(skill)
@@ -196,7 +141,7 @@ export function CandidateSearchDashboard() {
     skill.toLowerCase().includes(skillSearch.toLowerCase())
   );
 
-  const filteredCandidates = mockCandidates
+  const filteredCandidates = sourceCandidates
     .filter(c => {
       if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !c.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -471,8 +416,8 @@ export function CandidateSearchDashboard() {
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <Clock className="h-3 w-3" />
+                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                      <Clock className="h-3 w-3" aria-hidden="true" />
                       <span>{candidate.lastActive}</span>
                     </div>
                     <div className="flex items-center gap-2">

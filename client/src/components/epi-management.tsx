@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { useOperationalModuleState } from "@/hooks/use-operational-module-state";
 import {
   Shield,
   Search,
@@ -22,11 +24,9 @@ import {
   Footprints,
   Hand,
   Ear,
-  Clock,
   User,
   BarChart3,
   Download,
-  RefreshCw,
 } from "lucide-react";
 
 const epiCategories = [
@@ -38,189 +38,96 @@ const epiCategories = [
   { id: "body", name: "Protection corps", icon: Shield, color: "bg-red-500" },
 ];
 
-const mockEPIInventory = [
-  {
-    id: "1",
-    name: "Casque de chantier",
-    category: "head",
-    reference: "CSQ-001",
-    stockTotal: 150,
-    stockAvailable: 42,
-    stockAllocated: 98,
-    stockDamaged: 10,
-    minStock: 30,
-    unitPrice: 15000,
-    supplier: "Safety First SARL",
-    lastRestock: "2025-12-15",
-  },
-  {
-    id: "2",
-    name: "Lunettes de protection",
-    category: "eyes",
-    reference: "LUN-002",
-    stockTotal: 200,
-    stockAvailable: 85,
-    stockAllocated: 110,
-    stockDamaged: 5,
-    minStock: 50,
-    unitPrice: 8000,
-    supplier: "Safety First SARL",
-    lastRestock: "2025-11-20",
-  },
-  {
-    id: "3",
-    name: "Gants de manutention",
-    category: "hands",
-    reference: "GAN-003",
-    stockTotal: 500,
-    stockAvailable: 120,
-    stockAllocated: 350,
-    stockDamaged: 30,
-    minStock: 100,
-    unitPrice: 5000,
-    supplier: "ProSafe Équipements",
-    lastRestock: "2026-01-05",
-  },
-  {
-    id: "4",
-    name: "Chaussures de sécurité S3",
-    category: "feet",
-    reference: "CHS-004",
-    stockTotal: 180,
-    stockAvailable: 25,
-    stockAllocated: 150,
-    stockDamaged: 5,
-    minStock: 40,
-    unitPrice: 45000,
-    supplier: "Caterpillar",
-    lastRestock: "2025-10-10",
-  },
-  {
-    id: "5",
-    name: "Bouchons d'oreilles",
-    category: "ears",
-    reference: "BCH-005",
-    stockTotal: 1000,
-    stockAvailable: 450,
-    stockAllocated: 520,
-    stockDamaged: 30,
-    minStock: 200,
-    unitPrice: 500,
-    supplier: "3M Sénégal",
-    lastRestock: "2026-01-02",
-  },
-  {
-    id: "6",
-    name: "Gilet haute visibilité",
-    category: "body",
-    reference: "GIL-006",
-    stockTotal: 250,
-    stockAvailable: 60,
-    stockAllocated: 180,
-    stockDamaged: 10,
-    minStock: 50,
-    unitPrice: 12000,
-    supplier: "Safety First SARL",
-    lastRestock: "2025-12-01",
-  },
-];
+interface EpiItem {
+  id: string;
+  name: string;
+  category: string;
+  reference: string;
+  stockTotal: number;
+  stockAvailable: number;
+  stockAllocated: number;
+  stockDamaged: number;
+  minStock: number;
+  unitPrice: number;
+  supplier: string;
+  lastRestock: string;
+}
 
-const mockAllocations = [
-  {
-    id: "1",
-    employeeId: "emp1",
-    employeeName: "Ousmane Ba",
-    employeeRole: "Opérateur Engin",
-    epiId: "1",
-    epiName: "Casque de chantier",
-    size: "L",
-    allocatedDate: "2025-11-01",
-    returnDate: null,
-    condition: "good",
-    site: "Mine d'Or Kédougou",
-  },
-  {
-    id: "2",
-    employeeId: "emp1",
-    employeeName: "Ousmane Ba",
-    employeeRole: "Opérateur Engin",
-    epiId: "4",
-    epiName: "Chaussures de sécurité S3",
-    size: "43",
-    allocatedDate: "2025-11-01",
-    returnDate: null,
-    condition: "good",
-    site: "Mine d'Or Kédougou",
-  },
-  {
-    id: "3",
-    employeeId: "emp2",
-    employeeName: "Aminata Diop",
-    employeeRole: "Ingénieur HSE",
-    epiId: "1",
-    epiName: "Casque de chantier",
-    size: "M",
-    allocatedDate: "2025-10-15",
-    returnDate: null,
-    condition: "good",
-    site: "Mine d'Or Kédougou",
-  },
-  {
-    id: "4",
-    employeeId: "emp3",
-    employeeName: "Moussa Fall",
-    employeeRole: "Chef d'équipe",
-    epiId: "6",
-    epiName: "Gilet haute visibilité",
-    size: "XL",
-    allocatedDate: "2025-09-01",
-    returnDate: "2025-12-15",
-    condition: "damaged",
-    site: "Chantier Autoroute Dakar-AIBD",
-  },
-];
+interface EpiAllocation {
+  id: string;
+  employeeId?: number;
+  employeeName: string;
+  employeeRole: string;
+  epiId: string;
+  epiName: string;
+  size: string;
+  allocatedDate: string;
+  returnDate: string | null;
+  condition: "good" | "damaged" | "returned";
+  site: string;
+}
 
-const mockNonConformities = [
-  {
-    id: "1",
-    date: "2026-01-28",
-    employee: "Ibrahim Diallo",
-    site: "Mine de Bauxite Sangarédi",
-    type: "Absence d'EPI",
-    description: "Port du casque non respecté en zone de travail",
-    severity: "high",
-    status: "pending",
-    action: null,
-  },
-  {
-    id: "2",
-    date: "2026-01-25",
-    employee: "Fatou Sarr",
-    site: "Chantier Autoroute Dakar-AIBD",
-    type: "EPI endommagé",
-    description: "Gants de protection déchirés",
-    severity: "medium",
-    status: "resolved",
-    action: "Remplacement effectué",
-  },
-  {
-    id: "3",
-    date: "2026-01-20",
-    employee: "Alpha Condé",
-    site: "Mine de Bauxite Sangarédi",
-    type: "Taille inadaptée",
-    description: "Chaussures de sécurité trop petites",
-    severity: "low",
-    status: "in_progress",
-    action: "Commande de remplacement en cours",
-  },
-];
+interface NonConformity {
+  id: string;
+  date: string;
+  employee: string;
+  site: string;
+  type: string;
+  description: string;
+  severity: "high" | "medium" | "low";
+  status: "pending" | "in_progress" | "resolved";
+  action: string | null;
+}
+
+interface EpiEmployee {
+  id: number;
+  name: string;
+  position: string;
+}
+
+const emptyEpiForm = {
+  name: "",
+  category: "",
+  reference: "",
+  stock: "",
+  minStock: "",
+  supplier: "",
+};
+
+const emptyAllocationForm = {
+  employeeId: "",
+  employeeName: "",
+  employeeRole: "",
+  epiId: "",
+  size: "",
+  site: "",
+  allocatedDate: "",
+};
 
 export function EPIManagement() {
+  const { toast } = useToast();
+  const { moduleState, saveModuleState, isSavingModuleState } = useOperationalModuleState("epi", {
+    inventory: [] as EpiItem[],
+    allocations: [] as EpiAllocation[],
+    nonConformities: [] as NonConformity[],
+  });
+  const inventory = moduleState.inventory ?? [];
+  const allocations = moduleState.allocations ?? [];
+  const nonConformities = moduleState.nonConformities ?? [];
+  // Read-only: sources the "Employé" picker from the real employee
+  // directory (see employee-management.tsx) instead of free-text entry.
+  const { moduleState: employeeModuleState } = useOperationalModuleState("employee", {
+    employees: [] as EpiEmployee[],
+  });
+  const rosterEmployees = employeeModuleState.employees ?? [];
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("inventory");
+  const [showAddEpiDialog, setShowAddEpiDialog] = useState(false);
+  const [epiForm, setEpiForm] = useState(emptyEpiForm);
+  const [showAllocationDialog, setShowAllocationDialog] = useState(false);
+  const [allocationForm, setAllocationForm] = useState(emptyAllocationForm);
 
-  const filteredInventory = mockEPIInventory.filter(
+  const filteredInventory = inventory.filter(
     (epi) =>
       epi.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       epi.reference.toLowerCase().includes(searchTerm.toLowerCase())
@@ -233,37 +140,122 @@ export function EPIManagement() {
     return { status: "ok", label: "OK", color: "text-green-600" };
   };
 
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "high":
-        return <Badge variant="destructive">Élevée</Badge>;
-      case "medium":
-        return <Badge className="bg-yellow-500">Moyenne</Badge>;
-      case "low":
-        return <Badge variant="secondary">Faible</Badge>;
-      default:
-        return <Badge variant="outline">{severity}</Badge>;
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />En attente</Badge>;
-      case "in_progress":
-        return <Badge className="bg-blue-500"><RefreshCw className="w-3 h-3 mr-1" />En cours</Badge>;
-      case "resolved":
-        return <Badge className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" />Résolu</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   const stats = {
-    totalItems: mockEPIInventory.reduce((acc, e) => acc + e.stockTotal, 0),
-    available: mockEPIInventory.reduce((acc, e) => acc + e.stockAvailable, 0),
-    allocated: mockEPIInventory.reduce((acc, e) => acc + e.stockAllocated, 0),
-    lowStock: mockEPIInventory.filter((e) => e.stockAvailable <= e.minStock).length,
+    totalItems: inventory.reduce((acc, e) => acc + e.stockTotal, 0),
+    available: inventory.reduce((acc, e) => acc + e.stockAvailable, 0),
+    allocated: inventory.reduce((acc, e) => acc + e.stockAllocated, 0),
+    lowStock: inventory.filter((e) => e.stockAvailable <= e.minStock).length,
+  };
+
+  const handleAddEpi = async () => {
+    if (!epiForm.name.trim() || !epiForm.category || !epiForm.reference.trim()) {
+      toast({
+        title: "Champs requis",
+        description: "Le nom, la catégorie et la référence sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const stockTotal = parseInt(epiForm.stock, 10) || 0;
+    const minStock = parseInt(epiForm.minStock, 10) || 0;
+    const nextId = (
+      inventory.reduce((max, e) => Math.max(max, parseInt(e.id, 10) || 0), 0) + 1
+    ).toString();
+    const newEpi: EpiItem = {
+      id: nextId,
+      name: epiForm.name.trim(),
+      category: epiForm.category,
+      reference: epiForm.reference.trim(),
+      stockTotal,
+      stockAvailable: stockTotal,
+      stockAllocated: 0,
+      stockDamaged: 0,
+      minStock,
+      unitPrice: 0,
+      supplier: epiForm.supplier.trim(),
+      lastRestock: new Date().toISOString().slice(0, 10),
+    };
+
+    try {
+      await saveModuleState({ inventory: [...inventory, newEpi], allocations, nonConformities });
+      toast({
+        title: "EPI ajouté",
+        description: "Le nouvel équipement a été ajouté avec succès.",
+      });
+      setEpiForm(emptyEpiForm);
+      setShowAddEpiDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer l'équipement.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddAllocation = async () => {
+    if (!allocationForm.employeeId || !allocationForm.epiId) {
+      toast({
+        title: "Champs requis",
+        description: "L'employé et l'équipement sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedEpi = inventory.find((e) => e.id === allocationForm.epiId);
+    if (selectedEpi && selectedEpi.stockAvailable <= 0) {
+      toast({
+        title: "Stock épuisé",
+        description: "Aucune unité disponible pour cet équipement.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const employee = rosterEmployees.find((e) => e.id.toString() === allocationForm.employeeId);
+    const nextId = (
+      allocations.reduce((max, a) => Math.max(max, parseInt(a.id, 10) || 0), 0) + 1
+    ).toString();
+    const newAllocation: EpiAllocation = {
+      id: nextId,
+      employeeId: employee?.id,
+      employeeName: employee?.name ?? allocationForm.employeeName,
+      employeeRole: allocationForm.employeeRole.trim(),
+      epiId: allocationForm.epiId,
+      epiName: selectedEpi?.name ?? "",
+      size: allocationForm.size.trim(),
+      allocatedDate: allocationForm.allocatedDate || new Date().toISOString().slice(0, 10),
+      returnDate: null,
+      condition: "good",
+      site: allocationForm.site.trim(),
+    };
+    // Attributing a unit moves it from available to allocated stock —
+    // otherwise the inventory counts would silently drift from the real
+    // allocations as soon as anyone used this dialog.
+    const updatedInventory = selectedEpi
+      ? inventory.map((e) =>
+          e.id === selectedEpi.id
+            ? { ...e, stockAvailable: Math.max(0, e.stockAvailable - 1), stockAllocated: e.stockAllocated + 1 }
+            : e,
+        )
+      : inventory;
+
+    try {
+      await saveModuleState({ inventory: updatedInventory, allocations: [...allocations, newAllocation], nonConformities });
+      toast({
+        title: "Attribution créée",
+        description: "L'équipement a été attribué avec succès.",
+      });
+      setAllocationForm(emptyAllocationForm);
+      setShowAllocationDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer l'attribution.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -284,7 +276,13 @@ export function EPIManagement() {
               data-testid="input-search-epi"
             />
           </div>
-          <Dialog>
+          <Dialog
+            open={showAddEpiDialog}
+            onOpenChange={(open) => {
+              setShowAddEpiDialog(open);
+              if (!open) setEpiForm(emptyEpiForm);
+            }}
+          >
             <DialogTrigger asChild>
               <Button data-testid="button-add-epi">
                 <Plus className="w-4 h-4 mr-2" />
@@ -299,13 +297,22 @@ export function EPIManagement() {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="epi-name">Nom de l'équipement</Label>
-                  <Input id="epi-name" placeholder="Ex: Casque de chantier" />
+                  <Input
+                    id="epi-name"
+                    placeholder="Ex: Casque de chantier"
+                    value={epiForm.name}
+                    onChange={(e) => setEpiForm({ ...epiForm, name: e.target.value })}
+                    data-testid="input-epi-name"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="category">Catégorie</Label>
-                    <Select>
-                      <SelectTrigger>
+                    <Select
+                      value={epiForm.category}
+                      onValueChange={(v) => setEpiForm({ ...epiForm, category: v })}
+                    >
+                      <SelectTrigger data-testid="select-epi-category">
                         <SelectValue placeholder="Sélectionner" />
                       </SelectTrigger>
                       <SelectContent>
@@ -317,26 +324,59 @@ export function EPIManagement() {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="reference">Référence</Label>
-                    <Input id="reference" placeholder="Ex: CSQ-001" />
+                    <Input
+                      id="reference"
+                      placeholder="Ex: CSQ-001"
+                      value={epiForm.reference}
+                      onChange={(e) => setEpiForm({ ...epiForm, reference: e.target.value })}
+                      data-testid="input-epi-reference"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="stock">Stock initial</Label>
-                    <Input id="stock" type="number" placeholder="100" />
+                    <Input
+                      id="stock"
+                      type="number"
+                      placeholder="100"
+                      value={epiForm.stock}
+                      onChange={(e) => setEpiForm({ ...epiForm, stock: e.target.value })}
+                      data-testid="input-epi-stock"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="min-stock">Stock minimum</Label>
-                    <Input id="min-stock" type="number" placeholder="30" />
+                    <Input
+                      id="min-stock"
+                      type="number"
+                      placeholder="30"
+                      value={epiForm.minStock}
+                      onChange={(e) => setEpiForm({ ...epiForm, minStock: e.target.value })}
+                      data-testid="input-epi-min-stock"
+                    />
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="supplier">Fournisseur</Label>
-                  <Input id="supplier" placeholder="Nom du fournisseur" />
+                  <Input
+                    id="supplier"
+                    placeholder="Nom du fournisseur"
+                    value={epiForm.supplier}
+                    onChange={(e) => setEpiForm({ ...epiForm, supplier: e.target.value })}
+                    data-testid="input-epi-supplier"
+                  />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" data-testid="button-save-epi">Enregistrer</Button>
+                <Button variant="outline" onClick={() => setShowAddEpiDialog(false)}>Annuler</Button>
+                <Button
+                  onClick={handleAddEpi}
+                  disabled={isSavingModuleState}
+                  data-testid="button-save-epi"
+                >
+                  {isSavingModuleState ? "Enregistrement..." : "Enregistrer"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -409,7 +449,7 @@ export function EPIManagement() {
                 <CardTitle>Inventaire EPI</CardTitle>
                 <CardDescription>Suivi des stocks d'équipements de protection</CardDescription>
               </div>
-              <Button variant="outline" data-testid="button-export-inventory">
+              <Button variant="outline" disabled title="Bientôt disponible" data-testid="button-export-inventory">
                 <Download className="w-4 h-4 mr-2" />
                 Exporter
               </Button>
@@ -429,6 +469,15 @@ export function EPIManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {filteredInventory.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                        {inventory.length === 0
+                          ? "Aucun EPI pour le moment. Ajoutez le premier équipement."
+                          : "Aucun EPI ne correspond à cette recherche."}
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {filteredInventory.map((epi) => {
                     const stockStatus = getStockStatus(epi.stockAvailable, epi.minStock);
                     const category = epiCategories.find((c) => c.id === epi.category);
@@ -475,10 +524,125 @@ export function EPIManagement() {
                 <CardTitle>Attributions EPI</CardTitle>
                 <CardDescription>Équipements attribués aux employés</CardDescription>
               </div>
-              <Button data-testid="button-new-allocation">
-                <Plus className="w-4 h-4 mr-2" />
-                Nouvelle attribution
-              </Button>
+              <Dialog
+                open={showAllocationDialog}
+                onOpenChange={(open) => {
+                  setShowAllocationDialog(open);
+                  if (!open) setAllocationForm(emptyAllocationForm);
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button data-testid="button-new-allocation">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nouvelle attribution
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Nouvelle attribution</DialogTitle>
+                    <DialogDescription>Attribuez un équipement de protection à un employé</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="allocation-employee">Employé</Label>
+                        <Select
+                          value={allocationForm.employeeId}
+                          onValueChange={(v) => {
+                            const employee = rosterEmployees.find((e) => e.id.toString() === v);
+                            setAllocationForm({
+                              ...allocationForm,
+                              employeeId: v,
+                              employeeName: employee?.name ?? "",
+                              employeeRole: employee?.position ?? allocationForm.employeeRole,
+                            });
+                          }}
+                          disabled={rosterEmployees.length === 0}
+                        >
+                          <SelectTrigger id="allocation-employee" data-testid="select-allocation-employee">
+                            <SelectValue placeholder={rosterEmployees.length === 0 ? "Aucun employé enregistré" : "Sélectionner un employé"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {rosterEmployees.map((employee) => (
+                              <SelectItem key={employee.id} value={employee.id.toString()}>{employee.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="allocation-role">Poste</Label>
+                        <Input
+                          id="allocation-role"
+                          placeholder="Ex: Opérateur Engin"
+                          value={allocationForm.employeeRole}
+                          onChange={(e) => setAllocationForm({ ...allocationForm, employeeRole: e.target.value })}
+                          data-testid="input-allocation-role"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="allocation-epi">Équipement</Label>
+                        <Select
+                          value={allocationForm.epiId}
+                          onValueChange={(v) => setAllocationForm({ ...allocationForm, epiId: v })}
+                        >
+                          <SelectTrigger data-testid="select-allocation-epi">
+                            <SelectValue placeholder="Sélectionner" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inventory.map((epi) => (
+                              <SelectItem key={epi.id} value={epi.id}>{epi.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="allocation-size">Taille</Label>
+                        <Input
+                          id="allocation-size"
+                          placeholder="Ex: L, 43, XL"
+                          value={allocationForm.size}
+                          onChange={(e) => setAllocationForm({ ...allocationForm, size: e.target.value })}
+                          data-testid="input-allocation-size"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="allocation-site">Site</Label>
+                        <Input
+                          id="allocation-site"
+                          placeholder="Nom du site"
+                          value={allocationForm.site}
+                          onChange={(e) => setAllocationForm({ ...allocationForm, site: e.target.value })}
+                          data-testid="input-allocation-site"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="allocation-date">Date d'attribution</Label>
+                        <Input
+                          id="allocation-date"
+                          type="date"
+                          value={allocationForm.allocatedDate}
+                          onChange={(e) => setAllocationForm({ ...allocationForm, allocatedDate: e.target.value })}
+                          data-testid="input-allocation-date"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAllocationDialog(false)}>Annuler</Button>
+                    <Button
+                      onClick={handleAddAllocation}
+                      disabled={isSavingModuleState}
+                      data-testid="button-save-allocation"
+                    >
+                      {isSavingModuleState ? "Enregistrement..." : "Attribuer"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -494,7 +658,14 @@ export function EPIManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockAllocations.map((allocation) => (
+                  {allocations.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                        Aucune attribution pour le moment.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {allocations.map((allocation) => (
                     <TableRow key={allocation.id} data-testid={`row-allocation-${allocation.id}`}>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -534,33 +705,11 @@ export function EPIManagement() {
               <CardTitle>Non-conformités EPI</CardTitle>
               <CardDescription>Suivi des incidents liés aux équipements de protection</CardDescription>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Employé</TableHead>
-                    <TableHead>Site</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Sévérité</TableHead>
-                    <TableHead>Statut</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockNonConformities.map((nc) => (
-                    <TableRow key={nc.id} data-testid={`row-nc-${nc.id}`}>
-                      <TableCell>{new Date(nc.date).toLocaleDateString("fr-FR")}</TableCell>
-                      <TableCell className="font-medium">{nc.employee}</TableCell>
-                      <TableCell>{nc.site}</TableCell>
-                      <TableCell>{nc.type}</TableCell>
-                      <TableCell className="max-w-xs truncate">{nc.description}</TableCell>
-                      <TableCell>{getSeverityBadge(nc.severity)}</TableCell>
-                      <TableCell>{getStatusBadge(nc.status)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <CardContent>
+              <div className="text-center py-12 text-muted-foreground">
+                <AlertTriangle className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p>Le signalement des non-conformités sera bientôt disponible</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

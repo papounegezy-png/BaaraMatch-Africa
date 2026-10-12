@@ -96,7 +96,7 @@ const menuSections: MenuSection[] = [
         label: "Tableau de bord",
         subItems: [
           { href: "/company/dashboard", icon: Target, label: "Vue d'ensemble" },
-          { href: "/company/dashboard/alerts", icon: Bell, label: "Alertes" },
+          { href: "/notifications", icon: Bell, label: "Alertes" },
           { href: "/company/dashboard/kpis", icon: TrendingUp, label: "KPIs RH" },
         ],
       },
@@ -126,6 +126,11 @@ const menuSections: MenuSection[] = [
           { href: "/company/applications/shortlist", icon: CheckCircle2, label: "Présélectionnées" },
           { href: "/company/applications/rejected", icon: XCircle, label: "Refusées" },
         ],
+      },
+      {
+        href: "/company/calendar",
+        icon: CalendarDays,
+        label: "Calendrier",
       },
       {
         href: "/company/pipeline",

@@ -92,7 +92,8 @@ export function NewCandidateForm() {
     phone: "",
     whatsappNumber: "",
     city: "",
-    country: "Sénégal",
+    // Left empty unless the agency types it — no assumed country.
+    country: "",
     title: "",
     bio: "",
     skills: [] as string[],
@@ -366,7 +367,7 @@ export function NewCandidateForm() {
                 <Label htmlFor="country">Pays</Label>
                 <Input
                   id="country"
-                  placeholder="Sénégal"
+                  placeholder="Ex. Mali"
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   data-testid="input-country"

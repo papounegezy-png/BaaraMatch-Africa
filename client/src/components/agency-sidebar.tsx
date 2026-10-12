@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { 
+import {
+  FolderKanban,
   LayoutDashboard, 
   Users, 
   Building2,
@@ -18,7 +19,6 @@ import {
   Target,
   Calendar,
   History,
-  Zap,
   Building,
   Phone,
   ClipboardList,
@@ -101,12 +101,6 @@ const menuSections: MenuSection[] = [
         href: "/agency/dashboard",
         icon: LayoutDashboard,
         label: "Tableau de bord",
-        subItems: [
-          { href: "/agency/dashboard", icon: Target, label: "Indicateurs clés" },
-          { href: "/agency/dashboard/placements", icon: UserCheck, label: "Placements" },
-          { href: "/agency/dashboard/alerts", icon: Bell, label: "Alertes" },
-          { href: "/agency/dashboard/stats", icon: BarChart3, label: "Statistiques" },
-        ],
       },
     ],
   },
@@ -121,10 +115,11 @@ const menuSections: MenuSection[] = [
           { href: "/agency/candidates", icon: FolderOpen, label: "Base de données" },
           { href: "/agency/candidates/create", icon: UserPlus, label: "Nouveau candidat" },
           { href: "/agency/candidates/documents", icon: FileText, label: "CV & pièces jointes" },
-          { href: "/agency/candidates/skills", icon: Star, label: "Compétences" },
-          { href: "/agency/candidates/availability", icon: Calendar, label: "Disponibilités" },
           { href: "/agency/candidates/history", icon: History, label: "Historique placements" },
-          { href: "/agency/candidates/matching", icon: Zap, label: "Matching automatique" },
+          // Masqué tant que le matching automatique n'est pas opérationnel : l'URL
+          // redirige vers la base candidats (voir AGENCY_CANDIDATE_REDIRECTS dans
+          // agency-dashboard.tsx). Pour le réactiver, décommenter et brancher une vraie page.
+          // { href: "/agency/candidates/matching", icon: Zap, label: "Matching automatique" },
         ],
       },
       {
@@ -138,6 +133,16 @@ const menuSections: MenuSection[] = [
           { href: "/agency/companies/contracts", icon: FileCheck, label: "Contrats & accords" },
           { href: "/agency/companies/history", icon: History, label: "Historique missions" },
         ],
+      },
+      {
+        href: "/agency/calendar",
+        icon: Calendar,
+        label: "Calendrier",
+      },
+      {
+        href: "/agency/pipeline",
+        icon: FolderKanban,
+        label: "Pipeline",
       },
       {
         href: "/agency/missions",
@@ -267,6 +272,17 @@ export function AgencySidebar() {
   const { user } = useAuth();
   const [openMenus, setOpenMenus] = useState<string[]>(["Tableau de bord"]);
 
+  // Unfold the section holding the current page on every navigation, so its
+  // highlighted entry is visible — the user can still fold it by hand.
+  useEffect(() => {
+    const activeSection = menuSections
+      .flatMap((section) => section.items)
+      .find((item) => item.subItems?.some((sub) => location === sub.href || location.startsWith(sub.href + "/")));
+    if (activeSection) {
+      setOpenMenus((prev) => (prev.includes(activeSection.label) ? prev : [...prev, activeSection.label]));
+    }
+  }, [location]);
+
   const getInitials = (name: string) => {
     return name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
   };
@@ -286,6 +302,16 @@ export function AgencySidebar() {
 
   const isActive = (href: string) => {
     return location === href || location.startsWith(href + "/");
+  };
+
+  // Only the most specific matching sibling is highlighted: on
+  // /agency/companies/contracts, "Fiches entreprises" (/agency/companies)
+  // also prefix-matches, but "Contrats & accords" is the page actually open.
+  const isActiveSubItem = (href: string, siblings: SubMenuItem[]) => {
+    const best = siblings
+      .filter((sibling) => isActive(sibling.href))
+      .sort((left, right) => right.href.length - left.href.length)[0];
+    return best?.href === href;
   };
 
   const hasActiveChild = (subItems?: SubMenuItem[]) => {
@@ -360,7 +386,7 @@ export function AgencySidebar() {
                           <CollapsibleContent>
                             <SidebarMenuSub className="group-data-[collapsible=icon]:hidden ml-4 mt-1 space-y-0.5 border-l pl-3">
                               {item.subItems?.map((subItem) => {
-                                const subItemActive = isActive(subItem.href);
+                                const subItemActive = isActiveSubItem(subItem.href, item.subItems!);
                                 return (
                                   <SidebarMenuSubItem key={subItem.href}>
                                     <SidebarMenuSubButton

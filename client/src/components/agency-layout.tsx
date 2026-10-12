@@ -3,9 +3,10 @@ import { AgencySidebar } from "@/components/agency-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bell, Search, LogOut } from "lucide-react";
+import { Search, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
+import { NotificationBell } from "@/components/notification-bell";
 
 interface AgencyLayoutProps {
   children: React.ReactNode;
@@ -43,15 +44,7 @@ export function AgencyLayout({ children }: AgencyLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="relative"
-                data-testid="button-notifications"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full" />
-              </Button>
+              <NotificationBell iconClassName="h-5 w-5" />
               <ThemeToggle />
               <Button 
                 variant="ghost" 

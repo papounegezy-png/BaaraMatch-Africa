@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SendMessageDialog } from "@/components/send-message-dialog";
 import {
   ArrowLeft,
   Mail,
@@ -34,20 +35,26 @@ import type { User, CandidateProfile } from "@shared/schema";
 
 interface CandidateProfileViewProps {
   candidateId: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
-export function CandidateProfileView({ candidateId }: CandidateProfileViewProps) {
+export function CandidateProfileView({ candidateId, backHref = "/agency/candidates", backLabel = "Retour aux candidats" }: CandidateProfileViewProps) {
   const [, setLocation] = useLocation();
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data: candidate, isLoading, error } = useQuery<User & { profile?: CandidateProfile }>({
     queryKey: ['/api/candidates', candidateId],
     queryFn: async () => {
       const response = await fetch(`/api/candidates/${candidateId}`);
-      if (!response.ok) throw new Error("Candidat non trouvé");
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message || "Candidat non trouvé");
+      }
       return response.json();
     },
   });
@@ -112,15 +119,17 @@ export function CandidateProfileView({ candidateId }: CandidateProfileViewProps)
   if (error || !candidate) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Candidat non trouvé</p>
-        <Button 
-          variant="outline" 
+        <p className="text-muted-foreground" role="alert">
+          {error instanceof Error ? error.message : "Candidat non trouvé"}
+        </p>
+        <Button
+          variant="outline"
           className="mt-4"
-          onClick={() => setLocation("/agency/candidates")}
+          onClick={() => setLocation(backHref)}
           data-testid="button-back-to-candidates"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Retour aux candidats
+          {backLabel}
         </Button>
       </div>
     );
@@ -132,10 +141,10 @@ export function CandidateProfileView({ candidateId }: CandidateProfileViewProps)
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
-            onClick={() => setLocation("/agency/candidates")}
+            onClick={() => setLocation(backHref)}
             data-testid="button-back"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -150,7 +159,7 @@ export function CandidateProfileView({ candidateId }: CandidateProfileViewProps)
             <Edit className="h-4 w-4 mr-2" />
             Modifier
           </Button>
-          <Button data-testid="button-contact-candidate-profile">
+          <Button onClick={() => setIsMessageOpen(true)} data-testid="button-contact-candidate-profile">
             <MessageSquare className="h-4 w-4 mr-2" />
             Contacter
           </Button>
@@ -507,6 +516,13 @@ export function CandidateProfileView({ candidateId }: CandidateProfileViewProps)
           </Card>
         </div>
       </div>
+
+      <SendMessageDialog
+        candidateId={candidate.id}
+        candidateName={candidate.fullName}
+        open={isMessageOpen}
+        onOpenChange={setIsMessageOpen}
+      />
     </div>
   );
 }

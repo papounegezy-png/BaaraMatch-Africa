@@ -1,9 +1,28 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+export type ApiError = Error & { status: number };
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    // Every route in this app responds with {"message": "..."} on error —
+    // surface that clean text instead of gluing the status code onto the
+    // raw (often-JSON) body, which is what every caller's error.message
+    // ends up showing a user (toast, dialog, etc).
+    let message = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed.message === "string") {
+        message = parsed.message;
+      }
+    } catch {
+      // Not JSON — fall back to the raw text as-is.
+    }
+    // Attaching the status lets a caller distinguish e.g. a 403 permission
+    // gate from a generic failure without parsing the message text.
+    const error = new Error(message) as ApiError;
+    error.status = res.status;
+    throw error;
   }
 }
 

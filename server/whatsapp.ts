@@ -4,7 +4,7 @@ import { generateCandidateEmbedding } from "./embeddings";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-interface WhatsAppMessage {
+export interface WhatsAppMessage {
   from: string;
   id: string;
   timestamp: string;
@@ -174,16 +174,25 @@ export function calculateProfileCompleteness(profile: {
   return score;
 }
 
-export async function sendWhatsAppMessage(
-  phoneNumber: string,
-  message: string
-): Promise<boolean> {
+export type WhatsAppSendResult =
+  | { ok: true }
+  | { ok: false; errorCode: number | null; error: string };
+
+// Meta Cloud API error codes meaning "this message can't go out right now
+// because of the 24h window / template rules" — as opposed to a real
+// failure (bad number, credentials, rate limit...):
+// - 131047: re-engagement message — more than 24h since the user last wrote
+// - 132001: template does not exist (or not in that language)
+// - 132015 / 132016: template paused / disabled by Meta
+export const WHATSAPP_WINDOW_ERROR_CODES = new Set([131047, 132001, 132015, 132016]);
+
+async function postWhatsAppMessage(payload: Record<string, unknown>): Promise<WhatsAppSendResult> {
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
   if (!accessToken || !phoneNumberId) {
     console.error("WhatsApp credentials not configured");
-    return false;
+    return { ok: false, errorCode: null, error: "WhatsApp credentials not configured" };
   }
 
   try {
@@ -195,27 +204,55 @@ export async function sendWhatsAppMessage(
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: phoneNumber,
-          type: "text",
-          text: { body: message },
-        }),
+        body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...payload }),
       }
     );
 
     if (!response.ok) {
       const error = await response.text();
       console.error("Failed to send WhatsApp message:", error);
-      return false;
+      let errorCode: number | null = null;
+      try {
+        errorCode = (JSON.parse(error) as { error?: { code?: number } }).error?.code ?? null;
+      } catch {
+        // non-JSON error body — keep the raw text only
+      }
+      return { ok: false, errorCode, error };
     }
 
-    return true;
+    return { ok: true };
   } catch (error) {
     console.error("Error sending WhatsApp message:", error);
-    return false;
+    return { ok: false, errorCode: null, error: String(error) };
   }
+}
+
+/** Free-form text — only deliverable inside the 24h service window. */
+export function sendWhatsAppText(phoneNumber: string, message: string): Promise<WhatsAppSendResult> {
+  return postWhatsAppMessage({ to: phoneNumber, type: "text", text: { body: message } });
+}
+
+/** Pre-approved template — the only way to write first outside the window. */
+export function sendWhatsAppTemplate(
+  phoneNumber: string,
+  template: { name: string; language: string; bodyParams: string[] },
+): Promise<WhatsAppSendResult> {
+  return postWhatsAppMessage({
+    to: phoneNumber,
+    type: "template",
+    template: {
+      name: template.name,
+      language: { code: template.language },
+      components: [{ type: "body", parameters: template.bodyParams.map((text) => ({ type: "text", text })) }],
+    },
+  });
+}
+
+export async function sendWhatsAppMessage(
+  phoneNumber: string,
+  message: string
+): Promise<boolean> {
+  return (await sendWhatsAppText(phoneNumber, message)).ok;
 }
 
 export async function processVoiceCVMessage(

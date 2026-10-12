@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { useOperationalModuleState } from "@/hooks/use-operational-module-state";
 import {
   FileCheck,
   Search,
@@ -18,7 +20,6 @@ import {
   CheckCircle,
   Clock,
   Calendar,
-  User,
   Shield,
   Car,
   Zap,
@@ -29,158 +30,50 @@ import {
   XCircle,
 } from "lucide-react";
 
-const mockCertifications = [
-  {
-    id: "1",
-    employeeId: "emp1",
-    employeeName: "Ousmane Ba",
-    type: "CACES R489",
-    category: "Engins de chantier",
-    issueDate: "2024-03-15",
-    expiryDate: "2026-03-15",
-    status: "valid",
-    issuedBy: "AFPA Sénégal",
-    documentUrl: "/docs/caces_oba.pdf",
-  },
-  {
-    id: "2",
-    employeeId: "emp2",
-    employeeName: "Aminata Diop",
-    type: "Habilitation électrique B2V",
-    category: "Électrique",
-    issueDate: "2025-01-10",
-    expiryDate: "2026-01-10",
-    status: "expiring_soon",
-    issuedBy: "APAVE",
-    documentUrl: "/docs/hab_elec_adiop.pdf",
-  },
-  {
-    id: "3",
-    employeeId: "emp3",
-    employeeName: "Moussa Fall",
-    type: "Permis C",
-    category: "Conduite",
-    issueDate: "2020-06-20",
-    expiryDate: "2025-06-20",
-    status: "expired",
-    issuedBy: "Préfecture de Dakar",
-    documentUrl: "/docs/permis_mfall.pdf",
-  },
-  {
-    id: "4",
-    employeeId: "emp4",
-    employeeName: "Cheikh Sy",
-    type: "Soudeur TIG/MIG",
-    category: "Soudure",
-    issueDate: "2024-09-01",
-    expiryDate: "2027-09-01",
-    status: "valid",
-    issuedBy: "Bureau Veritas",
-    documentUrl: "/docs/soudeur_csy.pdf",
-  },
-  {
-    id: "5",
-    employeeId: "emp5",
-    employeeName: "Aissatou Bah",
-    type: "SST (Sauveteur Secouriste)",
-    category: "Sécurité",
-    issueDate: "2025-06-15",
-    expiryDate: "2027-06-15",
-    status: "valid",
-    issuedBy: "Croix Rouge",
-    documentUrl: "/docs/sst_abah.pdf",
-  },
-];
+interface Certification {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  type: string;
+  category: string;
+  issueDate: string;
+  expiryDate: string;
+  status: "valid" | "expiring_soon" | "expired";
+  issuedBy: string;
+  documentUrl: string;
+}
 
-const mockMedicalVisits = [
-  {
-    id: "1",
-    employeeId: "emp1",
-    employeeName: "Ousmane Ba",
-    type: "Visite annuelle",
-    aptitude: "Apte",
-    restrictions: null,
-    visitDate: "2025-11-20",
-    nextVisit: "2026-11-20",
-    doctor: "Dr. Ndiaye",
-    status: "valid",
-  },
-  {
-    id: "2",
-    employeeId: "emp2",
-    employeeName: "Aminata Diop",
-    type: "Visite annuelle",
-    aptitude: "Apte avec restrictions",
-    restrictions: "Port de charges < 15kg",
-    visitDate: "2025-10-05",
-    nextVisit: "2026-04-05",
-    doctor: "Dr. Sarr",
-    status: "valid",
-  },
-  {
-    id: "3",
-    employeeId: "emp3",
-    employeeName: "Moussa Fall",
-    type: "Visite annuelle",
-    aptitude: "En attente",
-    restrictions: null,
-    visitDate: null,
-    nextVisit: "2026-01-15",
-    doctor: null,
-    status: "pending",
-  },
-  {
-    id: "4",
-    employeeId: "emp6",
-    employeeName: "Ibrahim Diallo",
-    type: "Aptitude travail en hauteur",
-    aptitude: "Apte",
-    restrictions: null,
-    visitDate: "2025-12-10",
-    nextVisit: "2026-12-10",
-    doctor: "Dr. Ndiaye",
-    status: "valid",
-  },
-];
+type MedicalVisit = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  type: string;
+  aptitude: string;
+  restrictions: string | null;
+  visitDate: string | null;
+  nextVisit: string;
+  doctor: string | null;
+  status: string;
+};
 
-const mockAlerts = [
-  {
-    id: "1",
-    type: "expiry",
-    title: "Habilitation électrique B2V expire bientôt",
-    employee: "Aminata Diop",
-    date: "2026-01-10",
-    daysRemaining: 8,
-    severity: "warning",
-  },
-  {
-    id: "2",
-    type: "expired",
-    title: "Permis C expiré",
-    employee: "Moussa Fall",
-    date: "2025-06-20",
-    daysRemaining: -220,
-    severity: "error",
-  },
-  {
-    id: "3",
-    type: "medical",
-    title: "Visite médicale à planifier",
-    employee: "Moussa Fall",
-    date: "2026-01-15",
-    daysRemaining: 13,
-    severity: "warning",
-  },
-  {
-    id: "4",
-    type: "renewal",
-    title: "Renouvellement SST recommandé",
-    employee: "Aissatou Bah",
-    date: "2027-06-15",
-    daysRemaining: 530,
-    severity: "info",
-  },
-];
+interface CertEmployee {
+  id: number;
+  name: string;
+}
+
+// Compliance alerts (expiring/expired certifications, pending medical
+// visits) are derived live from real certifications/medicalVisits data
+// rather than stored as their own separately-editable list — a compliance
+// alert should disappear because the underlying record was actually
+// renewed, not because someone dismissed a notification.
+interface DerivedAlert {
+  id: string;
+  title: string;
+  employee: string;
+  date: string;
+  daysRemaining: number;
+  severity: "warning" | "error";
+}
 
 const certificationTypes = [
   { id: "caces", name: "CACES", icon: Car, color: "bg-blue-500" },
@@ -190,12 +83,84 @@ const certificationTypes = [
   { id: "medical", name: "Médical", icon: HeartPulse, color: "bg-pink-500" },
 ];
 
+const emptyCertificationForm = {
+  employeeId: "",
+  certType: "",
+  issueDate: "",
+  expiryDate: "",
+  issuedBy: "",
+};
+
+const emptyMedicalVisitForm = {
+  employeeId: "",
+  type: "",
+  nextVisit: "",
+  doctor: "",
+};
+
+function computeCertificationStatus(expiryDate: string): "valid" | "expiring_soon" | "expired" {
+  if (!expiryDate) return "valid";
+  const expiry = new Date(expiryDate);
+  const now = new Date();
+  const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return "expired";
+  if (diffDays <= 30) return "expiring_soon";
+  return "valid";
+}
+
 export function CertificationsManagement() {
+  const { toast } = useToast();
+  const { moduleState, saveModuleState, isSavingModuleState } = useOperationalModuleState("certifications", {
+    certifications: [] as Certification[],
+    medicalVisits: [] as MedicalVisit[],
+  });
+  const certifications = moduleState.certifications ?? [];
+  const medicalVisits = moduleState.medicalVisits ?? [];
+  // Read-only: sources the "Employé" picker from the real employee
+  // directory (see employee-management.tsx) instead of a hardcoded list.
+  const { moduleState: employeeModuleState } = useOperationalModuleState("employee", {
+    employees: [] as CertEmployee[],
+  });
+  const rosterEmployees = employeeModuleState.employees ?? [];
+
+  const derivedAlerts: DerivedAlert[] = [
+    ...certifications
+      .filter((c) => c.status === "expiring_soon" || c.status === "expired")
+      .map((c): DerivedAlert => {
+        const daysRemaining = Math.ceil((new Date(c.expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        return {
+          id: `cert-${c.id}`,
+          title: c.status === "expired" ? `${c.type} expiré` : `${c.type} expire bientôt`,
+          employee: c.employeeName,
+          date: c.expiryDate,
+          daysRemaining,
+          severity: c.status === "expired" ? "error" : "warning",
+        };
+      }),
+    ...medicalVisits
+      .filter((v) => v.status === "pending")
+      .map((v): DerivedAlert => {
+        const daysRemaining = Math.ceil((new Date(v.nextVisit).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        return {
+          id: `medical-${v.id}`,
+          title: `Visite médicale à planifier : ${v.type}`,
+          employee: v.employeeName,
+          date: v.nextVisit,
+          daysRemaining,
+          severity: "warning",
+        };
+      }),
+  ].sort((a, b) => a.daysRemaining - b.daysRemaining);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("certifications");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showAddCertDialog, setShowAddCertDialog] = useState(false);
+  const [certificationForm, setCertificationForm] = useState(emptyCertificationForm);
+  const [showAddMedicalDialog, setShowAddMedicalDialog] = useState(false);
+  const [medicalVisitForm, setMedicalVisitForm] = useState(emptyMedicalVisitForm);
 
-  const filteredCertifications = mockCertifications.filter((cert) => {
+  const filteredCertifications = certifications.filter((cert) => {
     const matchesSearch =
       cert.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cert.type.toLowerCase().includes(searchTerm.toLowerCase());
@@ -234,10 +199,112 @@ export function CertificationsManagement() {
   };
 
   const stats = {
-    total: mockCertifications.length,
-    valid: mockCertifications.filter((c) => c.status === "valid").length,
-    expiringSoon: mockCertifications.filter((c) => c.status === "expiring_soon").length,
-    expired: mockCertifications.filter((c) => c.status === "expired").length,
+    total: certifications.length,
+    valid: certifications.filter((c) => c.status === "valid").length,
+    expiringSoon: certifications.filter((c) => c.status === "expiring_soon").length,
+    expired: certifications.filter((c) => c.status === "expired").length,
+  };
+
+  const handleAddCertification = async () => {
+    if (
+      !certificationForm.employeeId ||
+      !certificationForm.certType ||
+      !certificationForm.issueDate ||
+      !certificationForm.expiryDate
+    ) {
+      toast({
+        title: "Champs requis",
+        description: "L'employé, le type, la date d'émission et la date d'expiration sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const employee = rosterEmployees.find((e) => e.id.toString() === certificationForm.employeeId);
+    const certTypeInfo = certificationTypes.find((t) => t.id === certificationForm.certType);
+    const nextId = (
+      certifications.reduce((max, c) => Math.max(max, parseInt(c.id, 10) || 0), 0) + 1
+    ).toString();
+
+    const newCertification: Certification = {
+      id: nextId,
+      employeeId: certificationForm.employeeId,
+      employeeName: employee?.name ?? "",
+      type: certTypeInfo?.name ?? certificationForm.certType,
+      category: certTypeInfo?.name ?? certificationForm.certType,
+      issueDate: certificationForm.issueDate,
+      expiryDate: certificationForm.expiryDate,
+      status: computeCertificationStatus(certificationForm.expiryDate),
+      issuedBy: certificationForm.issuedBy.trim(),
+      documentUrl: "",
+    };
+
+    try {
+      await saveModuleState({
+        certifications: [...certifications, newCertification],
+        medicalVisits,
+      });
+      toast({
+        title: "Certification ajoutée",
+        description: "La nouvelle certification a été enregistrée avec succès.",
+      });
+      setCertificationForm(emptyCertificationForm);
+      setShowAddCertDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer la certification.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddMedicalVisit = async () => {
+    if (!medicalVisitForm.employeeId || !medicalVisitForm.type.trim() || !medicalVisitForm.nextVisit) {
+      toast({
+        title: "Champs requis",
+        description: "L'employé, le type de visite et la prochaine visite sont obligatoires.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const employee = rosterEmployees.find((e) => e.id.toString() === medicalVisitForm.employeeId);
+    const nextId = (
+      medicalVisits.reduce((max, v) => Math.max(max, parseInt(v.id, 10) || 0), 0) + 1
+    ).toString();
+
+    const newVisit: MedicalVisit = {
+      id: nextId,
+      employeeId: medicalVisitForm.employeeId,
+      employeeName: employee?.name ?? "",
+      type: medicalVisitForm.type.trim(),
+      aptitude: "En attente",
+      restrictions: null,
+      visitDate: null,
+      nextVisit: medicalVisitForm.nextVisit,
+      doctor: medicalVisitForm.doctor.trim() || null,
+      status: "pending",
+    };
+
+    try {
+      await saveModuleState({
+        certifications,
+        medicalVisits: [...medicalVisits, newVisit],
+      });
+      toast({
+        title: "Visite planifiée",
+        description: "La visite médicale a été planifiée avec succès.",
+      });
+      setMedicalVisitForm(emptyMedicalVisitForm);
+      setShowAddMedicalDialog(false);
+    } catch {
+      toast({
+        title: "Erreur",
+        description: "Impossible de planifier la visite médicale.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -258,7 +325,7 @@ export function CertificationsManagement() {
               data-testid="input-search-certifications"
             />
           </div>
-          <Dialog>
+          <Dialog open={showAddCertDialog} onOpenChange={setShowAddCertDialog}>
             <DialogTrigger asChild>
               <Button data-testid="button-add-certification">
                 <Plus className="w-4 h-4 mr-2" />
@@ -273,21 +340,28 @@ export function CertificationsManagement() {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="employee">Employé</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un employé" />
+                  <Select
+                    value={certificationForm.employeeId}
+                    onValueChange={(v) => setCertificationForm({ ...certificationForm, employeeId: v })}
+                    disabled={rosterEmployees.length === 0}
+                  >
+                    <SelectTrigger id="employee" data-testid="select-certification-employee">
+                      <SelectValue placeholder={rosterEmployees.length === 0 ? "Aucun employé enregistré" : "Sélectionner un employé"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="emp1">Ousmane Ba</SelectItem>
-                      <SelectItem value="emp2">Aminata Diop</SelectItem>
-                      <SelectItem value="emp3">Moussa Fall</SelectItem>
+                      {rosterEmployees.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="cert-type">Type de certification</Label>
-                  <Select>
-                    <SelectTrigger>
+                  <Select
+                    value={certificationForm.certType}
+                    onValueChange={(v) => setCertificationForm({ ...certificationForm, certType: v })}
+                  >
+                    <SelectTrigger id="cert-type" data-testid="select-certification-type">
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
@@ -302,20 +376,42 @@ export function CertificationsManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="issue-date">Date d'émission</Label>
-                    <Input id="issue-date" type="date" />
+                    <Input
+                      id="issue-date"
+                      type="date"
+                      value={certificationForm.issueDate}
+                      onChange={(e) => setCertificationForm({ ...certificationForm, issueDate: e.target.value })}
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="expiry-date">Date d'expiration</Label>
-                    <Input id="expiry-date" type="date" />
+                    <Input
+                      id="expiry-date"
+                      type="date"
+                      value={certificationForm.expiryDate}
+                      onChange={(e) => setCertificationForm({ ...certificationForm, expiryDate: e.target.value })}
+                    />
                   </div>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="issuer">Organisme émetteur</Label>
-                  <Input id="issuer" placeholder="Ex: AFPA, Bureau Veritas..." />
+                  <Input
+                    id="issuer"
+                    placeholder="Ex: AFPA, Bureau Veritas..."
+                    value={certificationForm.issuedBy}
+                    onChange={(e) => setCertificationForm({ ...certificationForm, issuedBy: e.target.value })}
+                  />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" data-testid="button-save-certification">Enregistrer</Button>
+                <Button variant="outline" onClick={() => setShowAddCertDialog(false)}>Annuler</Button>
+                <Button
+                  onClick={handleAddCertification}
+                  disabled={isSavingModuleState}
+                  data-testid="button-save-certification"
+                >
+                  {isSavingModuleState ? "Enregistrement..." : "Enregistrer"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -340,7 +436,7 @@ export function CertificationsManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.valid}</div>
-            <Progress value={(stats.valid / stats.total) * 100} className="h-1.5 mt-2" />
+            <Progress value={stats.total > 0 ? (stats.valid / stats.total) * 100 : 0} className="h-1.5 mt-2" />
           </CardContent>
         </Card>
         <Card>
@@ -378,9 +474,9 @@ export function CertificationsManagement() {
           <TabsTrigger value="alerts" data-testid="tab-alerts">
             <Bell className="w-4 h-4 mr-2" />
             Alertes
-            {mockAlerts.filter((a) => a.severity !== "info").length > 0 && (
+            {derivedAlerts.length > 0 && (
               <Badge variant="destructive" className="ml-2">
-                {mockAlerts.filter((a) => a.severity !== "info").length}
+                {derivedAlerts.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -406,7 +502,7 @@ export function CertificationsManagement() {
                     <SelectItem value="expired">Expirées</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" data-testid="button-export-certifications">
+                <Button variant="outline" disabled title="Bientôt disponible" data-testid="button-export-certifications">
                   <Download className="w-4 h-4 mr-2" />
                   Exporter
                 </Button>
@@ -426,6 +522,15 @@ export function CertificationsManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {filteredCertifications.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                        {certifications.length === 0
+                          ? "Aucune certification pour le moment. Ajoutez la première."
+                          : "Aucune certification ne correspond à ce filtre."}
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {filteredCertifications.map((cert) => (
                     <TableRow key={cert.id} data-testid={`row-certification-${cert.id}`}>
                       <TableCell>
@@ -459,10 +564,78 @@ export function CertificationsManagement() {
                 <CardTitle>Visites médicales</CardTitle>
                 <CardDescription>Suivi des aptitudes et visites médicales obligatoires</CardDescription>
               </div>
-              <Button data-testid="button-add-medical-visit">
-                <Plus className="w-4 h-4 mr-2" />
-                Planifier visite
-              </Button>
+              <Dialog open={showAddMedicalDialog} onOpenChange={setShowAddMedicalDialog}>
+                <DialogTrigger asChild>
+                  <Button data-testid="button-add-medical-visit">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Planifier visite
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Planifier une visite médicale</DialogTitle>
+                    <DialogDescription>Programmez une nouvelle visite médicale pour un employé</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="medical-employee">Employé</Label>
+                      <Select
+                        value={medicalVisitForm.employeeId}
+                        onValueChange={(v) => setMedicalVisitForm({ ...medicalVisitForm, employeeId: v })}
+                        disabled={rosterEmployees.length === 0}
+                      >
+                        <SelectTrigger id="medical-employee" data-testid="select-medical-employee">
+                          <SelectValue placeholder={rosterEmployees.length === 0 ? "Aucun employé enregistré" : "Sélectionner un employé"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {rosterEmployees.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id.toString()}>{emp.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="medical-type">Type de visite</Label>
+                      <Input
+                        id="medical-type"
+                        placeholder="Ex: Visite annuelle, Aptitude travail en hauteur..."
+                        value={medicalVisitForm.type}
+                        onChange={(e) => setMedicalVisitForm({ ...medicalVisitForm, type: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="medical-next-visit">Prochaine visite</Label>
+                        <Input
+                          id="medical-next-visit"
+                          type="date"
+                          value={medicalVisitForm.nextVisit}
+                          onChange={(e) => setMedicalVisitForm({ ...medicalVisitForm, nextVisit: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="medical-doctor">Médecin</Label>
+                        <Input
+                          id="medical-doctor"
+                          placeholder="Dr. ..."
+                          value={medicalVisitForm.doctor}
+                          onChange={(e) => setMedicalVisitForm({ ...medicalVisitForm, doctor: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowAddMedicalDialog(false)}>Annuler</Button>
+                    <Button
+                      onClick={handleAddMedicalVisit}
+                      disabled={isSavingModuleState}
+                      data-testid="button-save-medical-visit"
+                    >
+                      {isSavingModuleState ? "Enregistrement..." : "Planifier"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -478,7 +651,14 @@ export function CertificationsManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockMedicalVisits.map((visit) => (
+                  {medicalVisits.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-10">
+                        Aucune visite médicale planifiée pour le moment.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {medicalVisits.map((visit) => (
                     <TableRow key={visit.id} data-testid={`row-medical-${visit.id}`}>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -516,67 +696,47 @@ export function CertificationsManagement() {
         </TabsContent>
 
         <TabsContent value="alerts" className="mt-4">
-          <div className="space-y-4">
-            {mockAlerts.map((alert) => (
-              <Card
-                key={alert.id}
-                className={`border-l-4 ${
-                  alert.severity === "error"
-                    ? "border-l-red-500"
-                    : alert.severity === "warning"
-                    ? "border-l-yellow-500"
-                    : "border-l-blue-500"
-                }`}
-                data-testid={`card-alert-${alert.id}`}
-              >
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        alert.severity === "error"
-                          ? "bg-red-100"
-                          : alert.severity === "warning"
-                          ? "bg-yellow-100"
-                          : "bg-blue-100"
-                      }`}
-                    >
-                      {alert.severity === "error" ? (
-                        <XCircle className="w-5 h-5 text-red-600" />
-                      ) : alert.severity === "warning" ? (
-                        <AlertTriangle className="w-5 h-5 text-yellow-600" />
-                      ) : (
-                        <Bell className="w-5 h-5 text-blue-600" />
-                      )}
+          {derivedAlerts.length === 0 ? (
+            <Card>
+              <CardContent className="py-16 text-center text-muted-foreground">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                <p>Aucune alerte — toutes les certifications et visites médicales sont à jour.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {derivedAlerts.map((alert) => (
+                <Card
+                  key={alert.id}
+                  className={`border-l-4 ${alert.severity === "error" ? "border-l-red-500" : "border-l-yellow-500"}`}
+                  data-testid={`card-alert-${alert.id}`}
+                >
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${alert.severity === "error" ? "bg-red-100" : "bg-yellow-100"}`}>
+                        {alert.severity === "error" ? (
+                          <XCircle className="w-5 h-5 text-red-600" />
+                        ) : (
+                          <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{alert.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {alert.employee} - {new Date(alert.date).toLocaleDateString("fr-FR")}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{alert.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {alert.employee} - {new Date(alert.date).toLocaleDateString("fr-FR")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Badge
-                      variant={
-                        alert.daysRemaining < 0
-                          ? "destructive"
-                          : alert.daysRemaining < 30
-                          ? "secondary"
-                          : "outline"
-                      }
-                    >
+                    <Badge variant={alert.daysRemaining < 0 ? "destructive" : "secondary"}>
                       {alert.daysRemaining < 0
                         ? `Expiré depuis ${Math.abs(alert.daysRemaining)} jours`
                         : `${alert.daysRemaining} jours restants`}
                     </Badge>
-                    <Button size="sm" variant="outline">
-                      Traiter
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -1,8 +1,11 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { initPgVector } from "./init-pgvector";
+import { scheduleMetricsAggregation } from "./metrics-cron";
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,15 +16,21 @@ declare module "http" {
   }
 }
 
+// contentSecurityPolicy is left off: this server also serves the Vite dev client
+// (inline scripts/HMR websocket), and a default CSP would break it. The other
+// headers (frameguard, noSniff, etc.) apply regardless.
+app.use(helmet({ contentSecurityPolicy: false }));
+
 app.use(
   express.json({
+    limit: "25mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: "25mb" }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -61,13 +70,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  try {
-    await initPgVector();
-  } catch (err) {
-    console.error("Failed to initialize pgvector:", err);
-  }
+  // try {
+  //   await initPgVector();
+  // } catch (err) {
+  //   console.error("Failed to initialize pgvector:", err);
+  // }
   
   await registerRoutes(httpServer, app);
+  scheduleMetricsAggregation();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -100,8 +110,6 @@ app.use((req, res, next) => {
   httpServer.listen(
     {
       port,
-      host: "0.0.0.0",
-      reusePort: true,
     },
     () => {
       log(`serving on port ${port}`);

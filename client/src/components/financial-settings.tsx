@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,109 +22,465 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DollarSign,
   Percent,
   CreditCard,
   Building2,
   Receipt,
-  Calendar,
   Save,
   Plus,
   Pencil,
   Trash2,
-  CheckCircle,
-  AlertCircle,
   Wallet,
   FileText,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+
+interface FinancialSettingsData {
+  id: string;
+  agencyId: string;
+  currency: string;
+  invoicePrefix: string;
+  invoiceNextNumber: number;
+  defaultPaymentTerms: number;
+  vatRate: number;
+  autoInvoice: boolean;
+  reminderEnabled: boolean;
+  reminderDays: number;
+  bankName: string | null;
+  accountName: string | null;
+  iban: string | null;
+  bic: string | null;
+  updatedAt: string;
+}
 
 interface CommissionRate {
   id: string;
+  agencyId: string;
   contractType: string;
   rate: number;
-  minAmount: string;
+  minAmount: number | null;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface PaymentMethod {
   id: string;
+  agencyId: string;
   name: string;
-  type: string;
+  type: "bank" | "mobile";
   accountInfo: string;
   isDefault: boolean;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const defaultCommissionRates: CommissionRate[] = [
-  { id: "1", contractType: "CDI", rate: 15, minAmount: "50,000 XOF", isActive: true },
-  { id: "2", contractType: "CDD", rate: 12, minAmount: "30,000 XOF", isActive: true },
-  { id: "3", contractType: "Intérim", rate: 18, minAmount: "25,000 XOF", isActive: true },
-  { id: "4", contractType: "Mission ponctuelle", rate: 20, minAmount: "15,000 XOF", isActive: true },
-  { id: "5", contractType: "Stage", rate: 8, minAmount: "10,000 XOF", isActive: false },
-];
-
-const defaultPaymentMethods: PaymentMethod[] = [
-  { id: "1", name: "Virement bancaire", type: "bank", accountInfo: "BICIS - **** 4521", isDefault: true, isActive: true },
-  { id: "2", name: "Orange Money", type: "mobile", accountInfo: "+221 77 *** ** 45", isDefault: false, isActive: true },
-  { id: "3", name: "Wave", type: "mobile", accountInfo: "+221 76 *** ** 89", isDefault: false, isActive: true },
-];
+const FINANCIAL_SETTINGS_KEY = ["/api/agency/financial-settings"];
+const COMMISSION_RATES_KEY = ["/api/agency/commission-rates"];
+const PAYMENT_METHODS_KEY = ["/api/agency/payment-methods"];
 
 export function FinancialSettings() {
   const { toast } = useToast();
+
+  // ---- General / invoicing / bank settings ----
+  const settingsQuery = useQuery<FinancialSettingsData>({
+    queryKey: FINANCIAL_SETTINGS_KEY,
+  });
+  const settings = settingsQuery.data;
+
   const [currency, setCurrency] = useState("XOF");
-  const [invoicePrefix, setInvoicePrefix] = useState("RHC");
-  const [invoiceNextNumber, setInvoiceNextNumber] = useState("2026-0045");
+  const [invoicePrefix, setInvoicePrefix] = useState("FAC");
   const [paymentTerms, setPaymentTerms] = useState("30");
   const [vatRate, setVatRate] = useState("18");
-  const [autoInvoice, setAutoInvoice] = useState(true);
+  const [autoInvoice, setAutoInvoice] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(true);
   const [reminderDays, setReminderDays] = useState("7");
-  
-  const [commissionRates, setCommissionRates] = useState<CommissionRate[]>(defaultCommissionRates);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(defaultPaymentMethods);
+
+  const [bankName, setBankName] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [iban, setIban] = useState("");
+  const [bic, setBic] = useState("");
+
+  useEffect(() => {
+    if (!settings) return;
+    setCurrency(settings.currency ?? "XOF");
+    setInvoicePrefix(settings.invoicePrefix ?? "FAC");
+    setPaymentTerms(String(settings.defaultPaymentTerms ?? 30));
+    setVatRate(String(settings.vatRate ?? 18));
+    setAutoInvoice(!!settings.autoInvoice);
+    setReminderEnabled(!!settings.reminderEnabled);
+    setReminderDays(String(settings.reminderDays ?? 7));
+    setBankName(settings.bankName ?? "");
+    setAccountName(settings.accountName ?? "");
+    setIban(settings.iban ?? "");
+    setBic(settings.bic ?? "");
+  }, [settings]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (patch: Record<string, unknown>) => {
+      const res = await apiRequest("PATCH", "/api/agency/financial-settings", patch);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FINANCIAL_SETTINGS_KEY });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'enregistrer les paramètres financiers.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSaveGeneral = () => {
-    toast({
-      title: "Paramètres enregistrés",
-      description: "Les paramètres généraux ont été mis à jour avec succès.",
-    });
-  };
-
-  const handleSaveCommissions = () => {
-    toast({
-      title: "Commissions mises à jour",
-      description: "Les taux de commission ont été enregistrés.",
-    });
-  };
-
-  const handleSavePayment = () => {
-    toast({
-      title: "Moyens de paiement mis à jour",
-      description: "Les méthodes de paiement ont été enregistrées.",
-    });
-  };
-
-  const toggleCommissionActive = (id: string) => {
-    setCommissionRates(rates => 
-      rates.map(r => r.id === id ? { ...r, isActive: !r.isActive } : r)
+    updateSettingsMutation.mutate(
+      {
+        currency,
+        invoicePrefix,
+        defaultPaymentTerms: Number(paymentTerms),
+        vatRate: Number(vatRate),
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Paramètres enregistrés",
+            description: "Les paramètres généraux ont été mis à jour avec succès.",
+          });
+        },
+      }
     );
   };
 
-  const togglePaymentActive = (id: string) => {
-    setPaymentMethods(methods =>
-      methods.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m)
+  const handleToggleAutoInvoice = (checked: boolean) => {
+    setAutoInvoice(checked);
+    updateSettingsMutation.mutate(
+      { autoInvoice: checked },
+      { onError: () => setAutoInvoice(!checked) }
     );
   };
 
-  const setDefaultPayment = (id: string) => {
-    setPaymentMethods(methods =>
-      methods.map(m => ({ ...m, isDefault: m.id === id }))
+  const handleToggleReminder = (checked: boolean) => {
+    setReminderEnabled(checked);
+    updateSettingsMutation.mutate(
+      { reminderEnabled: checked },
+      { onError: () => setReminderEnabled(!checked) }
     );
   };
+
+  const handleReminderDaysChange = (value: string) => {
+    const previous = reminderDays;
+    setReminderDays(value);
+    updateSettingsMutation.mutate(
+      { reminderDays: Number(value) },
+      { onError: () => setReminderDays(previous) }
+    );
+  };
+
+  const handleSaveBankInfo = () => {
+    updateSettingsMutation.mutate(
+      {
+        bankName: bankName.trim() || null,
+        accountName: accountName.trim() || null,
+        iban: iban.trim() || null,
+        bic: bic.trim() || null,
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Coordonnées bancaires enregistrées",
+            description: "Les informations bancaires ont été mises à jour.",
+          });
+        },
+      }
+    );
+  };
+
+  // ---- Commission rates ----
+  const commissionRatesQuery = useQuery<CommissionRate[]>({
+    queryKey: COMMISSION_RATES_KEY,
+  });
+  const commissionRates = commissionRatesQuery.data ?? [];
+
+  const [showCommissionDialog, setShowCommissionDialog] = useState(false);
+  const [editingCommission, setEditingCommission] = useState<CommissionRate | null>(null);
+  const [commissionForm, setCommissionForm] = useState({ contractType: "", rate: "", minAmount: "" });
+
+  const openAddCommissionDialog = () => {
+    setEditingCommission(null);
+    setCommissionForm({ contractType: "", rate: "", minAmount: "" });
+    setShowCommissionDialog(true);
+  };
+
+  const openEditCommissionDialog = (rate: CommissionRate) => {
+    setEditingCommission(rate);
+    setCommissionForm({
+      contractType: rate.contractType,
+      rate: String(rate.rate),
+      minAmount: rate.minAmount != null ? String(rate.minAmount) : "",
+    });
+    setShowCommissionDialog(true);
+  };
+
+  const createCommissionMutation = useMutation({
+    mutationFn: async (data: { contractType: string; rate: number; minAmount: number | null }) => {
+      const res = await apiRequest("POST", "/api/agency/commission-rates", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COMMISSION_RATES_KEY });
+      toast({ title: "Taux ajouté", description: "Le taux de commission a été créé avec succès." });
+      setShowCommissionDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer le taux de commission.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCommissionMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const res = await apiRequest("PATCH", `/api/agency/commission-rates/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COMMISSION_RATES_KEY });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de mettre à jour le taux de commission.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCommissionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/agency/commission-rates/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COMMISSION_RATES_KEY });
+      toast({ title: "Taux supprimé", description: "Le taux de commission a été supprimé." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le taux de commission.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmitCommission = () => {
+    const rateNum = Number(commissionForm.rate);
+    if (!commissionForm.contractType.trim() || Number.isNaN(rateNum)) {
+      toast({
+        title: "Champs invalides",
+        description: "Merci de renseigner un type de contrat et un taux valide.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const minAmountNum = commissionForm.minAmount.trim() === "" ? null : Number(commissionForm.minAmount);
+    const payload = {
+      contractType: commissionForm.contractType.trim(),
+      rate: rateNum,
+      minAmount: minAmountNum,
+    };
+
+    if (editingCommission) {
+      updateCommissionMutation.mutate(
+        { id: editingCommission.id, data: payload },
+        {
+          onSuccess: () => {
+            toast({ title: "Taux mis à jour", description: "Le taux de commission a été modifié." });
+            setShowCommissionDialog(false);
+          },
+        }
+      );
+    } else {
+      createCommissionMutation.mutate(payload);
+    }
+  };
+
+  const toggleCommissionActive = (rate: CommissionRate) => {
+    updateCommissionMutation.mutate({ id: rate.id, data: { isActive: !rate.isActive } });
+  };
+
+  const handleDeleteCommission = (id: string) => {
+    if (window.confirm("Supprimer ce taux de commission ?")) {
+      deleteCommissionMutation.mutate(id);
+    }
+  };
+
+  const isSavingCommission = createCommissionMutation.isPending || updateCommissionMutation.isPending;
+
+  // ---- Payment methods ----
+  const paymentMethodsQuery = useQuery<PaymentMethod[]>({
+    queryKey: PAYMENT_METHODS_KEY,
+  });
+  const paymentMethods = paymentMethodsQuery.data ?? [];
+
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null);
+  const [paymentForm, setPaymentForm] = useState<{ name: string; type: "bank" | "mobile"; accountInfo: string }>({
+    name: "",
+    type: "bank",
+    accountInfo: "",
+  });
+
+  const openAddPaymentDialog = () => {
+    setEditingPayment(null);
+    setPaymentForm({ name: "", type: "bank", accountInfo: "" });
+    setShowPaymentDialog(true);
+  };
+
+  const openEditPaymentDialog = (method: PaymentMethod) => {
+    setEditingPayment(method);
+    setPaymentForm({ name: method.name, type: method.type, accountInfo: method.accountInfo });
+    setShowPaymentDialog(true);
+  };
+
+  const createPaymentMutation = useMutation({
+    mutationFn: async (data: { name: string; type: string; accountInfo: string }) => {
+      const res = await apiRequest("POST", "/api/agency/payment-methods", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PAYMENT_METHODS_KEY });
+      toast({ title: "Moyen de paiement ajouté", description: "Le moyen de paiement a été créé avec succès." });
+      setShowPaymentDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer le moyen de paiement.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, unknown> }) => {
+      const res = await apiRequest("PATCH", `/api/agency/payment-methods/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PAYMENT_METHODS_KEY });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de mettre à jour le moyen de paiement.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/agency/payment-methods/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PAYMENT_METHODS_KEY });
+      toast({ title: "Moyen de paiement supprimé", description: "Le moyen de paiement a été supprimé." });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer le moyen de paiement.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmitPayment = () => {
+    if (!paymentForm.name.trim() || !paymentForm.accountInfo.trim()) {
+      toast({
+        title: "Champs invalides",
+        description: "Merci de renseigner un nom et les informations du compte.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const payload = {
+      name: paymentForm.name.trim(),
+      type: paymentForm.type,
+      accountInfo: paymentForm.accountInfo.trim(),
+    };
+
+    if (editingPayment) {
+      updatePaymentMutation.mutate(
+        { id: editingPayment.id, data: payload },
+        {
+          onSuccess: () => {
+            toast({ title: "Moyen de paiement mis à jour", description: "Le moyen de paiement a été modifié." });
+            setShowPaymentDialog(false);
+          },
+        }
+      );
+    } else {
+      createPaymentMutation.mutate(payload);
+    }
+  };
+
+  const togglePaymentActive = (method: PaymentMethod) => {
+    updatePaymentMutation.mutate({ id: method.id, data: { isActive: !method.isActive } });
+  };
+
+  const handleDeletePayment = (id: string) => {
+    if (window.confirm("Supprimer ce moyen de paiement ?")) {
+      deletePaymentMutation.mutate(id);
+    }
+  };
+
+  // Setting a new default also unsets the previous default, so at most one
+  // payment method is ever marked "isDefault" at a time (the backend does
+  // not enforce this invariant itself).
+  const setDefaultPayment = async (method: PaymentMethod) => {
+    const previousDefault = paymentMethods.find((m) => m.isDefault && m.id !== method.id);
+    try {
+      if (previousDefault) {
+        await updatePaymentMutation.mutateAsync({ id: previousDefault.id, data: { isDefault: false } });
+      }
+      await updatePaymentMutation.mutateAsync({ id: method.id, data: { isDefault: true } });
+      toast({
+        title: "Moyen par défaut mis à jour",
+        description: `${method.name} est maintenant le moyen de paiement par défaut.`,
+      });
+    } catch {
+      // errors are already surfaced via updatePaymentMutation's onError toast
+    }
+  };
+
+  const isSavingPayment = createPaymentMutation.isPending || updatePaymentMutation.isPending;
+
+  if (settingsQuery.isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -163,10 +520,10 @@ export function FinancialSettings() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vat">Taux de TVA (%)</Label>
-                <Input 
-                  id="vat" 
-                  type="number" 
-                  value={vatRate} 
+                <Input
+                  id="vat"
+                  type="number"
+                  value={vatRate}
                   onChange={(e) => setVatRate(e.target.value)}
                   data-testid="input-vat-rate"
                 />
@@ -183,25 +540,26 @@ export function FinancialSettings() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="prefix">Préfixe</Label>
-                  <Input 
-                    id="prefix" 
-                    value={invoicePrefix} 
+                  <Input
+                    id="prefix"
+                    value={invoicePrefix}
                     onChange={(e) => setInvoicePrefix(e.target.value)}
                     data-testid="input-invoice-prefix"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="nextNumber">Prochain numéro</Label>
-                  <Input 
-                    id="nextNumber" 
-                    value={invoiceNextNumber} 
-                    onChange={(e) => setInvoiceNextNumber(e.target.value)}
+                  <Input
+                    id="nextNumber"
+                    value={settings?.invoiceNextNumber ?? ""}
+                    disabled
                     data-testid="input-invoice-number"
                   />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Exemple de numéro: {invoicePrefix}-{invoiceNextNumber}
+                Exemple de numéro: {invoicePrefix}-{settings?.invoiceNextNumber ?? ""}
+                {" "}(généré automatiquement à chaque facture)
               </p>
             </div>
 
@@ -229,8 +587,17 @@ export function FinancialSettings() {
               </div>
             </div>
 
-            <Button onClick={handleSaveGeneral} className="w-full" data-testid="button-save-general">
-              <Save className="h-4 w-4 mr-2" />
+            <Button
+              onClick={handleSaveGeneral}
+              className="w-full"
+              disabled={updateSettingsMutation.isPending}
+              data-testid="button-save-general"
+            >
+              {updateSettingsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
               Enregistrer les paramètres
             </Button>
           </CardContent>
@@ -252,9 +619,9 @@ export function FinancialSettings() {
                   Créer automatiquement les factures à la fin de chaque mois
                 </p>
               </div>
-              <Switch 
-                checked={autoInvoice} 
-                onCheckedChange={setAutoInvoice}
+              <Switch
+                checked={autoInvoice}
+                onCheckedChange={handleToggleAutoInvoice}
                 data-testid="switch-auto-invoice"
               />
             </div>
@@ -269,17 +636,17 @@ export function FinancialSettings() {
                     Envoyer des rappels automatiques avant échéance
                   </p>
                 </div>
-                <Switch 
-                  checked={reminderEnabled} 
-                  onCheckedChange={setReminderEnabled}
+                <Switch
+                  checked={reminderEnabled}
+                  onCheckedChange={handleToggleReminder}
                   data-testid="switch-reminder"
                 />
               </div>
-              
+
               {reminderEnabled && (
                 <div className="space-y-2 pl-4 border-l-2 border-primary/20">
                   <Label htmlFor="reminderDays">Jours avant échéance</Label>
-                  <Select value={reminderDays} onValueChange={setReminderDays}>
+                  <Select value={reminderDays} onValueChange={handleReminderDaysChange}>
                     <SelectTrigger id="reminderDays" data-testid="select-reminder-days">
                       <SelectValue />
                     </SelectTrigger>
@@ -334,62 +701,83 @@ export function FinancialSettings() {
               </CardTitle>
               <CardDescription>Commissions par type de contrat</CardDescription>
             </div>
-            <Button variant="outline" size="sm" data-testid="button-add-commission">
+            <Button variant="outline" size="sm" onClick={openAddCommissionDialog} data-testid="button-add-commission">
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un taux
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type de contrat</TableHead>
-                  <TableHead>Taux (%)</TableHead>
-                  <TableHead>Montant minimum</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {commissionRates.map((rate) => (
-                  <TableRow key={rate.id} data-testid={`commission-row-${rate.id}`}>
-                    <TableCell className="font-medium">{rate.contractType}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono">
-                        {rate.rate}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{rate.minAmount}</TableCell>
-                    <TableCell>
-                      <Switch 
-                        checked={rate.isActive}
-                        onCheckedChange={() => toggleCommissionActive(rate.id)}
-                        data-testid={`switch-commission-${rate.id}`}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" data-testid={`button-edit-commission-${rate.id}`}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" data-testid={`button-delete-commission-${rate.id}`}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {commissionRatesQuery.isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : commissionRates.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <Percent className="h-10 w-10 text-muted-foreground mb-3" />
+              <h3 className="font-medium">Aucun taux de commission</h3>
+              <p className="text-sm text-muted-foreground">
+                Ajoutez un taux pour commencer à suivre vos commissions par type de contrat.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type de contrat</TableHead>
+                    <TableHead>Taux (%)</TableHead>
+                    <TableHead>Montant minimum</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <Button onClick={handleSaveCommissions} data-testid="button-save-commissions">
-              <Save className="h-4 w-4 mr-2" />
-              Enregistrer les commissions
-            </Button>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {commissionRates.map((rate) => (
+                    <TableRow key={rate.id} data-testid={`commission-row-${rate.id}`}>
+                      <TableCell className="font-medium">{rate.contractType}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {rate.rate}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {rate.minAmount != null ? `${rate.minAmount.toLocaleString()} XOF` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={rate.isActive}
+                          onCheckedChange={() => toggleCommissionActive(rate)}
+                          data-testid={`switch-commission-${rate.id}`}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditCommissionDialog(rate)}
+                            data-testid={`button-edit-commission-${rate.id}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() => handleDeleteCommission(rate.id)}
+                            data-testid={`button-delete-commission-${rate.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -403,73 +791,95 @@ export function FinancialSettings() {
               </CardTitle>
               <CardDescription>Méthodes de réception des paiements</CardDescription>
             </div>
-            <Button variant="outline" size="sm" data-testid="button-add-payment">
+            <Button variant="outline" size="sm" onClick={openAddPaymentDialog} data-testid="button-add-payment">
               <Plus className="h-4 w-4 mr-2" />
               Ajouter un moyen
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {paymentMethods.map((method) => (
-              <div 
-                key={method.id}
-                className={`flex items-center justify-between p-4 rounded-lg border ${
-                  method.isDefault ? 'border-primary bg-primary/5' : 'border-border'
-                }`}
-                data-testid={`payment-method-${method.id}`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                    method.type === 'bank' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-orange-100 dark:bg-orange-900/30'
-                  }`}>
-                    {method.type === 'bank' ? (
-                      <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    ) : (
-                      <CreditCard className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{method.name}</p>
-                      {method.isDefault && (
-                        <Badge className="bg-primary/10 text-primary border-primary/20">
-                          Par défaut
-                        </Badge>
+          {paymentMethodsQuery.isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : paymentMethods.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <Wallet className="h-10 w-10 text-muted-foreground mb-3" />
+              <h3 className="font-medium">Aucun moyen de paiement</h3>
+              <p className="text-sm text-muted-foreground">
+                Ajoutez un moyen de paiement pour recevoir vos règlements.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {paymentMethods.map((method) => (
+                <div
+                  key={method.id}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border ${
+                    method.isDefault ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                  data-testid={`payment-method-${method.id}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                      method.type === 'bank' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-orange-100 dark:bg-orange-900/30'
+                    }`}>
+                      {method.type === 'bank' ? (
+                        <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      ) : (
+                        <CreditCard className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">{method.accountInfo}</p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{method.name}</p>
+                        {method.isDefault && (
+                          <Badge className="bg-primary/10 text-primary border-primary/20">
+                            Par défaut
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{method.accountInfo}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={method.isActive}
+                      onCheckedChange={() => togglePaymentActive(method)}
+                      data-testid={`switch-payment-${method.id}`}
+                    />
+                    {!method.isDefault && method.isActive && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDefaultPayment(method)}
+                        data-testid={`button-default-payment-${method.id}`}
+                      >
+                        Définir par défaut
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditPaymentDialog(method)}
+                      data-testid={`button-edit-payment-${method.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => handleDeletePayment(method.id)}
+                      data-testid={`button-delete-payment-${method.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Switch 
-                    checked={method.isActive}
-                    onCheckedChange={() => togglePaymentActive(method.id)}
-                    data-testid={`switch-payment-${method.id}`}
-                  />
-                  {!method.isDefault && method.isActive && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setDefaultPayment(method.id)}
-                      data-testid={`button-default-payment-${method.id}`}
-                    >
-                      Définir par défaut
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="icon" data-testid={`button-edit-payment-${method.id}`}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex justify-end">
-            <Button onClick={handleSavePayment} data-testid="button-save-payments">
-              <Save className="h-4 w-4 mr-2" />
-              Enregistrer les moyens de paiement
-            </Button>
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -485,29 +895,168 @@ export function FinancialSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="bankName">Nom de la banque</Label>
-              <Input id="bankName" defaultValue="BICIS Sénégal" data-testid="input-bank-name" />
+              <Input
+                id="bankName"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                data-testid="input-bank-name"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="accountName">Titulaire du compte</Label>
-              <Input id="accountName" defaultValue="RH Connect SARL" data-testid="input-account-name" />
+              <Input
+                id="accountName"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                data-testid="input-account-name"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="iban">IBAN</Label>
-              <Input id="iban" defaultValue="SN08 SN00 0000 0000 0000 0000 4521" data-testid="input-iban" />
+              <Input
+                id="iban"
+                value={iban}
+                onChange={(e) => setIban(e.target.value)}
+                data-testid="input-iban"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="bic">Code BIC/SWIFT</Label>
-              <Input id="bic" defaultValue="BICISNDAXXX" data-testid="input-bic" />
+              <Input
+                id="bic"
+                value={bic}
+                onChange={(e) => setBic(e.target.value)}
+                data-testid="input-bic"
+              />
             </div>
           </div>
           <div className="flex justify-end">
-            <Button data-testid="button-save-bank">
-              <Save className="h-4 w-4 mr-2" />
+            <Button
+              onClick={handleSaveBankInfo}
+              disabled={updateSettingsMutation.isPending}
+              data-testid="button-save-bank"
+            >
+              {updateSettingsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
               Enregistrer
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Add/Edit commission rate dialog */}
+      <Dialog open={showCommissionDialog} onOpenChange={setShowCommissionDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingCommission ? "Modifier le taux" : "Ajouter un taux de commission"}</DialogTitle>
+            <DialogDescription>
+              Définissez le taux de commission applicable pour un type de contrat.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="commissionContractType">Type de contrat</Label>
+              <Input
+                id="commissionContractType"
+                placeholder="Ex: CDI, CDD, Intérim..."
+                value={commissionForm.contractType}
+                onChange={(e) => setCommissionForm({ ...commissionForm, contractType: e.target.value })}
+                data-testid="input-commission-contract-type"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commissionRate">Taux (%)</Label>
+              <Input
+                id="commissionRate"
+                type="number"
+                value={commissionForm.rate}
+                onChange={(e) => setCommissionForm({ ...commissionForm, rate: e.target.value })}
+                data-testid="input-commission-rate"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commissionMinAmount">Montant minimum (XOF, optionnel)</Label>
+              <Input
+                id="commissionMinAmount"
+                type="number"
+                value={commissionForm.minAmount}
+                onChange={(e) => setCommissionForm({ ...commissionForm, minAmount: e.target.value })}
+                data-testid="input-commission-min-amount"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCommissionDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSubmitCommission} disabled={isSavingCommission} data-testid="button-submit-commission">
+              {isSavingCommission && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {editingCommission ? "Enregistrer" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit payment method dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingPayment ? "Modifier le moyen de paiement" : "Ajouter un moyen de paiement"}</DialogTitle>
+            <DialogDescription>
+              Renseignez les informations du moyen de paiement utilisé pour recevoir vos règlements.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="paymentName">Nom</Label>
+              <Input
+                id="paymentName"
+                placeholder="Ex: Virement bancaire, Orange Money..."
+                value={paymentForm.name}
+                onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
+                data-testid="input-payment-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paymentType">Type</Label>
+              <Select
+                value={paymentForm.type}
+                onValueChange={(value: "bank" | "mobile") => setPaymentForm({ ...paymentForm, type: value })}
+              >
+                <SelectTrigger id="paymentType" data-testid="select-payment-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bank">Banque</SelectItem>
+                  <SelectItem value="mobile">Mobile Money</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="paymentAccountInfo">Informations du compte</Label>
+              <Input
+                id="paymentAccountInfo"
+                placeholder="Ex: BICIS - **** 4521"
+                value={paymentForm.accountInfo}
+                onChange={(e) => setPaymentForm({ ...paymentForm, accountInfo: e.target.value })}
+                data-testid="input-payment-account-info"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSubmitPayment} disabled={isSavingPayment} data-testid="button-submit-payment">
+              {isSavingPayment && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {editingPayment ? "Enregistrer" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

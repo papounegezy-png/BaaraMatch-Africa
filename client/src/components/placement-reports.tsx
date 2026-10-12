@@ -76,6 +76,14 @@ interface RecentPlacement {
   monthlyRate: string;
 }
 
+interface PlacementReportData {
+  stats: PlacementStats;
+  placementsByStatus: PlacementByStatus[];
+  placementsBySector: PlacementBySector[];
+  recentPlacements: RecentPlacement[];
+  monthlyTrends: Array<{ month: string; placements: number; target: number }>;
+}
+
 const mockStats: PlacementStats = {
   totalPlacements: 156,
   placementsThisMonth: 12,
@@ -170,9 +178,20 @@ const monthlyTrends = [
   { month: "Jan", placements: 12, target: 15 },
 ];
 
-export function PlacementReports() {
+export function PlacementReports({ data }: { data?: PlacementReportData }) {
   const [period, setPeriod] = useState("month");
   const [sectorFilter, setSectorFilter] = useState("all");
+  const reportData = data ?? {
+    stats: mockStats,
+    placementsByStatus: mockPlacementsByStatus,
+    placementsBySector: mockPlacementsBySector,
+    recentPlacements: mockRecentPlacements,
+    monthlyTrends,
+  };
+
+  const filteredPlacements = sectorFilter === "all"
+    ? reportData.recentPlacements
+    : reportData.recentPlacements.filter((placement) => placement.sector === sectorFilter);
 
   const getStatusBadge = (status: RecentPlacement["status"]) => {
     const variants = {
@@ -229,10 +248,10 @@ export function PlacementReports() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Placements</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{mockStats.totalPlacements}</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{reportData.stats.totalPlacements}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="h-3 w-3 text-green-500" />
-                  <span className="text-xs text-green-600">+{mockStats.placementsThisMonth} ce mois</span>
+                  <span className="text-xs text-green-600">+{reportData.stats.placementsThisMonth} ce mois</span>
                 </div>
               </div>
               <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
@@ -247,7 +266,7 @@ export function PlacementReports() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Taux de Réussite</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{mockStats.successRate}%</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{reportData.stats.successRate}%</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="h-3 w-3 text-green-500" />
                   <span className="text-xs text-green-600">+3% vs mois dernier</span>
@@ -265,7 +284,7 @@ export function PlacementReports() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Délai Moyen</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{mockStats.avgTimeToPlacement}j</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{reportData.stats.avgTimeToPlacement}j</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowDownRight className="h-3 w-3 text-green-500" />
                   <span className="text-xs text-green-600">-2j vs mois dernier</span>
@@ -283,7 +302,7 @@ export function PlacementReports() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Revenus Générés</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{mockStats.totalRevenue}</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{reportData.stats.totalRevenue}</p>
                 <div className="flex items-center gap-1 mt-1">
                   <ArrowUpRight className="h-3 w-3 text-green-500" />
                   <span className="text-xs text-green-600">+15% vs mois dernier</span>
@@ -307,7 +326,7 @@ export function PlacementReports() {
             <CardDescription>Distribution des placements selon leur état actuel</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mockPlacementsByStatus.map((item) => (
+            {reportData.placementsByStatus.map((item) => (
               <div key={item.status} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
@@ -325,17 +344,17 @@ export function PlacementReports() {
             <div className="pt-4 border-t">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Contrats actifs</span>
-                <span className="font-bold text-lg">{mockStats.activeContracts}</span>
+                <span className="font-bold text-lg">{reportData.stats.activeContracts}</span>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-sm text-muted-foreground">Fin ce mois</span>
                 <Badge variant="outline" className="text-amber-600">
-                  {mockStats.endingThisMonth} contrats
+                  {reportData.stats.endingThisMonth} contrats
                 </Badge>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className="text-sm text-muted-foreground">Taux de renouvellement</span>
-                <span className="font-medium text-green-600">{mockStats.renewalRate}%</span>
+                <span className="font-medium text-green-600">{reportData.stats.renewalRate}%</span>
               </div>
             </div>
           </CardContent>
@@ -350,7 +369,7 @@ export function PlacementReports() {
             <CardDescription>Placements et revenus par secteur d'activité</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mockPlacementsBySector.map((item, index) => (
+            {reportData.placementsBySector.map((item) => (
               <div key={item.sector} className="flex items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between text-sm mb-1">
@@ -383,7 +402,7 @@ export function PlacementReports() {
         </CardHeader>
         <CardContent>
           <div className="flex items-end justify-between gap-2 h-48">
-            {monthlyTrends.map((item) => {
+            {reportData.monthlyTrends.map((item) => {
               const placementHeight = (item.placements / 15) * 100;
               const targetHeight = (item.target / 15) * 100;
               const achieved = item.placements >= item.target;
@@ -465,7 +484,7 @@ export function PlacementReports() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockRecentPlacements.map((placement) => {
+                {filteredPlacements.map((placement) => {
                   const statusBadge = getStatusBadge(placement.status);
                   return (
                     <TableRow key={placement.id} data-testid={`placement-row-${placement.id}`}>
