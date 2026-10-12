@@ -26,6 +26,10 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 async function cleanupUserIds(ids: string[]) {
   const validIds = ids.filter(Boolean);
   if (validIds.length === 0 || pool.ended) return;
+  // A Standard-plan agency's published offer goes through moderation: its
+  // queue row references the user, so it must go first or the final
+  // "delete from users" fails on moderation_items_target_user_id_fkey.
+  await pool.query("delete from moderation_items where target_user_id = any($1)", [validIds]);
   await pool.query("delete from job_postings where company_id = any($1) or agency_id = any($1)", [validIds]);
   await pool.query("delete from activity_logs where user_id = any($1)", [validIds]);
   await pool.query("delete from company_profiles where user_id = any($1)", [validIds]);
@@ -107,19 +111,27 @@ test("une mission d'agence se crée puis se modifie sans page blanche", async ({
     await page.getByTestId("button-publish-offer").click();
     await expect(page.getByTestId("offer-form-success")).toBeVisible();
 
-    // /agency/missions browses every job system-wide (not just this
-    // agency's own), so target this test's job by id — never assume it's
-    // first in an unfiltered, possibly seed-data-populated list.
-    const jobsRes = await request.get("/api/jobs");
-    const allJobs = (await jobsRes.json()) as Array<{ id: string; title: string }>;
-    const mission = allJobs.find((j) => j.title === "Smoke Test Mission");
+    // A Standard-plan agency's offer goes to moderation, so it is NOT in the
+    // public /api/jobs list until an admin approves it. Read the agency's own
+    // jobs instead (/api/agency/jobs — the same source /agency/missions
+    // renders, pending-review jobs included) and target this test's job by id.
+    const jobsRes = await request.get("/api/agency/jobs");
+    const agencyJobs = (await jobsRes.json()) as Array<{ id: string; title: string }>;
+    const mission = agencyJobs.find((j) => j.title === "Smoke Test Mission");
     expect(mission).toBeTruthy();
 
     await page.goto("/agency/missions");
-    await page.getByTestId(`button-edit-${mission!.id}`).click();
+    // Mission cards (mission-cards-grid.tsx) put "Modifier" in the card's
+    // "…" actions menu rather than a standalone edit button.
+    await page.getByTestId(`button-actions-mission-${mission!.id}`).click();
+    await page.getByRole("menuitem", { name: "Modifier" }).click();
     await expect(page.getByTestId("input-offer-title")).toBeVisible();
     await expect(page.getByTestId("input-offer-title")).toHaveValue("Smoke Test Mission");
-    await expect(page.getByRole("heading", { name: "Modifier l'offre" })).toBeVisible();
+    // This Standard-agency offer is still offline (awaiting moderation), and
+    // offline jobs deliberately reopen as a draft to continue ("Publier une
+    // offre"); only a live job opens in plain edit mode ("Modifier l'offre").
+    // Either way the point of this test holds: the route renders the form.
+    await expect(page.getByRole("heading", { name: /^(Modifier l'offre|Publier une offre)$/ })).toBeVisible();
   } finally {
     await cleanupUserIds([userId]);
   }
