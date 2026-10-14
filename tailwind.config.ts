@@ -91,11 +91,30 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
+        // Palette de la maquette « Accueil animé v2 » (classes bg-baara-*,
+        // text-baara-*…). Contraste : l'or sert de fond, de liseré ou d'accent
+        // sur marine, jamais de texte sur blanc (2,4:1). Paires sûres : marine
+        // sur or, blanc sur bleu, or-fonce sur or-pale.
+        baara: {
+          marine: "#0D2957",
+          bleu: "#1A56DB",
+          profond: "#02133A",
+          clair: "#EEF4FD",
+          moyen: "#DBEAFE",
+          or: "#D4A017",
+          "or-pale": "#FBF2DC",
+          "or-fonce": "#7A5A0C",
+          papier: "#F7FAFE",
+          texte: "#475569",
+          trait: "rgba(13, 41, 87, 0.14)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
+        titre: ['"Bricolage Grotesque"', '"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+        texte: ['"Hanken Grotesk"', "Roboto", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
@@ -106,10 +125,60 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        fondu: {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        // Pour une ligne de titre dans un conteneur overflow-hidden.
+        monte: {
+          from: { transform: "translateY(108%)" },
+          to: { transform: "translateY(0)" },
+        },
+        "entree-carte": {
+          from: { opacity: "0", transform: "translateX(40px) rotate(1.6deg)" },
+          to: { opacity: "1", transform: "translateX(0) rotate(0)" },
+        },
+        apparait: {
+          from: { opacity: "0", transform: "scale(0.8)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        // pop-a / pop-b et onde-a / onde-b sont identiques deux à deux :
+        // alterner la classe relance l'animation sans démonter l'élément.
+        "pop-a": {
+          "0%": { opacity: "0", transform: "scale(0.92)" },
+          "60%": { opacity: "1", transform: "scale(1.03)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "pop-b": {
+          "0%": { opacity: "0", transform: "scale(0.92)" },
+          "60%": { opacity: "1", transform: "scale(1.03)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "onde-a": {
+          from: { boxShadow: "0 0 0 0 rgba(212, 160, 23, 0.7)" },
+          to: { boxShadow: "0 0 0 16px rgba(212, 160, 23, 0)" },
+        },
+        "onde-b": {
+          from: { boxShadow: "0 0 0 0 rgba(212, 160, 23, 0.7)" },
+          to: { boxShadow: "0 0 0 16px rgba(212, 160, 23, 0)" },
+        },
+        flotte: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        fondu: "fondu 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        monte: "monte 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        "entree-carte": "entree-carte 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        apparait: "apparait 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        "pop-a": "pop-a 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        "pop-b": "pop-b 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        "onde-a": "onde-a 1.1s ease-out both",
+        "onde-b": "onde-b 1.1s ease-out both",
+        flotte: "flotte 3.2s ease-in-out infinite",
       },
     },
   },

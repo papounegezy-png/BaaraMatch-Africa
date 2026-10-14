@@ -253,3 +253,35 @@
     background-clip: text;
   }
 }
+
+/* Apparition au défilement (accueil). La classe `visible` est posée par le
+   hook useRevele quand l'élément entre à l'écran. */
+.revele {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.revele.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Mouvement réduit : plus d'animation ni de transition visible, nulle part.
+   Durées quasi nulles plutôt que `none`, pour que les événements de fin
+   d'animation (Radix, etc.) continuent de se déclencher. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  .revele {
+    opacity: 1;
+    transform: none;
+  }
+}
