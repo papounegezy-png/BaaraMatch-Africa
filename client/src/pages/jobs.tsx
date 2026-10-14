@@ -93,7 +93,12 @@ export default function JobsPage() {
     const category = searchParams.get("category");
     return category ? [category] : [];
   });
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  // ?type=cdi (recherche de l'accueil) présélectionne ce type de contrat ;
+  // une valeur inconnue est ignorée.
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(() => {
+    const type = searchParams.get("type");
+    return type && jobTypes.some((t) => t.value === type) ? [type] : [];
+  });
   const [sortBy, setSortBy] = useState("recent");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<"search" | "landmarks">("search");

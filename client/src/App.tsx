@@ -70,10 +70,12 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
-  
+  const [location] = useLocation();
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar user={user} onLogout={logout} />
+      {/* The home page renders its own header (EnteteAccueil). */}
+      {location !== "/" && <Navbar user={user} onLogout={logout} />}
       <main className="flex-1">{children}</main>
       <Footer />
     </div>
