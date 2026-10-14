@@ -325,7 +325,7 @@ function AdminStatisticsPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold" data-testid="text-statistics-title">Statistiques</h1>
-          <p className="text-muted-foreground">Indicateurs et tendances de la plateforme WorkMatch Africa</p>
+          <p className="text-muted-foreground">Indicateurs et tendances de la plateforme BaaraMatch Africa</p>
         </div>
         <ExportCurrentViewButton />
       </div>
@@ -443,7 +443,7 @@ function DashboardOverview({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold" data-testid="text-admin-title">Tableau de bord Super Admin</h1>
-          <p className="text-muted-foreground">Vue d'ensemble de la plateforme WorkMatch Africa</p>
+          <p className="text-muted-foreground">Vue d'ensemble de la plateforme BaaraMatch Africa</p>
         </div>
         <Button
           variant="outline"
@@ -3183,7 +3183,7 @@ export default function AdminDashboardPage() {
           <header className="flex h-14 items-center gap-4 border-b bg-background px-6 sticky top-0 z-10">
             <SidebarTrigger data-testid="button-sidebar-trigger" />
             <div className="flex-1">
-              <h1 className="text-lg font-semibold">Administration WorkMatch Africa</h1>
+              <h1 className="text-lg font-semibold">Administration BaaraMatch Africa</h1>
             </div>
           </header>
           <main className="p-6">

@@ -170,7 +170,7 @@ export function AdminSidebar() {
           </div>
           <div>
             <h2 className="font-bold text-lg">Super Admin</h2>
-            <p className="text-xs text-muted-foreground">WorkMatch Africa</p>
+            <p className="text-xs text-muted-foreground">BaaraMatch Africa</p>
           </div>
         </div>
       </SidebarHeader>

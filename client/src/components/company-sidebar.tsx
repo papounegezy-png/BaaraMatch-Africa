@@ -1,53 +1,23 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  Users, 
+import {
+  LayoutDashboard,
+  Users,
   Briefcase,
-  FileText, 
   BarChart3,
-  HelpCircle,
   Settings,
-  UserCheck,
-  UserPlus,
   ClipboardList,
-  Calendar,
-  Wallet,
-  FileSpreadsheet,
+  Plus,
   Building2,
   ChevronDown,
   ChevronRight,
-  FolderOpen,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  MessageSquare,
   CalendarDays,
-  CalendarCheck,
-  CalendarX,
-  Receipt,
-  Calculator,
-  Download,
   Network,
-  GitBranch,
   Shield,
-  Key,
-  FileSearch,
-  Bell,
-  Target,
-  TrendingUp,
-  PieChart,
-  UserCog,
-  BadgeCheck,
   FolderKanban,
-  ShieldCheck,
-  History,
-  Database,
-  UserX,
   HardHat,
   FileCheck,
   AlertTriangle,
-  Wrench,
 } from "lucide-react";
 import {
   Sidebar,
@@ -86,20 +56,17 @@ interface MenuSection {
   items: MenuItem[];
 }
 
+// One entry per screen that actually exists. Sub-links used to point at
+// sub-URLs (e.g. /company/leaves/balances) that every page ignores — they
+// all opened the same page on its first tab — so the in-page tabs carry
+// that navigation now. Paie, Sécurité and Support are "Bientôt disponible"
+// placeholders and stay out of the menu until they're real; their routes
+// still resolve for anyone with the URL.
 const menuSections: MenuSection[] = [
   {
     title: "Principal",
     items: [
-      {
-        href: "/company/dashboard",
-        icon: LayoutDashboard,
-        label: "Tableau de bord",
-        subItems: [
-          { href: "/company/dashboard", icon: Target, label: "Vue d'ensemble" },
-          { href: "/notifications", icon: Bell, label: "Alertes" },
-          { href: "/company/dashboard/kpis", icon: TrendingUp, label: "KPIs RH" },
-        ],
-      },
+      { href: "/company/dashboard", icon: LayoutDashboard, label: "Tableau de bord" },
     ],
   },
   {
@@ -111,193 +78,41 @@ const menuSections: MenuSection[] = [
         label: "Offres d'emploi",
         subItems: [
           { href: "/company/jobs", icon: ClipboardList, label: "Toutes les offres" },
-          { href: "/company/jobs/create", icon: UserPlus, label: "Créer une offre" },
-          { href: "/company/jobs/drafts", icon: FileText, label: "Brouillons" },
-          { href: "/company/jobs/archived", icon: FolderOpen, label: "Archivées" },
+          // The offer form lives at /company/jobs/new (company-dashboard.tsx);
+          // this link used to point at /company/jobs/create, which only
+          // reopened the list.
+          { href: "/company/jobs/new", icon: Plus, label: "Créer une offre" },
         ],
       },
-      {
-        href: "/company/applications",
-        icon: Users,
-        label: "Candidatures",
-        subItems: [
-          { href: "/company/applications", icon: ClipboardList, label: "Toutes les candidatures" },
-          { href: "/company/applications/new", icon: Clock, label: "Nouvelles" },
-          { href: "/company/applications/shortlist", icon: CheckCircle2, label: "Présélectionnées" },
-          { href: "/company/applications/rejected", icon: XCircle, label: "Refusées" },
-        ],
-      },
-      {
-        href: "/company/calendar",
-        icon: CalendarDays,
-        label: "Calendrier",
-      },
-      {
-        href: "/company/pipeline",
-        icon: FolderKanban,
-        label: "Pipeline",
-        subItems: [
-          { href: "/company/pipeline", icon: GitBranch, label: "Vue Kanban" },
-          { href: "/company/pipeline/interviews", icon: MessageSquare, label: "Entretiens" },
-          { href: "/company/pipeline/offers", icon: FileText, label: "Offres envoyées" },
-          { href: "/company/pipeline/hired", icon: UserCheck, label: "Recrutés" },
-        ],
-      },
-      {
-        href: "/company/statistics",
-        icon: BarChart3,
-        label: "Statistiques",
-        subItems: [
-          { href: "/company/statistics", icon: PieChart, label: "Vue globale" },
-          { href: "/company/statistics/sources", icon: Target, label: "Sources candidats" },
-          { href: "/company/statistics/time", icon: Clock, label: "Délais recrutement" },
-          { href: "/company/statistics/conversion", icon: TrendingUp, label: "Taux conversion" },
-        ],
-      },
+      { href: "/company/applications", icon: Users, label: "Candidatures" },
+      { href: "/company/calendar", icon: CalendarDays, label: "Calendrier" },
+      { href: "/company/pipeline", icon: FolderKanban, label: "Pipeline" },
+      { href: "/company/statistics", icon: BarChart3, label: "Statistiques" },
     ],
   },
   {
     title: "Gestion RH",
     items: [
-      {
-        href: "/company/employees",
-        icon: Users,
-        label: "Employés",
-        subItems: [
-          { href: "/company/employees", icon: ClipboardList, label: "Annuaire" },
-          { href: "/company/employees/add", icon: UserPlus, label: "Ajouter employé" },
-          { href: "/company/employees/roles", icon: UserCog, label: "Rôles & accès" },
-          { href: "/company/employees/documents", icon: FileSearch, label: "Documents" },
-          { href: "/company/employees/onboarding", icon: BadgeCheck, label: "Onboarding" },
-        ],
-      },
-      {
-        href: "/company/leaves",
-        icon: CalendarDays,
-        label: "Congés & Absences",
-        subItems: [
-          { href: "/company/leaves", icon: CalendarCheck, label: "Demandes" },
-          { href: "/company/leaves/calendar", icon: Calendar, label: "Calendrier" },
-          { href: "/company/leaves/balances", icon: Clock, label: "Soldes" },
-          { href: "/company/leaves/history", icon: CalendarX, label: "Historique" },
-        ],
-      },
-      {
-        href: "/company/payroll",
-        icon: Wallet,
-        label: "Paie",
-        subItems: [
-          { href: "/company/payroll", icon: Receipt, label: "Bulletins de paie" },
-          { href: "/company/payroll/run", icon: Calculator, label: "Lancer paie" },
-          { href: "/company/payroll/contributions", icon: FileSpreadsheet, label: "Cotisations" },
-          { href: "/company/payroll/export", icon: Download, label: "Exports" },
-        ],
-      },
-      {
-        href: "/company/orgchart",
-        icon: Network,
-        label: "Organigramme",
-      },
+      { href: "/company/employees", icon: Users, label: "Employés" },
+      { href: "/company/leaves", icon: CalendarDays, label: "Congés & Absences" },
+      { href: "/company/orgchart", icon: Network, label: "Organigramme" },
     ],
   },
   {
     title: "Modules BTP/Mines",
     items: [
-      {
-        href: "/company/sites",
-        icon: HardHat,
-        label: "Chantiers & Sites",
-        subItems: [
-          { href: "/company/sites", icon: ClipboardList, label: "Liste des sites" },
-          { href: "/company/sites/affectations", icon: Users, label: "Affectations" },
-          { href: "/company/sites/rotations", icon: Calendar, label: "Rotations" },
-          { href: "/company/sites/accommodations", icon: Building2, label: "Hébergements" },
-        ],
-      },
-      {
-        href: "/company/certifications",
-        icon: FileCheck,
-        label: "Habilitations",
-        subItems: [
-          { href: "/company/certifications", icon: ClipboardList, label: "Certifications" },
-          { href: "/company/certifications/medical", icon: UserCheck, label: "Visites médicales" },
-          { href: "/company/certifications/alerts", icon: Bell, label: "Alertes expiration" },
-        ],
-      },
-      {
-        href: "/company/epi",
-        icon: Shield,
-        label: "EPI & Équipements",
-        subItems: [
-          { href: "/company/epi", icon: ClipboardList, label: "Inventaire" },
-          { href: "/company/epi/allocations", icon: Users, label: "Attributions" },
-          { href: "/company/epi/conformity", icon: AlertTriangle, label: "Non-conformités" },
-        ],
-      },
-      {
-        href: "/company/hse",
-        icon: AlertTriangle,
-        label: "HSE",
-        subItems: [
-          { href: "/company/hse", icon: AlertTriangle, label: "Incidents" },
-          { href: "/company/hse/trainings", icon: FileText, label: "Formations" },
-          { href: "/company/hse/statistics", icon: BarChart3, label: "Statistiques" },
-        ],
-      },
+      { href: "/company/sites", icon: HardHat, label: "Chantiers & Sites" },
+      { href: "/company/certifications", icon: FileCheck, label: "Habilitations" },
+      { href: "/company/epi", icon: Shield, label: "EPI & Équipements" },
+      { href: "/company/hse", icon: AlertTriangle, label: "HSE" },
     ],
   },
   {
     title: "Configuration",
     items: [
-      {
-        href: "/company/departments",
-        icon: Building2,
-        label: "Départements",
-        subItems: [
-          { href: "/company/departments", icon: ClipboardList, label: "Liste des départements" },
-          { href: "/company/departments/add", icon: UserPlus, label: "Ajouter département" },
-        ],
-      },
-      {
-        href: "/company/positions",
-        icon: Briefcase,
-        label: "Postes",
-        subItems: [
-          { href: "/company/positions", icon: ClipboardList, label: "Liste des postes" },
-          { href: "/company/positions/add", icon: UserPlus, label: "Ajouter poste" },
-        ],
-      },
-      {
-        href: "/company/settings",
-        icon: Settings,
-        label: "Paramètres",
-        subItems: [
-          { href: "/company/settings", icon: Building2, label: "Entreprise" },
-          { href: "/company/settings/users", icon: Users, label: "Utilisateurs" },
-          { href: "/company/settings/permissions", icon: Key, label: "Permissions" },
-          { href: "/company/settings/integrations", icon: Shield, label: "Intégrations" },
-        ],
-      },
-      {
-        href: "/company/support",
-        icon: HelpCircle,
-        label: "Support",
-      },
-    ],
-  },
-  {
-    title: "Sécurité & traçabilité",
-    items: [
-      {
-        href: "/company/security",
-        icon: ShieldCheck,
-        label: "Sécurité",
-        subItems: [
-          { href: "/company/security/history", icon: History, label: "Historique des actions" },
-          { href: "/company/security/backup", icon: Database, label: "Sauvegarde des données" },
-          { href: "/company/security/gdpr", icon: UserX, label: "Conformité RGPD" },
-        ],
-      },
+      { href: "/company/departments", icon: Building2, label: "Départements" },
+      { href: "/company/positions", icon: Briefcase, label: "Postes" },
+      { href: "/company/settings", icon: Settings, label: "Paramètres" },
     ],
   },
 ];
@@ -344,7 +159,7 @@ export function CompanySidebar() {
             <Building2 className="h-5 w-5 text-white" />
           </div>
           <div className="group-data-[collapsible=icon]:hidden">
-            <h1 className="font-semibold text-lg">WorkMatch ATS</h1>
+            <h1 className="font-semibold text-lg">BaaraMatch</h1>
             <p className="text-xs text-muted-foreground">Espace Entreprise</p>
           </div>
         </Link>
