@@ -25,5 +25,16 @@ export const jobTypeLabels: Record<string, string> = {
 
 export function formatJobType(jobType: string | null | undefined): string | null {
   if (!jobType) return null;
-  return jobTypeLabels[jobType] ?? jobType;
+  return jobTypeLabels[jobType] ?? jobTypeLabels[jobType.toLowerCase()] ?? jobType;
+}
+
+// Code de contrat comparable, quelle que soit la façon dont il a été saisi :
+// la base contient « CDD », « cdi », « CDI »… et des valeurs anciennes
+// (internship, temporary). Les valeurs sans équivalent (full-time…) restent
+// telles quelles et ne correspondent à aucun filtre de contrat.
+export function normaliserTypeContrat(jobType: string | null | undefined): string {
+  const code = (jobType ?? "").trim().toLowerCase();
+  if (code === "internship") return "stage";
+  if (code === "temporary") return "interim";
+  return code;
 }
