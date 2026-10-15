@@ -1,6 +1,7 @@
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauAccroche } from "@/components/home/bandeau-accroche";
 import { OffresRecentes } from "@/components/home/offres-recentes";
+import { SectionEmployeurs } from "@/components/home/section-employeurs";
 import { FeaturesGrid } from "@/components/home/features-grid";
 import { HowItWorksSection } from "@/components/home/how-it-works-section";
 import { AudienceSplitSection } from "@/components/home/audience-split-section";
@@ -16,6 +17,7 @@ export default function HomePage() {
       <EnteteAccueil />
       <BandeauAccroche />
       <OffresRecentes />
+      <SectionEmployeurs />
       <FeaturesGrid />
       <HowItWorksSection />
       <AudienceSplitSection />
