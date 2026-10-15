@@ -266,17 +266,12 @@
   transform: none;
 }
 
-/* Curseurs décoratifs de la carte de suivi (ZoneSuivi). La classe p0…p3
-   suit l'étape affichée : le curseur « Employeur » glisse de colonne en
-   colonne du mini pipeline, le curseur « Candidat » descend d'étape en
-   étape (--pas-etape = hauteur d'une ligne d'étape). */
-.curseur-colonne,
+/* Curseur décoratif « Candidat » de la carte de suivi (ZoneSuivi). La classe
+   p0…p3 suit l'étape affichée : il descend d'étape en étape
+   (--pas-etape = hauteur d'une ligne d'étape). */
 .curseur-etape {
   transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.curseur-colonne.p1 { transform: translateX(100%); }
-.curseur-colonne.p2 { transform: translateX(200%); }
-.curseur-colonne.p3 { transform: translateX(300%); }
 .curseur-etape.p1 { transform: translateY(var(--pas-etape)); }
 .curseur-etape.p2 { transform: translateY(calc(var(--pas-etape) * 2)); }
 .curseur-etape.p3 { transform: translateY(calc(var(--pas-etape) * 3)); }

@@ -5,14 +5,14 @@ import { useMouvementReduit } from "@/hooks/use-mouvement-reduit";
 // ── Données de démonstration ────────────────────────────────────────────
 // Constantes locales, jamais envoyées à l'API ni mêlées à de vraies données.
 // Tous les noms sont des exemples ; la carte porte l'étiquette « Exemple ».
-// Les 4 colonnes correspondent aux statuts réels pending / reviewing /
+// Les 4 étapes correspondent aux statuts réels pending / reviewing /
 // shortlisted / interview (libellés produit : Nouveau, En revue,
 // Présélection, Entretien) ; les libellés de la maquette sont gardés ici.
 const ETAPES = [
-  { libelle: "Reçue", detail: "Candidature envoyée", colonne: "Nouvelles" },
-  { libelle: "CV examiné", detail: "Votre CV a été lu", colonne: "CV examiné" },
-  { libelle: "Présélectionné", detail: "Vous êtes retenu pour la suite", colonne: "Présélectionné" },
-  { libelle: "Entretien", detail: "Entretien proposé", colonne: "Entretien" },
+  { libelle: "Reçue", detail: "Candidature envoyée" },
+  { libelle: "CV examiné", detail: "Votre CV a été lu" },
+  { libelle: "Présélectionné", detail: "Vous êtes retenu pour la suite" },
+  { libelle: "Entretien", detail: "Entretien proposé" },
 ] as const;
 
 const MESSAGES = [
@@ -21,14 +21,6 @@ const MESSAGES = [
   "Bonne nouvelle : vous êtes présélectionné pour ce poste.",
   "Le recruteur vous propose un entretien. Ouvrez BaaraMatch pour confirmer.",
 ] as const;
-
-// Autres candidats fictifs du mini pipeline, par colonne.
-const AUTRES_CANDIDATS: string[][] = [
-  ["Seydou D.", "Fanta T."],
-  ["Ibrahim C."],
-  ["Mariam S."],
-  ["Oumar B.", "Aminata N."],
-];
 
 // Moments du cycle automatique, en ms depuis son début : étape 0 à 2 s,
 // 1 à +1,6 s, 2 à +3,8 s, 3 à +6,2 s, puis 4,3 s de pause avant de reprendre.
@@ -40,8 +32,8 @@ const PAUSE_FIN = 4300;
 const PAS_ETAPE = 56;
 
 /**
- * Carte de suivi de l'accueil : une candidate fictive, Awa K., vue des deux
- * côtés en même temps (son suivi, et sa carte dans le pipeline employeur).
+ * Carte de suivi de l'accueil : une candidate fictive, Awa K., suit sa
+ * candidature étape par étape et reçoit une notification à chaque étape.
  */
 export function ZoneSuivi() {
   const reduit = useMouvementReduit();
@@ -116,13 +108,9 @@ export function ZoneSuivi() {
         <span className="rounded-full bg-baara-or-pale px-3 py-1 font-texte text-xs font-bold text-baara-or-fonce">Exemple</span>
       </div>
 
-      {/* Suivi et pipeline empilés à toutes les largeurs : côte à côte dans
-          la colonne du bandeau, le pipeline n'avait que ~55 px par colonne et
-          tronquait noms et intitulés. */}
-      <div className="mt-5 grid gap-5">
-        {/* Côté candidat : les 4 étapes, chacune est un bouton. */}
+      <div className="mt-5">
+        {/* Les 4 étapes, chacune est un bouton. */}
         <div className="relative" style={{ ["--pas-etape" as string]: `${PAS_ETAPE}px` }}>
-          <p className="mb-2 font-texte text-xs font-semibold text-white/70">Ce que voit le candidat</p>
           <div className="relative">
             <ol className="relative" aria-label="Étapes de la candidature d'exemple">
               {ETAPES.map((e, n) => {
@@ -173,39 +161,6 @@ export function ZoneSuivi() {
           </div>
         </div>
 
-        {/* Côté employeur : la même candidature dans le pipeline. */}
-        <div className="min-w-0">
-          <p className="mb-2 font-texte text-xs font-semibold text-white/70">Ce que voit l'employeur</p>
-          <div className="relative grid grid-cols-4 gap-1.5 pb-8">
-            {ETAPES.map((e, colonne) => (
-              <section key={e.colonne} aria-label={`Colonne ${e.colonne}`} className="min-w-0 rounded-xl bg-white/[0.06] p-1">
-                {/* Intitulé sur deux lignes si besoin plutôt que tronqué. */}
-                <p className="mb-1.5 min-h-[2.2em] break-words px-0.5 font-texte text-[11px] font-semibold leading-tight text-white/80">{e.colonne}</p>
-                {/* Entre 900 et 1100 px la carte est étroite : les noms passent
-                    à la ligne au lieu d'être coupés. */}
-                <ul className="grid gap-1">
-                  {colonne === etape && (
-                    <li
-                      key={`awa-${tick}`}
-                      className={`truncate rounded-md border-l-[3px] border-baara-or bg-white px-1 py-1 font-texte text-[10.5px] font-bold text-baara-marine min-[900px]:max-[1099px]:whitespace-normal min-[900px]:max-[1099px]:leading-tight ${pop}`}
-                    >
-                      Awa K.
-                    </li>
-                  )}
-                  {AUTRES_CANDIDATS[colonne].map((nom) => (
-                    <li key={nom} className="truncate rounded-md bg-white/10 px-1 py-1 font-texte text-[10.5px] text-white/80 min-[900px]:max-[1099px]:whitespace-normal min-[900px]:max-[1099px]:leading-tight">{nom}</li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-            {/* Curseur « Employeur » : glisse sous la colonne d'Awa et la
-                désigne d'une flèche, sans jamais recouvrir sa carte. */}
-            <span aria-hidden="true" className={`curseur-colonne p${etape} pointer-events-none absolute bottom-0 left-0 flex w-1/4 flex-col items-center`}>
-              <span className="h-0 w-0 border-x-[5px] border-b-[6px] border-x-transparent border-b-baara-or" />
-              <span className="rounded-full bg-baara-or px-2 py-0.5 font-texte text-[11px] font-bold text-baara-marine shadow">Employeur</span>
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Notification reçue par le candidat. */}
