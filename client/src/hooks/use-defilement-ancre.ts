@@ -5,7 +5,7 @@ import { useEffect } from "react";
 const ATTENTE_MAX = 2000;
 
 /**
- * Fait défiler jusqu'à l'ancre de l'URL (#faq, #comment-ca-marche…) après une
+ * Fait défiler jusqu'à l'ancre de l'URL (#faq, #demo…) après une
  * navigation. Le navigateur ne le fait pas seul dans une application d'une
  * seule page : la cible n'existe pas encore quand l'URL change. wouter émet
  * « pushState » / « replaceState » sur window à chaque navigation.
