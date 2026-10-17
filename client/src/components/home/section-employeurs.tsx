@@ -98,8 +98,8 @@ export function SectionEmployeurs() {
               <p className="w-fit rounded-full bg-baara-or-pale px-3 py-1 font-texte text-sm font-semibold text-baara-or-fonce">{PROGRAMME_PILOTE}</p>
             )}
             <div className="mt-auto">
-              {/* L'ancre #agences de la page Services arrive avec le prompt 7. */}
-              <Link href="/services#agences" className={boutonContour} data-testid="link-employeurs-agences">Découvrir l'offre agences</Link>
+              {/* La page Services n'a pas encore de section agences : lien vers la page. */}
+              <Link href="/services" className={boutonContour} data-testid="link-employeurs-agences">Découvrir l'offre agences</Link>
             </div>
           </article>
         </div>

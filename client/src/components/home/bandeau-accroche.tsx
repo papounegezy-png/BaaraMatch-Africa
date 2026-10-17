@@ -46,7 +46,7 @@ export function BandeauAccroche() {
   };
 
   return (
-    <section aria-labelledby={`${id}-titre`} className="bg-baara-papier dark:bg-baara-profond">
+    <section aria-labelledby={`${id}-titre`} className="overflow-x-clip bg-baara-papier dark:bg-baara-profond">
       <div className="container mx-auto grid gap-10 px-4 pb-14 pt-10 min-[900px]:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] min-[900px]:items-center min-[900px]:gap-12 min-[900px]:pb-20 min-[900px]:pt-14">
         <div className="min-w-0">
           {/* Taille plafonnée pour que « Suivez chaque étape. » tienne sur

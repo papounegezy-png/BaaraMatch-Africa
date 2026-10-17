@@ -19,7 +19,7 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section className="py-16 md:py-24" aria-labelledby="how-it-works-title">
+    <section id="comment-ca-marche" className="scroll-mt-24 py-16 md:py-24" aria-labelledby="how-it-works-title">
       <div className="container mx-auto px-4">
         <div className="text-center space-y-3 mb-10 md:mb-14">
           <h2 id="how-it-works-title" className="text-3xl md:text-4xl font-bold">Comment ça marche</h2>

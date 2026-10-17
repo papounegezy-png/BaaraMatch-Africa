@@ -295,7 +295,7 @@ export default function ServicesPage() {
 
       <section className="container mx-auto px-4 py-14 md:py-16">
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-6 md:gap-8">
-          <Card className="border-border/70">
+          <Card id="faq" className="scroll-mt-24 border-border/70">
             <CardHeader>
               <CardTitle className="text-2xl">FAQ</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -318,7 +318,7 @@ export default function ServicesPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/70">
+          <Card id="demo" className="scroll-mt-24 border-border/70">
             <CardHeader>
               <CardTitle className="text-2xl">Demander une demo</CardTitle>
               <p className="text-sm text-muted-foreground">

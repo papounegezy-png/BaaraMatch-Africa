@@ -10,7 +10,8 @@ import { useVisitTracker } from "@/hooks/use-visit-tracker";
 import { useRouteTitle } from "@/lib/page-title";
 import type { UserType } from "@shared/schema";
 import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
+import { PiedAccueil } from "@/components/home/pied-accueil";
+import { useDefilementAncre } from "@/hooks/use-defilement-ancre";
 import HomePage from "@/pages/home";
 import LoginPage from "@/pages/login";
 import RegisterPage from "@/pages/register";
@@ -71,13 +72,14 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
 function PublicLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
+  useDefilementAncre();
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* The home page renders its own header (EnteteAccueil). */}
       {location !== "/" && <Navbar user={user} onLogout={logout} />}
       <main className="flex-1">{children}</main>
-      <Footer />
+      <PiedAccueil />
     </div>
   );
 }
