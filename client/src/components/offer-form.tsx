@@ -29,25 +29,9 @@ export const contractTypeOptions = [
   { value: "prestation", label: "Prestation" },
 ];
 
-export const jobCategoryOptions = [
-  "Informatique & Tech",
-  "Finance & Comptabilité",
-  "Assurances",
-  "Marketing & Communication",
-  "Ressources Humaines",
-  "Commercial & Vente",
-  "Administration",
-  "Santé",
-  "Éducation",
-  "Industrie",
-  "Mines",
-  "Production",
-  "BTP & Construction",
-  "Hôtellerie & Restauration",
-  "Transport & Logistique",
-  "Agriculture",
-  "Autre",
-];
+// Liste partagée avec le serveur (shared/categories.ts).
+import { jobCategoryOptions } from "@shared/categories";
+export { jobCategoryOptions };
 
 // Same values as missions-management.tsx's educationLevels — kept aligned
 // deliberately, unlike contractTypeOptions above.

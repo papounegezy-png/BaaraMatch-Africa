@@ -6,6 +6,7 @@ import { FeaturesGrid } from "@/components/home/features-grid";
 import { HowItWorksSection } from "@/components/home/how-it-works-section";
 import { AudienceSplitSection } from "@/components/home/audience-split-section";
 import { PilotProgramSection } from "@/components/home/pilot-program-section";
+import { EntreprisesQuiRecrutent } from "@/components/home/entreprises-qui-recrutent";
 
 // Refonte « Accueil animé v2 » en cours : en-tête et bandeau d'accroche
 // remplacent l'ancien hero et la rangée de catégories ; les sections
@@ -22,6 +23,7 @@ export default function HomePage() {
       <HowItWorksSection />
       <AudienceSplitSection />
       <PilotProgramSection />
+      <EntreprisesQuiRecrutent />
     </div>
   );
 }

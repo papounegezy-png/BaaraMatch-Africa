@@ -174,6 +174,7 @@ export interface IStorage {
   getTopVisitedOrganizations(limit: number): Promise<{ id: string; name: string; userType: "company" | "agency"; viewCount: number }[]>;
   getTopEmployersByJobCount(limit: number): Promise<{ id: string; name: string; jobCount: number }[]>;
   getTopJobCategories(limit: number): Promise<{ category: string; count: number }[]>;
+  getOffresActivesParCategorieEtEmployeur(): Promise<{ category: string | null; organisationId: string; nom: string | null; logoUrl: string | null; visibleAccueil: boolean; offres: number }[]>;
   
   getApplication(id: string): Promise<Application | undefined>;
   getApplicationsByCandidate(candidateId: string): Promise<Application[]>;
@@ -742,6 +743,36 @@ export class DatabaseStorage implements IStorage {
       name: row.organizationName ?? "Organisation inconnue",
       jobCount: row.jobCount,
     }));
+  }
+
+  // Offres actives regroupées par catégorie brute et par organisation qui
+  // publie (l'agence si agencyId est renseigné, sinon l'entreprise), avec son
+  // consentement à apparaître sur l'accueil. Le regroupement en secteurs
+  // (alias compris) se fait côté route, avec shared/categories.ts.
+  async getOffresActivesParCategorieEtEmployeur(): Promise<{
+    category: string | null;
+    organisationId: string;
+    nom: string | null;
+    logoUrl: string | null;
+    visibleAccueil: boolean;
+    offres: number;
+  }[]> {
+    const organisationId = sql<string>`coalesce(${jobPostings.agencyId}, ${jobPostings.companyId})`;
+    return db
+      .select({
+        category: jobPostings.category,
+        organisationId,
+        nom: sql<string | null>`coalesce(${agencyProfiles.agencyName}, ${companyProfiles.companyName})`,
+        logoUrl: sql<string | null>`case when ${jobPostings.agencyId} is null then ${companyProfiles.logoUrl} end`,
+        visibleAccueil: sql<boolean>`coalesce(case when ${jobPostings.agencyId} is not null then ${agencyProfiles.visibleAccueil} else ${companyProfiles.visibleAccueil} end, false)`,
+        offres: sql<number>`count(*)::int`,
+      })
+      .from(jobPostings)
+      .leftJoin(agencyProfiles, eq(jobPostings.agencyId, agencyProfiles.userId))
+      .leftJoin(companyProfiles, eq(jobPostings.companyId, companyProfiles.userId))
+      .where(eq(jobPostings.isActive, true))
+      // Regroupement sur les 5 premières colonnes du select (positions SQL).
+      .groupBy(sql`1`, sql`2`, sql`3`, sql`4`, sql`5`);
   }
 
   async getTopJobCategories(limit: number): Promise<{ category: string; count: number }[]> {

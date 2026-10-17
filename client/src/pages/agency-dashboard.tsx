@@ -33,6 +33,7 @@ import { ClientMissionHistory } from "@/components/agency-crm/missions-history";
 import { CandidateProfileView } from "@/components/candidate-profile-view";
 import { PlacementReports } from "@/components/placement-reports";
 import { FinancialSettings } from "@/components/financial-settings";
+import { VisibiliteAccueil } from "@/components/visibilite-accueil";
 import { ClientInvoicing } from "@/components/client-invoicing";
 import { RequirePartnerPlan } from "@/components/require-partner-plan";
 import { SalaryManagement } from "@/components/salary-management";
@@ -514,12 +515,16 @@ export default function AgencyDashboardPage() {
     }
     
     if (location.startsWith("/agency/settings")) {
+      // Seul réglage disponible pour l'instant : la visibilité sur l'accueil.
       return (
-        <ComingSoonPage 
-          title="Paramètres & Administration" 
-          icon={Settings}
-          description="Utilisateurs & rôles, droits d'accès, paramétrage des services et sauvegarde."
-        />
+        <div className="space-y-6">
+          <VisibiliteAccueil />
+          <ComingSoonPage
+            title="Paramètres & Administration"
+            icon={Settings}
+            description="Utilisateurs & rôles, droits d'accès, paramétrage des services et sauvegarde."
+          />
+        </div>
       );
     }
     

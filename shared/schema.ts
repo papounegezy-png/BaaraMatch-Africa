@@ -232,6 +232,9 @@ export const agencyProfiles = pgTable("agency_profiles", {
   employeeCount: integer("employee_count"),
   averageAge: integer("average_age"),
   genderRatioMale: integer("gender_ratio_male"),
+  // Opt-in : l'agence accepte d'apparaître sur l'accueil (« Entreprises qui
+  // recrutent en ce moment »). Faux par défaut, modifiable dans ses paramètres.
+  visibleAccueil: boolean("visible_accueil").notNull().default(false),
   // Incremented by POST /api/agencies/:id/view (agency-profile.tsx fires it
   // on mount), excluding the owner viewing their own page — feeds the admin
   // "Top organisations visitées" statistic.
@@ -257,6 +260,8 @@ export const companyProfiles = pgTable("company_profiles", {
   billingAddress: text("billing_address"),
   companyEmbedding: real("company_embedding").array(),
   rccmNumber: text("rccm_number"),
+  // Même opt-in que agencyProfiles.visibleAccueil.
+  visibleAccueil: boolean("visible_accueil").notNull().default(false),
   // Same as agencyProfiles.profileViewCount above.
   profileViewCount: integer("profile_view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),

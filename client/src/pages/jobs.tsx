@@ -40,6 +40,7 @@ import { stripJobDescriptionHtml } from "@/lib/sanitize-html";
 import { formatJobSalary } from "@/lib/format-job-salary";
 import { useSavedJobs } from "@/hooks/use-saved-jobs";
 import { ShareJobMenu } from "@/components/share-job-menu";
+import { categorieCanonique } from "@shared/categories";
 
 // Same vocabulary OfferForm writes when a job is actually posted — this used
 // to be a separate, disagreeing list ("Finance", "Construction"...) that
@@ -91,7 +92,7 @@ export default function JobsPage() {
   const [locationQuery, setLocationQuery] = useState(() => searchParams.get("location") ?? "");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
     const category = searchParams.get("category");
-    return category ? [category] : [];
+    return category ? [categorieCanonique(category) ?? category] : [];
   });
   // ?type=cdi (recherche de l'accueil) présélectionne ce type de contrat ;
   // une valeur inconnue est ignorée.
@@ -161,7 +162,7 @@ export default function JobsPage() {
       const matchesLocation =
         locationQuery === "" || job.location.toLowerCase().includes(locationQuery.toLowerCase());
       const matchesCategory =
-        selectedCategories.length === 0 || (job.category && selectedCategories.includes(job.category));
+        selectedCategories.length === 0 || selectedCategories.includes(categorieCanonique(job.category) ?? "");
       const matchesType =
         selectedTypes.length === 0 ||
         selectedTypes.some((t) => job.jobType.toLowerCase().includes(t.toLowerCase()));

@@ -30,6 +30,7 @@ import {
 } from "./embeddings";
 import { findMatchingCandidatesSQL, findMatchingJobsSQL } from "./init-pgvector";
 import { calculateMatchScore, explainMatchScore } from "@shared/matching";
+import { SECTEURS_ACCUEIL_BASE, categorieCanonique, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
 import {
   parseWhatsAppWebhook,
   getMessagesFromWebhook,
@@ -170,6 +171,7 @@ const agencyProfileSelfUpdateSchema = z.object({
   employeeCount: z.number().int().nullable().optional(),
   averageAge: z.number().int().nullable().optional(),
   genderRatioMale: z.number().int().nullable().optional(),
+  visibleAccueil: z.boolean().optional(),
 }).strict();
 
 const companyProfileSelfUpdateSchema = z.object({
@@ -184,6 +186,7 @@ const companyProfileSelfUpdateSchema = z.object({
   siretNumber: z.string().nullable().optional(),
   vatNumber: z.string().nullable().optional(),
   billingAddress: z.string().nullable().optional(),
+  visibleAccueil: z.boolean().optional(),
 }).strict();
 
 // Fields a company/agency owner may change on their own job posting.
@@ -2467,6 +2470,41 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching companies:", error);
       res.status(500).json({ message: "Erreur lors de la récupération des entreprises" });
+    }
+  });
+
+  // Accueil, « Entreprises qui recrutent en ce moment ». Les 6 secteurs de
+  // l'accueil qui ont au moins une offre active, triés par nombre d'offres.
+  // offresActives compte toutes les offres actives du secteur (anciennes
+  // catégories comprises, voir categorieCanonique) ; entreprises ne liste que
+  // les organisations qui ont coché visibleAccueil (opt-in), 4 au plus, par
+  // nombre d'offres décroissant. Une requête SQL groupée, sans session.
+  app.get("/api/accueil/secteurs", async (_req, res) => {
+    try {
+      const lignes = await storage.getOffresActivesParCategorieEtEmployeur();
+      const secteurs: SecteurQuiRecrute[] = SECTEURS_ACCUEIL_BASE.map(({ libelle, valeur }) => {
+        const duSecteur = lignes.filter((l) => categorieCanonique(l.category) === valeur);
+        const parEmployeur = new Map<string, EmployeurQuiRecrute & { offres: number }>();
+        for (const l of duSecteur) {
+          if (!l.visibleAccueil || !l.nom) continue;
+          const deja = parEmployeur.get(l.organisationId);
+          if (deja) deja.offres += l.offres;
+          else parEmployeur.set(l.organisationId, { id: l.organisationId, nom: l.nom, logoUrl: l.logoUrl, offres: l.offres });
+        }
+        return {
+          secteur: libelle,
+          valeur,
+          offresActives: duSecteur.reduce((total, l) => total + l.offres, 0),
+          entreprises: Array.from(parEmployeur.values())
+            .sort((a, b) => b.offres - a.offres || a.nom.localeCompare(b.nom, "fr"))
+            .slice(0, 4)
+            .map(({ offres: _offres, ...employeur }) => employeur),
+        };
+      });
+      res.json(secteurs.filter((s) => s.offresActives > 0).sort((a, b) => b.offresActives - a.offresActives));
+    } catch (error) {
+      console.error("Error fetching home sectors:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération des secteurs" });
     }
   });
 

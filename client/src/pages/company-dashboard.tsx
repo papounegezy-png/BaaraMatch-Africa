@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
+import { VisibiliteAccueil } from "@/components/visibilite-accueil";
 import { OfferForm, mapJobPostingToOfferFormValue, type OfferFormValue, type OfferSaveResult } from "@/components/offer-form";
 import { ProposeInterviewSlotsDialog } from "@/components/propose-interview-slots-dialog";
 import { InterviewCalendar } from "@/components/interview-calendar";
@@ -789,6 +790,8 @@ function CompanySettingsPage({
           </div>
         </CardContent>
       </Card>
+
+      <VisibiliteAccueil />
     </div>
   );
 }
