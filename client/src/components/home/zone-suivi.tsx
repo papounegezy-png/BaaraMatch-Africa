@@ -128,7 +128,7 @@ export function ZoneSuivi() {
                       type="button"
                       onClick={() => choisirEtape(n)}
                       aria-current={active ? "step" : undefined}
-                      className="flex w-full items-start gap-3 rounded-lg pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-or"
+                      className="flex h-full w-full items-start gap-3 rounded-lg pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-or"
                       data-testid={`etape-suivi-${n}`}
                     >
                       <span

@@ -567,8 +567,11 @@ export async function registerRoutes(
   });
 
   app.get("/api/auth/me", async (req, res) => {
+    // Visiteur sans session : réponse normale « personne », pas une erreur.
+    // Un 401 ici s'affichait en erreur dans la console de chaque visiteur
+    // de l'accueil (Lighthouse, bonnes pratiques).
     if (!req.session.userId) {
-      return res.status(401).json({ message: "Non authentifié" });
+      return res.json(null);
     }
 
     const user = await storage.getUser(req.session.userId);

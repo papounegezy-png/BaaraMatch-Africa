@@ -69,7 +69,9 @@ export function PiedAccueil() {
   const annee = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto bg-baara-marine font-texte text-white" data-testid="pied-accueil">
+    // --hauteur-barre-bas : hauteur de la barre d'actions mobile quand elle
+    // est affichée (voir MobileBottomNav), 0 sinon.
+    <footer className="mt-auto bg-baara-marine pb-[var(--hauteur-barre-bas,0px)] font-texte text-white" data-testid="pied-accueil">
       <div className="container mx-auto px-4 pb-8 pt-14 min-[900px]:pt-16">
         <div className="grid grid-cols-2 gap-x-6 gap-y-10 min-[900px]:grid-cols-[1.4fr_1fr_1fr_1.1fr]">
           {/* 1. BaaraMatch */}

@@ -12,7 +12,7 @@ export function PilotProgramSection() {
 
       <div className="container relative mx-auto px-4">
         <div className="max-w-2xl mx-auto text-center space-y-4 mb-10 md:mb-14">
-          <span className="inline-flex items-center rounded-full border border-gold bg-gold/15 px-4 py-1.5 text-xs sm:text-sm font-medium text-gold">
+          <span className="inline-flex items-center rounded-full border border-gold bg-baara-or px-4 py-1.5 text-xs sm:text-sm font-semibold text-baara-marine">
             Programme pilote
           </span>
           <h2 id="pilot-program-title" className="text-3xl md:text-4xl font-bold text-white">

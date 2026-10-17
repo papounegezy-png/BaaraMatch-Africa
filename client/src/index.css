@@ -276,6 +276,15 @@
 .curseur-etape.p2 { transform: translateY(calc(var(--pas-etape) * 2)); }
 .curseur-etape.p3 { transform: translateY(calc(var(--pas-etape) * 3)); }
 
+/* Animations d'entrée en pause tant que les polices ne sont pas chargées
+   (main.tsx pose .polices-pretes, 2,5 s au plus tard). */
+html:not(.polices-pretes) .animate-fondu,
+html:not(.polices-pretes) .animate-monte,
+html:not(.polices-pretes) .animate-entree-carte,
+html:not(.polices-pretes) .animate-apparait {
+  animation-play-state: paused;
+}
+
 /* Mouvement réduit : plus d'animation ni de transition visible, nulle part.
    Durées quasi nulles plutôt que `none`, pour que les événements de fin
    d'animation (Radix, etc.) continuent de se déclencher. */

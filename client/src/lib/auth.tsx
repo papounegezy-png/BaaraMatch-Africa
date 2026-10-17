@@ -44,7 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         if (!res.ok) return null;
         const raw = await res.json();
-        return normalizeAuthUser(raw);
+        // null = visiteur sans session (voir GET /api/auth/me).
+        return raw ? normalizeAuthUser(raw) : null;
       } catch {
         return null;
       }

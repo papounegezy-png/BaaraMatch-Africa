@@ -1,7 +1,31 @@
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Briefcase, User, BarChart3, Users, Building2, Search, Heart, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UserType } from "@shared/schema";
+
+// Publie la hauteur réelle de la barre (0 quand elle est masquée, dès lg)
+// dans --hauteur-barre-bas : le pied de page réserve cet espace en bas pour
+// que la barre fixe ne cache jamais sa dernière ligne.
+function usePublierHauteur() {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const racine = document.documentElement;
+    const publier = () => racine.style.setProperty("--hauteur-barre-bas", `${el.offsetHeight}px`);
+    publier();
+    const observateur = new ResizeObserver(publier);
+    observateur.observe(el);
+    window.addEventListener("resize", publier);
+    return () => {
+      observateur.disconnect();
+      window.removeEventListener("resize", publier);
+      racine.style.removeProperty("--hauteur-barre-bas");
+    };
+  }, []);
+  return ref;
+}
 
 interface BottomNavProps {
   userType: UserType;
@@ -9,6 +33,7 @@ interface BottomNavProps {
 
 export function MobileBottomNav({ userType }: BottomNavProps) {
   const [location] = useLocation();
+  const barre = usePublierHauteur();
 
   const candidateNavItems = [
     { href: "/espace-personnel", icon: Home, label: "Accueil" },
@@ -40,7 +65,8 @@ export function MobileBottomNav({ userType }: BottomNavProps) {
 
   if (userType === "candidate") {
     return (
-      <nav 
+      <nav
+        ref={barre}
         className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
@@ -85,7 +111,7 @@ export function MobileBottomNav({ userType }: BottomNavProps) {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom)] lg:hidden">
+    <nav ref={barre} className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom)] lg:hidden">
       <div className="flex items-center justify-around py-2 px-1">
         {navItems.map((item) => {
           const isActive = location === item.href ||

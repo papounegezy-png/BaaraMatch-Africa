@@ -26,14 +26,14 @@ export function HowItWorksSection() {
         </div>
 
         <ol className="relative grid gap-6 md:grid-cols-3 max-w-5xl mx-auto list-none">
-          <div className="hidden md:block absolute left-[16.5%] right-[16.5%] top-6 h-px bg-border" aria-hidden="true" />
+          <li className="hidden md:block absolute left-[16.5%] right-[16.5%] top-6 h-px bg-border" aria-hidden="true" />
           {steps.map((step, index) => (
             <li key={step.title} className="relative text-center space-y-3">
               <div className={`mx-auto h-12 w-12 rounded-full flex items-center justify-center text-lg font-bold ${step.circleClass}`}>
                 {index + 1}
               </div>
               <h3 className="text-lg font-semibold">{step.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">{step.description}</p>
+              <p className="text-sm text-baara-texte dark:text-slate-300 leading-relaxed max-w-xs mx-auto">{step.description}</p>
             </li>
           ))}
         </ol>

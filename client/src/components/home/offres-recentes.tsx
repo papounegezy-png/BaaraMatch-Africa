@@ -78,7 +78,7 @@ export function OffresRecentes() {
           </h2>
           <Link
             href="/jobs"
-            className="rounded-sm font-texte font-semibold text-baara-marine underline decoration-baara-or decoration-2 underline-offset-4 hover:decoration-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu dark:text-white dark:hover:decoration-white"
+            className="inline-flex min-h-11 items-center rounded-sm font-texte font-semibold text-baara-marine underline decoration-baara-or decoration-2 underline-offset-4 hover:decoration-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu dark:text-white dark:hover:decoration-white"
             data-testid="link-offres-voir-tout"
           >
             Voir toutes les offres
@@ -148,7 +148,7 @@ export function OffresRecentes() {
                     className="group grid min-h-[88px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-4 transition-transform duration-200 hover:-translate-x-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-baara-bleu [grid-template-areas:'titre_contrat'_'meta_date'] min-[700px]:min-h-[76px] min-[700px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto_7.5rem] min-[700px]:[grid-template-areas:'titre_entreprise_ville_contrat_date']"
                     data-testid={`offre-recente-${offre.id}`}
                   >
-                    <span className="truncate font-texte text-base font-semibold text-baara-marine group-hover:underline group-hover:decoration-baara-or group-hover:decoration-2 group-hover:underline-offset-4 dark:text-white [grid-area:titre]">
+                    <span className="break-words font-texte text-base font-semibold text-baara-marine group-hover:underline group-hover:decoration-baara-or group-hover:decoration-2 group-hover:underline-offset-4 dark:text-white [grid-area:titre]">
                       {formatJobTitle(offre.title)}
                     </span>
                     {/* Mobile : « entreprise · ville » sous l'intitulé ; dès

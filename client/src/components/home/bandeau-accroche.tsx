@@ -155,7 +155,7 @@ export function BandeauAccroche() {
               Vous recrutez ?{" "}
               <Link
                 href="/register/organisation"
-                className="font-semibold underline decoration-baara-or decoration-2 underline-offset-4 hover:decoration-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu rounded-sm dark:hover:decoration-white"
+                className="py-3 font-semibold underline decoration-baara-or decoration-2 underline-offset-4 hover:decoration-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu rounded-sm dark:hover:decoration-white"
                 data-testid="link-hero-employer-cta"
               >
                 Publiez votre première offre gratuitement

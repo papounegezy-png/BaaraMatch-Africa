@@ -51,7 +51,7 @@ export function FeaturesGrid() {
                 <feature.icon className="h-5 w-5 text-primary-text" />
               </div>
               <h3 className="text-lg font-semibold leading-snug">{feature.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+              <p className="text-sm text-baara-texte dark:text-slate-300 leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>

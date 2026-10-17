@@ -66,7 +66,7 @@ export function EnteteAccueil() {
       <div className="container mx-auto flex h-[76px] items-center justify-between gap-4 px-4">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu"
+          className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu"
           data-testid="link-accueil-logo"
         >
           {/* Marine sur or : 6:1 (l'ancien logo, blanc sur or, était à 2,4:1). */}
@@ -84,7 +84,7 @@ export function EnteteAccueil() {
 
         <div className="hidden items-center gap-2 min-[900px]:flex">
           {user && <NotificationBell />}
-          <ThemeToggle />
+          <ThemeToggle className="h-11 w-11" />
           {user ? (
             <>
               <Link href={espacePersonnel} className={lienNav} data-testid="link-accueil-espace">Mon espace</Link>
@@ -113,7 +113,7 @@ export function EnteteAccueil() {
 
         <div className="flex items-center gap-1 min-[900px]:hidden">
           {user && <NotificationBell />}
-          <ThemeToggle />
+          <ThemeToggle className="h-11 w-11" />
           <button
             ref={boutonMenuRef}
             type="button"
