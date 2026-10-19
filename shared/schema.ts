@@ -1076,12 +1076,16 @@ export const notifications = pgTable("notifications", {
   readIdx: index("notifications_read_idx").on(table.isRead),
 }));
 
+// Demandes de démo de la page /services (validation : shared/demande-demo.ts).
+// Le visiteur laisse un e-mail OU un téléphone.
 export const demoRequests = pgTable("demo_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   fullName: text("full_name").notNull(),
-  email: text("email").notNull(),
+  email: text("email"),
+  phone: text("phone"),
   company: text("company").notNull(),
-  message: text("message").notNull(),
+  profileType: text("profile_type"),
+  message: text("message"),
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => ({
   emailIdx: index("demo_requests_email_idx").on(table.email),
@@ -1125,14 +1129,8 @@ export const insertAgencyFinancialSettingsSchema = createInsertSchema(agencyFina
 export const insertSalaryPaymentSchema = createInsertSchema(salaryPayments).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAgencyPlacementSchema = createInsertSchema(agencyPlacements).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertMatchingResultSchema = createInsertSchema(matchingResults).omit({ id: true, createdAt: true });
-export const insertDemoRequestSchema = createInsertSchema(demoRequests)
-  .omit({ id: true, createdAt: true })
-  .extend({
-    fullName: z.string().min(2, "Nom requis"),
-    email: z.string().email("Email invalide"),
-    company: z.string().min(2, "Entreprise requise"),
-    message: z.string().min(10, "Message trop court"),
-  });
+// Validation des demandes : demandeDemoSchema (shared/demande-demo.ts).
+export const insertDemoRequestSchema = createInsertSchema(demoRequests).omit({ id: true, createdAt: true });
 
 // Super admin creating another admin account (levels: adminLevels above).
 export const adminAccountCreateSchema = z.object({

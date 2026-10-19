@@ -17,7 +17,7 @@ import { markOverdueInvoices, registerAgencyBillingRoutes } from "./agency-billi
 import { registerAgencyRelationsRoutes } from "./agency-relations";
 import { sendEmail } from "./email";
 import { saveReportFile, readReportFile } from "./report-storage";
-import { insertUserSchema, loginSchema, insertJobPostingSchema, insertApplicationSchema, insertDemoRequestSchema, companyModuleTypes, operationalModuleKeys, applicationStatuses, invoiceStatuses, salaryPaymentStatuses, agencySubscriptionPlans, placementStatuses, candidateDocumentTypes, hasAdminPermission, adminAccountCreateSchema, adminLevelUpdateSchema, adminStatusUpdateSchema, prospectOrganizationCreateSchema, claimOrganizationSchema, prospectMatchCheckSchema, claimByContactSchema, adminManagedJobCreateSchema, type CompanyModuleType, type User, type AgencyProfile, type UserType, type ReportExport, type FieldMission, type FieldMissionStatus, type Application } from "@shared/schema";
+import { insertUserSchema, loginSchema, insertJobPostingSchema, insertApplicationSchema, companyModuleTypes, operationalModuleKeys, applicationStatuses, invoiceStatuses, salaryPaymentStatuses, agencySubscriptionPlans, placementStatuses, candidateDocumentTypes, hasAdminPermission, adminAccountCreateSchema, adminLevelUpdateSchema, adminStatusUpdateSchema, prospectOrganizationCreateSchema, claimOrganizationSchema, prospectMatchCheckSchema, claimByContactSchema, adminManagedJobCreateSchema, type CompanyModuleType, type User, type AgencyProfile, type UserType, type ReportExport, type FieldMission, type FieldMissionStatus, type Application } from "@shared/schema";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { 
@@ -32,6 +32,7 @@ import { findMatchingCandidatesSQL, findMatchingJobsSQL } from "./init-pgvector"
 import { calculateMatchScore, explainMatchScore } from "@shared/matching";
 import { debutEssaiPartenaire, estPartenaire, planAgenceEffectif } from "@shared/plans";
 import { placementContractTypes } from "@shared/commissions";
+import { demandeDemoSchema, typeContact } from "@shared/demande-demo";
 import { chargerTauxApplicable, clientDeLAgence, registerAgencyCommissionRoutes } from "./agency-commissions";
 import { SECTEURS_ACCUEIL_BASE, categorieCanonique, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
 import {
@@ -94,6 +95,19 @@ async function requirePartnerPlan(req: Request, res: Response, next: NextFunctio
   }
   next();
 }
+
+// Formulaire public de demande de démo : 5 envois par quart d'heure et par
+// adresse IP, contre les envois en rafale.
+const demoRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Trop de demandes envoyées. Réessayez dans quelques minutes." },
+});
+
+const echapperHtml = (valeur: string) =>
+  valeur.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -594,17 +608,44 @@ export async function registerRoutes(
     res.json(userWithoutPassword);
   });
 
-  app.post("/api/demo-requests", async (req, res) => {
+  // Demande de démo (page /services). Champ piège rempli = robot : on répond
+  // comme si tout allait bien, sans rien enregistrer. L'équipe est prévenue
+  // par e-mail (DEMO_NOTIFICATION_EMAIL, sinon contact@baaramatch.africa) ;
+  // sans SMTP configuré, sendEmail se contente d'un avertissement au journal.
+  app.post("/api/demo-requests", demoRateLimiter, async (req, res) => {
     try {
-      const validatedData = insertDemoRequestSchema.parse(req.body);
-      const demoRequest = await storage.createDemoRequest(validatedData);
-      res.status(201).json(demoRequest);
+      const data = demandeDemoSchema.parse(req.body);
+      if (data.siteWeb?.trim()) {
+        return res.status(201).json({ ok: true });
+      }
+      const estEmail = typeContact(data.contact) === "email";
+      const demoRequest = await storage.createDemoRequest({
+        fullName: data.fullName,
+        company: data.company,
+        email: estEmail ? data.contact : null,
+        phone: estEmail ? null : data.contact,
+        profileType: data.profileType,
+        message: null,
+      });
+      const libelleProfil = data.profileType === "agence" ? "Agence de placement" : "Entreprise";
+      sendEmail({
+        to: process.env.DEMO_NOTIFICATION_EMAIL || "contact@baaramatch.africa",
+        subject: `Demande de démo : ${data.company}`,
+        replyTo: estEmail ? data.contact : undefined,
+        html: `<p>Nouvelle demande de démo depuis la page Services.</p>
+          <ul>
+            <li>Nom : ${echapperHtml(data.fullName)}</li>
+            <li>${libelleProfil} : ${echapperHtml(data.company)}</li>
+            <li>${estEmail ? "E-mail" : "Téléphone"} : ${echapperHtml(data.contact)}</li>
+          </ul>`,
+      }).catch((err) => console.error("[demo] Notification non envoyée :", err));
+      res.status(201).json({ id: demoRequest.id });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Données invalides", errors: error.errors });
       }
       console.error("Error creating demo request:", error);
-      res.status(500).json({ message: "Erreur lors de l'envoi de la demande" });
+      res.status(500).json({ message: "La demande n'a pas pu être enregistrée. Réessayez dans un instant." });
     }
   });
 
