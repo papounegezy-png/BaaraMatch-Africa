@@ -181,6 +181,8 @@ type AdminAgency = {
   specializations: string[];
   totalPlacements: number;
   subscriptionPlan: "standard" | "partner";
+  // Fin de l’essai de lancement ; null = plan choisi à la main (définitif).
+  partnerTrialEndsAt: string | null;
   createdAt: string;
 };
 
@@ -1229,7 +1231,11 @@ function AgenciesManagement({
                         data-testid={`switch-plan-${agency.id}`}
                       />
                       <span className="text-xs text-muted-foreground">
-                        {agency.subscriptionPlan === "partner" ? "Agence Partenaire" : "Standard"}
+                        {agency.subscriptionPlan !== "partner"
+                          ? "Standard"
+                          : agency.partnerTrialEndsAt
+                            ? `Partenaire, essai jusqu’au ${new Date(agency.partnerTrialEndsAt).toLocaleDateString("fr-FR")}`
+                            : "Agence Partenaire"}
                       </span>
                     </div>
                   </TableCell>

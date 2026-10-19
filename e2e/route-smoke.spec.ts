@@ -111,10 +111,11 @@ test("une mission d'agence se crée puis se modifie sans page blanche", async ({
     await page.getByTestId("button-publish-offer").click();
     await expect(page.getByTestId("offer-form-success")).toBeVisible();
 
-    // A Standard-plan agency's offer goes to moderation, so it is NOT in the
-    // public /api/jobs list until an admin approves it. Read the agency's own
-    // jobs instead (/api/agency/jobs — the same source /agency/missions
-    // renders, pending-review jobs included) and target this test's job by id.
+    // A new agency is on its 60-day Partner trial, so the offer goes live;
+    // a Standard-plan agency's would wait in moderation instead. Read the
+    // agency's own jobs (/api/agency/jobs — the same source /agency/missions
+    // renders, pending-review jobs included) so both cases work, and target
+    // this test's job by id.
     const jobsRes = await request.get("/api/agency/jobs");
     const agencyJobs = (await jobsRes.json()) as Array<{ id: string; title: string }>;
     const mission = agencyJobs.find((j) => j.title === "Smoke Test Mission");
@@ -127,9 +128,9 @@ test("une mission d'agence se crée puis se modifie sans page blanche", async ({
     await page.getByRole("menuitem", { name: "Modifier" }).click();
     await expect(page.getByTestId("input-offer-title")).toBeVisible();
     await expect(page.getByTestId("input-offer-title")).toHaveValue("Smoke Test Mission");
-    // This Standard-agency offer is still offline (awaiting moderation), and
-    // offline jobs deliberately reopen as a draft to continue ("Publier une
-    // offre"); only a live job opens in plain edit mode ("Modifier l'offre").
+    // A live job opens in plain edit mode ("Modifier l'offre"); an offline
+    // one (Standard plan, awaiting moderation) reopens as a draft to continue
+    // ("Publier une offre").
     // Either way the point of this test holds: the route renders the form.
     await expect(page.getByRole("heading", { name: /^(Modifier l'offre|Publier une offre)$/ })).toBeVisible();
   } finally {

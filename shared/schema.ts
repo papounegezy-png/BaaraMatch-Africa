@@ -737,7 +737,7 @@ export const invitationCodes = pgTable("invitation_codes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   code: text("code").notNull().unique(),
   targetPlan: text("target_plan").$type<AgencySubscriptionPlan>().notNull(),
-  trialDays: integer("trial_days").notNull().default(90),
+  trialDays: integer("trial_days").notNull().default(60),
   isUsed: boolean("is_used").default(false),
   organizationId: varchar("organization_id").unique().references(() => users.id),
   createdByAdminId: varchar("created_by_admin_id").notNull().references(() => users.id),

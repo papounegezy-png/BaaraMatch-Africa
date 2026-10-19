@@ -72,6 +72,12 @@ beforeAll(async () => {
     });
     expect(registerRes.status).toBe(201);
     agencyId = (await registerRes.json()).id;
+    // Une nouvelle agence démarre en essai Partenaire (offre de lancement) :
+    // on fait expirer l'essai pour tester le plan Standard qui suit.
+    await pool.query(
+      "update agency_profiles set partner_trial_ends_at = now() - interval '1 day' where user_id = $1",
+      [agencyId],
+    );
 
     // Approving needs the "offres:valider" permission, so the throwaway
     // admin gets a super_admin profile.

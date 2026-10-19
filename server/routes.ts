@@ -30,6 +30,7 @@ import {
 } from "./embeddings";
 import { findMatchingCandidatesSQL, findMatchingJobsSQL } from "./init-pgvector";
 import { calculateMatchScore, explainMatchScore } from "@shared/matching";
+import { debutEssaiPartenaire, estPartenaire, planAgenceEffectif } from "@shared/plans";
 import { SECTEURS_ACCUEIL_BASE, categorieCanonique, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
 import {
   parseWhatsAppWebhook,
@@ -83,9 +84,9 @@ function requireRole(...roles: UserType[]) {
 // dashboard) — there is no payment gateway integration in this project.
 async function requirePartnerPlan(req: Request, res: Response, next: NextFunction) {
   const profile = await storage.getAgencyProfile(req.session.userId!);
-  if (!profile || profile.subscriptionPlan !== "partner") {
+  if (!estPartenaire(profile)) {
     return res.status(403).json({
-      message: "Cette fonctionnalité nécessite le plan Agence Partenaire (150 000 FCFA/mois).",
+      message: "Cette fonctionnalité fait partie du plan Agence Partenaire.",
       code: "PARTNER_PLAN_REQUIRED",
     });
   }
@@ -326,6 +327,8 @@ export async function registerRoutes(
           website: null,
           licenseNumber: null,
           candidatesPlaced: 0,
+          // Offre de lancement : 60 jours en Partenaire (shared/plans.ts).
+          ...debutEssaiPartenaire(),
         });
       } else if (user.userType === "company") {
         await storage.createCompanyProfile({
@@ -429,13 +432,15 @@ export async function registerRoutes(
         });
         await storage.updateAgencyProfile(user.id, {
           rccmNumber: body.rccmNumber ?? null,
+          // Offre de lancement : essai Partenaire de 60 jours ; un code
+          // d'invitation impose son propre plan et sa propre durée.
           ...(invitationCode ? {
             subscriptionPlan: invitationCode.targetPlan,
             subscriptionUpdatedAt: new Date(),
             partnerTrialEndsAt: new Date(Date.now() + invitationCode.trialDays * 24 * 60 * 60 * 1000),
-          } : {}),
+          } : debutEssaiPartenaire()),
         });
-        obtainedPlan = invitationCode ? invitationCode.targetPlan : "standard";
+        obtainedPlan = invitationCode ? invitationCode.targetPlan : "partner";
 
         if (invitationCode) {
           await storage.markInvitationCodeUsed(invitationCode.id, user.id);
@@ -904,7 +909,7 @@ export async function registerRoutes(
     try {
       const body = z.object({
         targetPlan: z.enum(agencySubscriptionPlans).default("partner"),
-        trialDays: z.number().int().positive().default(90),
+        trialDays: z.number().int().positive().default(60),
       }).parse(req.body);
 
       const code = await generateUniqueInvitationCode();
@@ -1239,7 +1244,8 @@ export async function registerRoutes(
           licenseNumber: agency.profile?.licenseNumber ?? null,
           specializations: agency.profile?.specializations ?? [],
           totalPlacements: agency.profile?.totalPlacements ?? 0,
-          subscriptionPlan: agency.profile?.subscriptionPlan ?? "standard",
+          subscriptionPlan: planAgenceEffectif(agency.profile),
+          partnerTrialEndsAt: agency.profile?.partnerTrialEndsAt ?? null,
           createdAt: agency.createdAt,
         })),
       );
@@ -1261,6 +1267,8 @@ export async function registerRoutes(
       const updatedProfile = await storage.updateAgencyProfile(agency.id, {
         subscriptionPlan: plan,
         subscriptionUpdatedAt: new Date(),
+        // Choix manuel : remplace l'essai de lancement, sans date de fin.
+        partnerTrialEndsAt: null,
       });
       if (!updatedProfile) {
         return res.status(404).json({ message: "Profil agence introuvable" });
@@ -1837,6 +1845,15 @@ export async function registerRoutes(
         isVerified: true,
       });
 
+      // Agence prospect : l'essai Partenaire de lancement démarre à la
+      // reprise du compte (sauf Partenaire définitif choisi par l'admin).
+      if (user.userType === "agency") {
+        const profilAgence = await storage.getAgencyProfile(user.id);
+        if (profilAgence && !(profilAgence.subscriptionPlan === "partner" && !profilAgence.partnerTrialEndsAt)) {
+          await storage.updateAgencyProfile(user.id, debutEssaiPartenaire());
+        }
+      }
+
       await storage.createActivityLog({
         action: "organization_claimed",
         userId: user.id,
@@ -1905,6 +1922,15 @@ export async function registerRoutes(
         claimedAt: new Date(),
         isVerified: true,
       });
+
+      // Agence prospect : l'essai Partenaire de lancement démarre à la
+      // reprise du compte (sauf Partenaire définitif choisi par l'admin).
+      if (user.userType === "agency") {
+        const profilAgence = await storage.getAgencyProfile(user.id);
+        if (profilAgence && !(profilAgence.subscriptionPlan === "partner" && !profilAgence.partnerTrialEndsAt)) {
+          await storage.updateAgencyProfile(user.id, debutEssaiPartenaire());
+        }
+      }
 
       await storage.createActivityLog({
         action: "organization_claimed",
@@ -2125,7 +2151,7 @@ export async function registerRoutes(
       let requiresModeration = false;
       if (user.userType === "agency" && validatedData.isActive) {
         const agencyProfile = await storage.getAgencyProfile(user.id);
-        requiresModeration = agencyProfile?.subscriptionPlan !== "partner";
+        requiresModeration = !estPartenaire(agencyProfile);
       }
 
       const job = await storage.createJobPosting({
@@ -2181,7 +2207,7 @@ export async function registerRoutes(
       let requiresModeration = false;
       if (updates.isActive === true && !job.isActive && !job.validatedAt && job.agencyId === req.session.userId) {
         const agencyProfile = await storage.getAgencyProfile(req.session.userId!);
-        requiresModeration = agencyProfile?.subscriptionPlan !== "partner";
+        requiresModeration = !estPartenaire(agencyProfile);
       }
 
       const updatedJob = await storage.updateJobPosting(jobId, requiresModeration ? { ...updates, isActive: false } : updates);

@@ -41,6 +41,7 @@ import { CommissionManagement } from "@/components/commission-management";
 import { AgencyContractsPage } from "@/components/agency-contracts-page";
 import { AgencyRecruitmentKanban } from "@/components/recruitment-kanban-board";
 import { Card, CardContent } from "@/components/ui/card";
+import { estPartenaire } from "@shared/plans";
 import { 
   BarChart3, 
   Shield, 
@@ -51,7 +52,7 @@ import {
 
 type AgencyDashboardData = {
   user: { id: string; fullName: string };
-  profile: { agencyName: string | null; subscriptionPlan?: string | null } | null;
+  profile: { agencyName: string | null; subscriptionPlan?: string | null; partnerTrialEndsAt?: string | null } | null;
   overview: AgencyOverview;
   managedCandidates: number;
   activeJobs: number;
@@ -341,7 +342,7 @@ export default function AgencyDashboardPage() {
       // live (see POST /api/jobs) — partner-plan agencies skip the queue.
       // Unknown until the dashboard loads: the form waits (skeleton) rather
       // than briefly showing a partner agency the review-delay copy.
-      const isFreemium = !!dashboardData && dashboardData.profile?.subscriptionPlan !== "partner";
+      const isFreemium = !!dashboardData && !estPartenaire(dashboardData.profile);
 
       return (
         <OfferForm
@@ -357,7 +358,7 @@ export default function AgencyDashboardPage() {
 
     if (editingJobId) {
       const organizationName = dashboardData?.profile?.agencyName ?? dashboardData?.user?.fullName ?? user.fullName;
-      const isFreemium = !!dashboardData && dashboardData.profile?.subscriptionPlan !== "partner";
+      const isFreemium = !!dashboardData && !estPartenaire(dashboardData.profile);
       // An offline job (draft, or closed) opens as a draft to continue: it
       // keeps « Enregistrer le brouillon » and its main button publishes it
       // (live for a partner agency, admin review for a standard one). A

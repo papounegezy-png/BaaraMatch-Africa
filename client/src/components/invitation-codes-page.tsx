@@ -45,7 +45,7 @@ export function InvitationCodesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
-  const [trialDays, setTrialDays] = useState("90");
+  const [trialDays, setTrialDays] = useState("60");
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   const { data: codes = [], isLoading } = useQuery<InvitationCodeRow[]>({

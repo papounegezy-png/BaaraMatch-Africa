@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lock, Sparkles } from "lucide-react";
 import type { User, AgencyProfile } from "@shared/schema";
+import { estPartenaire } from "@shared/plans";
 
 interface ProfileResponse {
   user: User;
@@ -11,9 +12,9 @@ interface ProfileResponse {
 /**
  * Gates the agency billing suite (invoices, financial settings, commission
  * rates, payment methods, salary payments) behind the "Agence Partenaire"
- * plan (150 000 FCFA/mois). Plan is admin-managed — no payment gateway is
- * integrated in this project, so there is no self-service upgrade flow here,
- * only a message telling the agency how to get it.
+ * plan. Offre de lancement : 60 jours de Partenaire par agence (voir
+ * shared/plans.ts), puis plan géré par le Super Admin — aucun paiement en
+ * ligne n'existe, d'où un simple message pour obtenir le plan.
  */
 export function RequirePartnerPlan({ children }: { children: React.ReactNode }) {
   const { data, isLoading } = useQuery<ProfileResponse>({
@@ -28,7 +29,9 @@ export function RequirePartnerPlan({ children }: { children: React.ReactNode }) 
     );
   }
 
-  if (data?.profile?.subscriptionPlan !== "partner") {
+  if (!estPartenaire(data?.profile)) {
+    // Essai de lancement terminé (date de fin passée) ou jamais ouvert.
+    const essaiTermine = !!data?.profile?.partnerTrialEndsAt;
     return (
       <div className="flex items-center justify-center py-16">
         <Card className="max-w-md w-full border-primary/30">
@@ -41,8 +44,9 @@ export function RequirePartnerPlan({ children }: { children: React.ReactNode }) 
                 Réservé au plan Agence Partenaire
               </h2>
               <p className="text-sm text-muted-foreground">
-                La facturation, les commissions et les paiements de salaire sont inclus dans le plan{" "}
-                <span className="font-medium text-foreground">Agence Partenaire</span> (150 000 FCFA/mois).
+                {essaiTermine && "Votre période d'essai de 2 mois est terminée. "}
+                La facturation, les commissions et les paiements de salaire font partie du plan{" "}
+                <span className="font-medium text-foreground">Agence Partenaire</span>.
               </p>
             </div>
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 pt-2">

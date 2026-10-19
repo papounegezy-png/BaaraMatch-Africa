@@ -1,10 +1,12 @@
 /**
- * Integration test for the agency "freemium" flow: a newly registered
- * agency defaults to the free "standard" plan, which blocks the billing
- * suite (invoices, commission rates, payment methods, salary payments,
- * financial settings) while leaving core features (placements, dashboard)
- * accessible. A Super Admin can promote the agency to "partner"
- * (150 000 FCFA/mois), which unlocks the billing suite immediately.
+ * Integration test for the agency plans. Offre de lancement : a newly
+ * registered agency starts a 60-day "partner" trial (shared/plans.ts), with
+ * the billing suite open. Once the trial ends it falls back to the
+ * "standard" plan, which blocks the billing suite (invoices, commission
+ * rates, payment methods, salary payments, financial settings) while
+ * leaving core features (placements, dashboard) accessible. A Super Admin
+ * can promote the agency to "partner" for good, which unlocks the billing
+ * suite immediately.
  *
  * Runs against a real running dev server + real Postgres — matches how
  * this project has been manually verified throughout development (no
@@ -107,7 +109,33 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe("Agence — plan standard (freemium) par défaut", () => {
+describe("Agence — essai Partenaire de lancement à l’inscription", () => {
+  it("ouvre 60 jours de Partenaire", async () => {
+    const { rows } = await pool.query(
+      "select subscription_plan, partner_trial_ends_at from agency_profiles where user_id = $1",
+      [agencyId],
+    );
+    expect(rows[0].subscription_plan).toBe("partner");
+    const jours = (new Date(rows[0].partner_trial_ends_at).getTime() - Date.now()) / 86_400_000;
+    expect(jours).toBeGreaterThan(59);
+    expect(jours).toBeLessThanOrEqual(60);
+  });
+
+  it("donne accès à la facturation pendant l’essai", async () => {
+    const res = await agencySession.request("GET", "/api/agency/invoices");
+    expect(res.status).toBe(200);
+  });
+});
+
+describe("Agence — plan standard (freemium) après l’essai", () => {
+  beforeAll(async () => {
+    // Fin de l’essai simulée : la date est passée, le plan effectif redevient Standard.
+    await pool.query(
+      "update agency_profiles set partner_trial_ends_at = now() - interval '1 day' where user_id = $1",
+      [agencyId],
+    );
+  });
+
   const billingRoutes = [
     "/api/agency/financial-settings",
     "/api/agency/commission-rates",

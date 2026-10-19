@@ -1346,8 +1346,10 @@ export class DatabaseStorage implements IStorage {
         .where(and(eq(moderationItems.status, "pending"), eq(moderationItems.targetType, "job"))),
       db.select({ count: sql<number>`count(*)::int` }).from(moderationItems)
         .where(and(eq(moderationItems.status, "pending"), eq(moderationItems.targetType, "job"), lt(moderationItems.createdAt, oneDayAgo))),
+      // Partenaires payants seulement : choisis à la main par le Super Admin
+      // (sans date de fin). Les essais de lancement ne rapportent rien.
       db.select({ count: sql<number>`count(*)::int` }).from(agencyProfiles)
-        .where(eq(agencyProfiles.subscriptionPlan, "partner")),
+        .where(and(eq(agencyProfiles.subscriptionPlan, "partner"), isNull(agencyProfiles.partnerTrialEndsAt))),
     ]);
 
     return {
