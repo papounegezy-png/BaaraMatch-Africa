@@ -22,10 +22,9 @@ const NUMERO_WHATSAPP = (import.meta.env.VITE_WHATSAPP_NUMERO ?? "").replace(/\D
 
 const EMAIL_CONTACT = "contact@baaramatch.africa";
 
-// Liens internes. Chaque cible est une route existante ; les ancres #demo et
-// #faq sont sur la page Services.
-// « Offre agences et tarifs » (/services#agences) est absent : la page
-// Services n'a pas encore de section agences.
+// Liens internes. Chaque cible est une route existante ; les ancres #agences
+// (panneau du profil Agences), #demo et #faq sont sur la page Services.
+// « Offre agences » et non « … et tarifs » : aucun tarif n'est affiché.
 const COLONNES = [
   {
     titre: "Candidats",
@@ -39,6 +38,7 @@ const COLONNES = [
     titre: "Recruteurs",
     liens: [
       { libelle: "Publier une offre", href: "/register/organisation" },
+      { libelle: "Offre agences", href: "/services#agences" },
       { libelle: "Annuaire des employeurs", href: "/agencies" },
       { libelle: "Demander une démo", href: "/services#demo" },
     ],
