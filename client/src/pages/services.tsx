@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Building2, Send, Users } from "lucide-react";
@@ -13,31 +12,11 @@ import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauServices } from "@/components/services/bandeau-services";
 import { SelecteurProfil, DECALAGE_ANCRES } from "@/components/services/selecteur-profil";
 import { PanneauProfil } from "@/components/services/panneau-profil";
+import { OffreLancement } from "@/components/services/offre-lancement";
+import { Faq } from "@/components/services/faq";
 import { ordreProfils } from "@/donnees/services";
 import { useProfilServices } from "@/hooks/use-profil-services";
 
-const faqs = [
-  {
-    question: "Quels types d'entreprises peuvent utiliser BaaraMatch ?",
-    answer:
-      "BaaraMatch est adapté aux agences de recrutement, PME et grandes entreprises qui souhaitent structurer et accélérer leurs recrutements.",
-  },
-  {
-    question: "Le matching intelligent est-il personnalisable ?",
-    answer:
-      "Oui. Les critères de matching peuvent s'ajuster selon vos besoins: compétences, disponibilité, localisation et niveau d'expérience.",
-  },
-  {
-    question: "Combien de temps prend la mise en place ?",
-    answer:
-      "La mise en route est rapide. La plupart des équipes démarrent en quelques heures avec notre accompagnement onboarding.",
-  },
-  {
-    question: "Proposez-vous une démonstration avant engagement ?",
-    answer:
-      "Oui, vous pouvez demander une démo directement via le formulaire ci-dessous et notre équipe vous recontacte rapidement.",
-  },
-];
 
 export default function ServicesPage() {
   const { profil, tick, choisirProfil } = useProfilServices();
@@ -96,31 +75,12 @@ export default function ServicesPage() {
       ))}
       <PanneauProfil profil={profil} tick={tick} />
 
-      <section className="container mx-auto px-4 py-14 md:py-16">
-        <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-6 md:gap-8">
-          <Card id="faq" style={{ scrollMarginTop: DECALAGE_ANCRES }} className="border-border/70">
-            <CardHeader>
-              <CardTitle className="text-2xl">FAQ</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Les reponses aux questions les plus frequentes sur nos services.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                {faqs.map((faq, index) => (
-                  <AccordionItem key={faq.question} value={`faq-${index}`}>
-                    <AccordionTrigger className="text-left hover:no-underline">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground leading-relaxed">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </CardContent>
-          </Card>
+      <OffreLancement />
+      <Faq />
 
+      {/* Formulaire de démo : refondu au prompt 5. */}
+      <section className="container mx-auto px-4 py-14 md:py-16">
+        <div className="mx-auto max-w-2xl">
           <Card id="demo" style={{ scrollMarginTop: DECALAGE_ANCRES }} className="border-border/70">
             <CardHeader>
               <CardTitle className="text-2xl">Demander une demo</CardTitle>
