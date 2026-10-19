@@ -1,105 +1,20 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  Brain,
-  Briefcase,
-  Building2,
-  CheckCircle2,
-  Clock3,
-  FileCheck2,
-  MessageSquare,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  Users,
-} from "lucide-react";
-
-const services = [
-  {
-    icon: Brain,
-    title: "Matching intelligent",
-    description:
-      "Classement automatique des profils selon vos critères métier, compétences et disponibilité.",
-    bullets: ["Tri rapide", "Score de pertinence", "Recommandations en continu"],
-  },
-  {
-    icon: Users,
-    title: "Sourcing de talents",
-    description:
-      "Accédez à un vivier qualifié de candidats et optimisez vos campagnes de recrutement.",
-    bullets: ["Profils vérifiés", "Filtres avancés", "Recherche multicanale"],
-  },
-  {
-    icon: FileCheck2,
-    title: "Suivi de candidatures",
-    description:
-      "Pilotez votre pipeline de recrutement avec des statuts clairs et une visibilité en temps réel.",
-    bullets: ["Pipeline visuel", "Historique d'actions", "Alertes clés"],
-  },
-  {
-    icon: MessageSquare,
-    title: "Communication centralisée",
-    description:
-      "Échangez avec candidats et équipes depuis un seul espace pour éviter la perte d'information.",
-    bullets: ["Messages unifiés", "Templates prêts", "Notifications utiles"],
-  },
-  {
-    icon: ShieldCheck,
-    title: "Conformité et sécurité",
-    description:
-      "Gestion sécurisée des données candidats avec des standards de protection adaptés au recrutement.",
-    bullets: ["Accès contrôlé", "Traçabilité", "Bonnes pratiques RH"],
-  },
-  {
-    icon: Clock3,
-    title: "Accompagnement opérationnel",
-    description:
-      "Nos équipes vous aident à structurer vos workflows pour réduire vos délais de recrutement.",
-    bullets: ["Onboarding guidé", "Support prioritaire", "Conseils d'optimisation"],
-  },
-];
-
-const plans = [
-  {
-    name: "Start",
-    subtitle: "Pour lancer vos recrutements",
-    price: "Sur devis",
-    features: ["Publication d'offres", "Tri de candidatures", "Dashboard essentiel"],
-  },
-  {
-    name: "Growth",
-    subtitle: "Pour accélérer votre volume",
-    price: "Sur devis",
-    featured: true,
-    features: ["Matching intelligent", "Pipeline collaboratif", "Reporting avancé"],
-  },
-  {
-    name: "Enterprise",
-    subtitle: "Pour les besoins complexes",
-    price: "Sur devis",
-    features: ["Modules personnalisés", "SLA dédié", "Accompagnement stratégique"],
-  },
-  {
-    name: "Agence Partenaire",
-    subtitle: "Pour les agences de placement",
-    price: "150 000 FCFA/mois",
-    features: [
-      "Recherche et matching de candidats",
-      "Gestion des placements et missions",
-      "Facturation clients et suivi des commissions",
-    ],
-  },
-];
+import { Building2, Send, Users } from "lucide-react";
+import { EnteteAccueil } from "@/components/home/entete-accueil";
+import { BandeauServices } from "@/components/services/bandeau-services";
+import { SelecteurProfil, DECALAGE_ANCRES } from "@/components/services/selecteur-profil";
+import { PanneauProfil } from "@/components/services/panneau-profil";
+import { ordreProfils } from "@/donnees/services";
+import { useProfilServices } from "@/hooks/use-profil-services";
 
 const faqs = [
   {
@@ -124,25 +39,8 @@ const faqs = [
   },
 ];
 
-const revealContainer = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const revealItem = {
-  hidden: { opacity: 0, y: 18 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.45, ease: "easeOut" as const },
-  },
-};
-
 export default function ServicesPage() {
+  const { profil, tick, choisirProfil } = useProfilServices();
   const { toast } = useToast();
   const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
   const [demoForm, setDemoForm] = useState({
@@ -187,115 +85,20 @@ export default function ServicesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <section className="relative overflow-hidden border-b bg-gradient-to-br from-background via-muted/30 to-card">
-        <div className="container mx-auto px-4 py-16 md:py-20">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <Badge variant="secondary" className="gap-2 text-xs md:text-sm">
-              <Sparkles className="h-3.5 w-3.5" />
-              Services BaaraMatch
-            </Badge>
-            <h1 className="text-3xl md:text-5xl font-bold tracking-tight" data-testid="text-services-title">
-              Des services RH modernes pour recruter plus vite et mieux
-            </h1>
-            <p className="text-muted-foreground text-base md:text-lg max-w-3xl mx-auto">
-              Que vous soyez agence ou entreprise, BaaraMatch vous propose des outils simples,
-              performants et intuitifs pour attirer, évaluer et convertir les bons talents.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3 pt-2">
-              <Link href="/jobs">
-                <Button className="gap-2" data-testid="button-services-explore-jobs">
-                  <Briefcase className="h-4 w-4" />
-                  Explorer les offres
-                </Button>
-              </Link>
-              <Link href="/agencies">
-                <Button variant="outline" className="gap-2" data-testid="button-services-view-employers">
-                  <Building2 className="h-4 w-4" />
-                  Voir les employeurs
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="container mx-auto px-4 py-14 md:py-16">
-        <motion.div
-          className="grid md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6"
-          variants={revealContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.18 }}
-        >
-          {services.map((service) => (
-            <motion.div key={service.title} variants={revealItem}>
-              <Card className="h-full border-border/70 hover:shadow-md transition-shadow">
-              <CardHeader className="space-y-3">
-                <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                  <service.icon className="h-5 w-5" />
-                </div>
-                <CardTitle className="text-lg">{service.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">{service.description}</p>
-                <ul className="space-y-2">
-                  {service.bullets.map((bullet) => (
-                    <li key={bullet} className="text-sm flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      {bullet}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-      </section>
-
-      <section className="bg-muted/40 border-y">
-        <div className="container mx-auto px-4 py-14 md:py-16">
-          <div className="text-center space-y-3 mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold">Des packs adaptés à votre rythme</h2>
-            <p className="text-muted-foreground">Choisissez la formule qui correspond à votre niveau de maturité RH.</p>
-          </div>
-          <motion.div
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5"
-            variants={revealContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            {plans.map((plan) => (
-              <motion.div key={plan.name} variants={revealItem}>
-                <Card
-                  className={`h-full ${plan.featured ? "border-primary shadow-md" : "border-border/70"}`}
-                >
-                <CardHeader>
-                  {plan.featured && <Badge className="w-fit">Recommandé</Badge>}
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{plan.subtitle}</p>
-                  <p className="text-lg font-semibold pt-2">{plan.price}</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="text-sm flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
-                      {feature}
-                    </div>
-                  ))}
-                </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+    <div className="min-h-screen bg-baara-papier dark:bg-baara-profond">
+      <EnteteAccueil />
+      <BandeauServices />
+      <SelecteurProfil profil={profil} onChoisir={choisirProfil} />
+      {/* Ancres des profils, juste avant le panneau, décalées sous l'en-tête et
+          le sélecteur collants. */}
+      {ordreProfils.map((p) => (
+        <span key={p} id={p} aria-hidden="true" className="block h-0" style={{ scrollMarginTop: DECALAGE_ANCRES }} />
+      ))}
+      <PanneauProfil profil={profil} tick={tick} />
 
       <section className="container mx-auto px-4 py-14 md:py-16">
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-6 md:gap-8">
-          <Card id="faq" className="scroll-mt-24 border-border/70">
+          <Card id="faq" style={{ scrollMarginTop: DECALAGE_ANCRES }} className="border-border/70">
             <CardHeader>
               <CardTitle className="text-2xl">FAQ</CardTitle>
               <p className="text-sm text-muted-foreground">
@@ -318,7 +121,7 @@ export default function ServicesPage() {
             </CardContent>
           </Card>
 
-          <Card id="demo" className="scroll-mt-24 border-border/70">
+          <Card id="demo" style={{ scrollMarginTop: DECALAGE_ANCRES }} className="border-border/70">
             <CardHeader>
               <CardTitle className="text-2xl">Demander une demo</CardTitle>
               <p className="text-sm text-muted-foreground">

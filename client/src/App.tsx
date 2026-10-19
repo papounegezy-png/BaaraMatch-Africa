@@ -76,8 +76,8 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* The home page renders its own header (EnteteAccueil). */}
-      {location !== "/" && <Navbar user={user} onLogout={logout} />}
+      {/* L'accueil et la page Services affichent leur propre en-tête (EnteteAccueil). */}
+      {location !== "/" && location !== "/services" && <Navbar user={user} onLogout={logout} />}
       <main className="flex-1">{children}</main>
       <PiedAccueil />
     </div>

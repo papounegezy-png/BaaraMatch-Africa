@@ -19,6 +19,9 @@ export function useDefilementAncre() {
       cancelAnimationFrame(image);
       const ancre = decodeURIComponent(window.location.hash.slice(1));
       if (!ancre) return;
+      // Ancre mise à jour sans navigation (ex. sélecteur de profil de
+      // /services) : pas de défilement.
+      if (window.history.state?.sansDefilement) return;
       const debut = performance.now();
       const chercher = () => {
         if (annule) return;
