@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
+import { EN_TETE_TESTS } from "../server/middlewares/limiteur-tests";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
 const RUN_ID = randomUUID().slice(0, 8);
@@ -31,6 +32,8 @@ class Session {
       method,
       headers: {
         "Content-Type": "application/json",
+        // Exempte la requête des limiteurs de débit (hors production).
+        [EN_TETE_TESTS]: "1",
         ...(this.cookie ? { Cookie: this.cookie } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,

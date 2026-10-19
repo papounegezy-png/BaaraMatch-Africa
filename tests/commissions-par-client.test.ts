@@ -12,6 +12,7 @@ import "dotenv/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Pool } from "pg";
 import { randomUUID } from "crypto";
+import { EN_TETE_TESTS } from "../server/middlewares/limiteur-tests";
 
 const BASE_URL = process.env.TEST_BASE_URL || "http://localhost:5000";
 const RUN_ID = randomUUID().slice(0, 8);
@@ -27,7 +28,7 @@ class Session {
   async request(method: string, path: string, body?: unknown) {
     const res = await fetch(`${BASE_URL}${path}`, {
       method,
-      headers: { "Content-Type": "application/json", ...(this.cookie ? { Cookie: this.cookie } : {}) },
+      headers: { "Content-Type": "application/json", [EN_TETE_TESTS]: "1", ...(this.cookie ? { Cookie: this.cookie } : {}) },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const setCookie = res.headers.get("set-cookie");

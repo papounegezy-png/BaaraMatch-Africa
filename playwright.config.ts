@@ -25,5 +25,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.TEST_BASE_URL || "http://localhost:5000",
     screenshot: "only-on-failure",
+    // Exempte les requêtes des tests des limiteurs de débit du serveur, hors
+    // production (server/middlewares/limiteur-tests.ts).
+    extraHTTPHeaders: { "x-tests-baaramatch": "1" },
   },
 });

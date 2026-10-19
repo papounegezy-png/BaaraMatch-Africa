@@ -12,6 +12,7 @@ import { and, desc, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { db } from "./db";
 import { storage } from "./storage";
 import { sendEmail } from "./email";
+import { ignorerLimitePourLesTests } from "./middlewares/limiteur-tests";
 import {
   agencyClientAgreements,
   agencyClientContacts,
@@ -252,7 +253,7 @@ function npsOf(scores: number[]) {
   return Math.round(((promoters - detractors) / scores.length) * 100);
 }
 
-const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
+const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false, skip: ignorerLimitePourLesTests });
 
 export function registerAgencyRelationsRoutes(app: Express, requireRole: RequireRole) {
   const agencyOnly = requireRole("agency");

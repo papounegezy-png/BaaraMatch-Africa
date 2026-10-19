@@ -34,6 +34,7 @@ import { debutEssaiPartenaire, estPartenaire, planAgenceEffectif } from "@shared
 import { placementContractTypes } from "@shared/commissions";
 import { demandeDemoSchema, typeContact } from "@shared/demande-demo";
 import { chargerTauxApplicable, clientDeLAgence, registerAgencyCommissionRoutes } from "./agency-commissions";
+import { ignorerLimitePourLesTests } from "./middlewares/limiteur-tests";
 import { SECTEURS_ACCUEIL_BASE, categorieCanonique, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
 import {
   parseWhatsAppWebhook,
@@ -103,6 +104,7 @@ const demoRateLimiter = rateLimit({
   limit: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: ignorerLimitePourLesTests,
   message: { message: "Trop de demandes envoyées. Réessayez dans quelques minutes." },
 });
 
@@ -114,6 +116,8 @@ const authRateLimiter = rateLimit({
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  // Tests automatisés hors production : voir middlewares/limiteur-tests.ts.
+  skip: ignorerLimitePourLesTests,
   message: { message: "Trop de tentatives, veuillez réessayer plus tard." },
 });
 
