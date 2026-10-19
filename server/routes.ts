@@ -31,6 +31,8 @@ import {
 import { findMatchingCandidatesSQL, findMatchingJobsSQL } from "./init-pgvector";
 import { calculateMatchScore, explainMatchScore } from "@shared/matching";
 import { debutEssaiPartenaire, estPartenaire, planAgenceEffectif } from "@shared/plans";
+import { placementContractTypes } from "@shared/commissions";
+import { chargerTauxApplicable, clientDeLAgence, registerAgencyCommissionRoutes } from "./agency-commissions";
 import { SECTEURS_ACCUEIL_BASE, categorieCanonique, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
 import {
   parseWhatsAppWebhook,
@@ -4831,7 +4833,7 @@ export async function registerRoutes(
     salaryCurrency: z.string().optional(),
     startDate: z.coerce.date(),
     endDate: z.coerce.date().optional(),
-    commissionRate: z.number().min(0).max(100).optional(),
+    commissionRate: z.number().min(0).max(100).nullable().optional(),
   }).refine((data) => !data.endDate || data.endDate > data.startDate, {
     message: "La date de fin doit être après la date de début",
     path: ["endDate"],
@@ -4860,6 +4862,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Candidat introuvable" });
       }
 
+      // Taux non fourni (champ absent, pas vidé) : taux réglé pour ce client.
+      if (data.commissionRate === undefined) {
+        data.commissionRate = (await chargerTauxApplicable(req.session.userId!, client.id, data.contractType))?.taux;
+      }
       const commissionAmount = data.commissionRate
         ? Math.round((data.salary * data.commissionRate) / 100)
         : null;
@@ -5124,12 +5130,28 @@ export async function registerRoutes(
 
   // ---- Agency billing: commission rate settings ----
 
+  // Réglé par client et par type de contrat ; null = tous les clients /
+  // tous les contrats (règle d'application : shared/commissions.ts).
   const commissionRateBodySchema = z.object({
-    contractType: z.string().min(1),
+    agencyClientId: z.string().min(1).nullable().optional(),
+    contractType: z.enum(placementContractTypes).nullable().optional(),
     rate: z.number().min(0).max(100),
     minAmount: z.number().int().min(0).nullable().optional(),
     isActive: z.boolean().optional(),
   }).strict();
+
+  // Un seul réglage par couple (client, type de contrat), et seulement pour
+  // un client de l'agence. Renvoie un message d'erreur, ou null si tout va bien.
+  async function verifierReglageTaux(agencyId: string, reglage: { agencyClientId?: string | null; contractType?: string | null }, ignorerId?: string) {
+    const client = reglage.agencyClientId ?? null;
+    const contrat = reglage.contractType ?? null;
+    if (client && !(await clientDeLAgence(agencyId, client))) return { status: 404, message: "Client introuvable" };
+    const existants = await storage.listCommissionRateSettings(agencyId);
+    if (existants.some((r) => r.id !== ignorerId && (r.agencyClientId ?? null) === client && (r.contractType ?? null) === contrat)) {
+      return { status: 409, message: "Un taux existe déjà pour ce client et ce type de contrat. Modifiez-le plutôt." };
+    }
+    return null;
+  }
 
   app.get("/api/agency/commission-rates", requireRole("agency"), requirePartnerPlan, async (req, res) => {
     try {
@@ -5144,6 +5166,8 @@ export async function registerRoutes(
   app.post("/api/agency/commission-rates", requireRole("agency"), requirePartnerPlan, async (req, res) => {
     try {
       const data = commissionRateBodySchema.parse(req.body);
+      const refus = await verifierReglageTaux(req.session.userId!, data);
+      if (refus) return res.status(refus.status).json({ message: refus.message });
       const rate = await storage.createCommissionRateSetting({ ...data, agencyId: req.session.userId! });
       res.status(201).json(rate);
     } catch (error) {
@@ -5158,6 +5182,16 @@ export async function registerRoutes(
   app.patch("/api/agency/commission-rates/:id", requireRole("agency"), requirePartnerPlan, async (req, res) => {
     try {
       const updates = commissionRateBodySchema.partial().parse(req.body);
+      if ("agencyClientId" in updates || "contractType" in updates) {
+        const actuel = (await storage.listCommissionRateSettings(req.session.userId!)).find((r) => r.id === String(req.params.id));
+        if (actuel) {
+          const refus = await verifierReglageTaux(req.session.userId!, {
+            agencyClientId: "agencyClientId" in updates ? updates.agencyClientId : actuel.agencyClientId,
+            contractType: "contractType" in updates ? updates.contractType : actuel.contractType,
+          }, actuel.id);
+          if (refus) return res.status(refus.status).json({ message: refus.message });
+        }
+      }
       const rate = await storage.updateCommissionRateSetting(String(req.params.id), req.session.userId!, updates);
       if (!rate) {
         return res.status(404).json({ message: "Taux de commission non trouvé" });
@@ -5479,6 +5513,7 @@ export async function registerRoutes(
   });
 
   registerAgencyCrmRoutes(app, requireRole);
+  registerAgencyCommissionRoutes(app, requireRole);
   registerAgencyCandidateRoutes(app, requireRole);
   registerAgencyRecruitmentRoutes(app, requireRole);
   registerAgencyBillingRoutes(app, requireRole, requirePartnerPlan);

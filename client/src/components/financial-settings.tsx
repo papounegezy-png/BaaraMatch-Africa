@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { placementContractTypes } from "@shared/commissions";
 
 interface FinancialSettingsData {
   id: string;
@@ -70,7 +71,9 @@ interface FinancialSettingsData {
 interface CommissionRate {
   id: string;
   agencyId: string;
-  contractType: string;
+  // null = tous les clients / tous les contrats (shared/commissions.ts).
+  agencyClientId: string | null;
+  contractType: string | null;
   rate: number;
   minAmount: number | null;
   isActive: boolean;
@@ -92,6 +95,7 @@ interface PaymentMethod {
 
 const FINANCIAL_SETTINGS_KEY = ["/api/agency/financial-settings"];
 const COMMISSION_RATES_KEY = ["/api/agency/commission-rates"];
+const TOUS = "tous";
 const PAYMENT_METHODS_KEY = ["/api/agency/payment-methods"];
 
 export function FinancialSettings() {
@@ -219,18 +223,24 @@ export function FinancialSettings() {
 
   const [showCommissionDialog, setShowCommissionDialog] = useState(false);
   const [editingCommission, setEditingCommission] = useState<CommissionRate | null>(null);
-  const [commissionForm, setCommissionForm] = useState({ contractType: "", rate: "", minAmount: "" });
+  // TOUS : valeur des listes pour « Tous les clients » / « Tous les contrats »
+  // (une liste Radix n'accepte pas de valeur vide).
+  const [commissionForm, setCommissionForm] = useState({ clientId: TOUS, contractType: TOUS, rate: "", minAmount: "" });
+  const clientsQuery = useQuery<{ id: string; name: string }[]>({ queryKey: ["/api/agency/clients"] });
+  const clients = clientsQuery.data ?? [];
+  const nomClient = (id: string | null) => (id ? clients.find((c) => c.id === id)?.name ?? "Client supprimé" : "Tous les clients");
 
   const openAddCommissionDialog = () => {
     setEditingCommission(null);
-    setCommissionForm({ contractType: "", rate: "", minAmount: "" });
+    setCommissionForm({ clientId: TOUS, contractType: TOUS, rate: "", minAmount: "" });
     setShowCommissionDialog(true);
   };
 
   const openEditCommissionDialog = (rate: CommissionRate) => {
     setEditingCommission(rate);
     setCommissionForm({
-      contractType: rate.contractType,
+      clientId: rate.agencyClientId ?? TOUS,
+      contractType: rate.contractType ?? TOUS,
       rate: String(rate.rate),
       minAmount: rate.minAmount != null ? String(rate.minAmount) : "",
     });
@@ -238,7 +248,7 @@ export function FinancialSettings() {
   };
 
   const createCommissionMutation = useMutation({
-    mutationFn: async (data: { contractType: string; rate: number; minAmount: number | null }) => {
+    mutationFn: async (data: { agencyClientId: string | null; contractType: string | null; rate: number; minAmount: number | null }) => {
       const res = await apiRequest("POST", "/api/agency/commission-rates", data);
       return res.json();
     },
@@ -292,17 +302,18 @@ export function FinancialSettings() {
 
   const handleSubmitCommission = () => {
     const rateNum = Number(commissionForm.rate);
-    if (!commissionForm.contractType.trim() || Number.isNaN(rateNum)) {
+    if (commissionForm.rate.trim() === "" || Number.isNaN(rateNum) || rateNum < 0 || rateNum > 100) {
       toast({
-        title: "Champs invalides",
-        description: "Merci de renseigner un type de contrat et un taux valide.",
+        title: "Taux invalide",
+        description: "Saisissez un taux entre 0 et 100 %.",
         variant: "destructive",
       });
       return;
     }
     const minAmountNum = commissionForm.minAmount.trim() === "" ? null : Number(commissionForm.minAmount);
     const payload = {
-      contractType: commissionForm.contractType.trim(),
+      agencyClientId: commissionForm.clientId === TOUS ? null : commissionForm.clientId,
+      contractType: commissionForm.contractType === TOUS ? null : commissionForm.contractType,
       rate: rateNum,
       minAmount: minAmountNum,
     };
@@ -699,7 +710,7 @@ export function FinancialSettings() {
                 <Percent className="h-5 w-5 text-primary" />
                 Taux de Commission
               </CardTitle>
-              <CardDescription>Commissions par type de contrat</CardDescription>
+              <CardDescription>Par client et par type de contrat. Le taux le plus précis est proposé à chaque placement.</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={openAddCommissionDialog} data-testid="button-add-commission">
               <Plus className="h-4 w-4 mr-2" />
@@ -717,7 +728,7 @@ export function FinancialSettings() {
               <Percent className="h-10 w-10 text-muted-foreground mb-3" />
               <h3 className="font-medium">Aucun taux de commission</h3>
               <p className="text-sm text-muted-foreground">
-                Ajoutez un taux pour commencer à suivre vos commissions par type de contrat.
+                Ajoutez un taux par défaut, puis un taux propre à chaque client si besoin.
               </p>
             </div>
           ) : (
@@ -725,6 +736,7 @@ export function FinancialSettings() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Client</TableHead>
                     <TableHead>Type de contrat</TableHead>
                     <TableHead>Taux (%)</TableHead>
                     <TableHead>Montant minimum</TableHead>
@@ -735,7 +747,8 @@ export function FinancialSettings() {
                 <TableBody>
                   {commissionRates.map((rate) => (
                     <TableRow key={rate.id} data-testid={`commission-row-${rate.id}`}>
-                      <TableCell className="font-medium">{rate.contractType}</TableCell>
+                      <TableCell className="font-medium">{nomClient(rate.agencyClientId)}</TableCell>
+                      <TableCell>{rate.contractType ?? "Tous les contrats"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-mono">
                           {rate.rate}%
@@ -953,19 +966,33 @@ export function FinancialSettings() {
           <DialogHeader>
             <DialogTitle>{editingCommission ? "Modifier le taux" : "Ajouter un taux de commission"}</DialogTitle>
             <DialogDescription>
-              Définissez le taux de commission applicable pour un type de contrat.
+              Sans client, le taux vaut pour tous vos clients ; sans type de contrat, pour tous les contrats.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="commissionClient">Client</Label>
+              <Select value={commissionForm.clientId} onValueChange={(v) => setCommissionForm({ ...commissionForm, clientId: v })}>
+                <SelectTrigger id="commissionClient" data-testid="select-commission-client">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TOUS}>Tous les clients</SelectItem>
+                  {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="commissionContractType">Type de contrat</Label>
-              <Input
-                id="commissionContractType"
-                placeholder="Ex: CDI, CDD, Intérim..."
-                value={commissionForm.contractType}
-                onChange={(e) => setCommissionForm({ ...commissionForm, contractType: e.target.value })}
-                data-testid="input-commission-contract-type"
-              />
+              <Select value={commissionForm.contractType} onValueChange={(v) => setCommissionForm({ ...commissionForm, contractType: v })}>
+                <SelectTrigger id="commissionContractType" data-testid="select-commission-contract-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TOUS}>Tous les contrats</SelectItem>
+                  {placementContractTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="commissionRate">Taux (%)</Label>

@@ -849,10 +849,14 @@ export const invoiceLineItems = pgTable("invoice_line_items", {
   invoiceIdx: index("invoice_line_items_invoice_idx").on(table.invoiceId),
 }));
 
+// Taux de commission réglés par client et par type de contrat (règle
+// d'application : shared/commissions.ts). Sans client = tous les clients ;
+// sans type de contrat = tous les contrats.
 export const commissionRateSettings = pgTable("commission_rate_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   agencyId: varchar("agency_id").notNull().references(() => users.id),
-  contractType: text("contract_type").notNull(),
+  agencyClientId: varchar("agency_client_id").references((): any => agencyClients.id, { onDelete: "cascade" }),
+  contractType: text("contract_type"),
   rate: real("rate").notNull(),
   minAmount: integer("min_amount"),
   isActive: boolean("is_active").default(true),
@@ -860,6 +864,7 @@ export const commissionRateSettings = pgTable("commission_rate_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   agencyIdx: index("commission_rate_settings_agency_idx").on(table.agencyId),
+  clientIdx: index("commission_rate_settings_client_idx").on(table.agencyClientId),
 }));
 
 export const paymentMethodSettings = pgTable("payment_method_settings", {

@@ -53,6 +53,7 @@ import { LoadingState } from "@/components/loading-state";
 import { invalidateCrm, useClients } from "@/components/agency-crm/shared";
 import { FileText, AlertTriangle, Wallet, Search, Plus, MoreHorizontal } from "lucide-react";
 import type { User, CandidateProfile } from "@shared/schema";
+import { aideTauxCommission, useTauxCommissionPropose } from "@/hooks/use-taux-commission";
 
 interface AgencyPlacementRow {
   id: string;
@@ -166,6 +167,14 @@ export function AgencyContractsPage() {
     onError: (error: Error) => toast({ title: "Création impossible", description: error.message, variant: "destructive" }),
   });
 
+  // Taux proposé selon les réglages du client et le type de contrat.
+  const tauxCommission = useTauxCommissionPropose(
+    form.agencyClientId || null,
+    form.contractType || null,
+    (valeur) => setForm((current) => ({ ...current, commissionRate: valeur })),
+    showCreateDialog,
+  );
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/agency/placements", {
@@ -176,7 +185,9 @@ export function AgencyContractsPage() {
         salary: Number(form.salary),
         startDate: form.startDate,
         endDate: form.endDate || undefined,
-        commissionRate: form.commissionRate ? Number(form.commissionRate) : undefined,
+        // Champ vidé = aucune commission (null) ; le serveur n'applique son
+        // taux par défaut que si le champ est absent.
+        commissionRate: form.commissionRate ? Number(form.commissionRate) : null,
       });
       return res.json();
     },
@@ -379,9 +390,13 @@ export function AgencyContractsPage() {
                     type="number"
                     placeholder="10"
                     value={form.commissionRate}
-                    onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
+                    onChange={(e) => { tauxCommission.marquerTouche(); setForm({ ...form, commissionRate: e.target.value }); }}
+                    aria-describedby="contract-commission-aide"
                     data-testid="input-contract-commission"
                   />
+                  <p id="contract-commission-aide" className="text-xs text-muted-foreground" data-testid="text-contract-commission-aide">
+                    {aideTauxCommission(tauxCommission.propose, form.commissionRate)}
+                  </p>
                 </div>
               </div>
             </div>

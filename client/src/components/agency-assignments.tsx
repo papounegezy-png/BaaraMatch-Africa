@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowRight, Briefcase, Building2, CheckCircle2, ClipboardCheck, Loader2, UserCheck, Users } from "lucide-react";
 import { ClientSelect, invalidateCrm } from "@/components/agency-crm/shared";
+import { aideTauxCommission, useTauxCommissionPropose } from "@/hooks/use-taux-commission";
 
 type AssignmentRow = {
   applicationId: string;
@@ -55,6 +56,14 @@ function AssignDialog({ row, onClose }: { row: AssignmentRow | null; onClose: ()
       commissionRate: "",
     });
   }, [row?.applicationId]);
+
+  // Taux proposé selon les réglages (client de la mission, ou client choisi).
+  const tauxCommission = useTauxCommissionPropose(
+    row?.job.clientId ?? (form.clientId || null),
+    form.contractType,
+    (valeur) => setForm((current) => ({ ...current, commissionRate: valeur })),
+    row?.applicationId,
+  );
 
   const assign = useMutation({
     mutationFn: async () => (await apiRequest("POST", `/api/agency/applications/${row!.applicationId}/assign`, {
@@ -127,7 +136,8 @@ function AssignDialog({ row, onClose }: { row: AssignmentRow | null; onClose: ()
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="assign-commission">Commission agence (%) <span className="text-muted-foreground">(optionnel)</span></Label>
-              <Input id="assign-commission" inputMode="decimal" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} placeholder="ex. 12" />
+              <Input id="assign-commission" inputMode="decimal" value={form.commissionRate} onChange={(e) => { tauxCommission.marquerTouche(); set("commissionRate", e.target.value); }} placeholder="ex. 12" aria-describedby="assign-commission-aide" data-testid="input-assign-commission" />
+              <p id="assign-commission-aide" className="text-xs text-muted-foreground" data-testid="text-assign-commission-aide">{aideTauxCommission(tauxCommission.propose, form.commissionRate)}</p>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">

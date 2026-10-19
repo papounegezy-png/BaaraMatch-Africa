@@ -9,6 +9,7 @@ import type { Express, Request, RequestHandler, Response } from "express";
 import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "./db";
+import { chargerTauxApplicable } from "./agency-commissions";
 import { storage } from "./storage";
 import {
   agencyPlacements,
@@ -29,7 +30,9 @@ export const SHORTLIST_STATUSES = ["shortlisted", "interview_proposed", "intervi
 const CONTRACT_LABELS: Record<string, string> = {
   cdi: "CDI", cdd: "CDD", interim: "Intérim", stage: "Stage", journalier: "Journalier", prestation: "Prestation",
 };
-export const placementContractTypes = ["CDI", "CDD", "Intérim", "Stage", "Journalier", "Prestation", "Mission", "Freelance"] as const;
+// Liste partagée avec le client et les réglages de commission.
+import { placementContractTypes } from "@shared/commissions";
+export { placementContractTypes };
 const contractLabel = (jobType: string | null | undefined) =>
   (jobType && (CONTRACT_LABELS[jobType.toLowerCase()] ?? placementContractTypes.find((type) => type.toLowerCase() === jobType.toLowerCase()))) || "CDD";
 
@@ -208,6 +211,11 @@ export function registerAgencyRecruitmentRoutes(app: Express, requireRole: Requi
         return res.status(400).json({ message: "Cette mission n'est rattachée à aucun client : choisissez l'entreprise cliente." });
       }
 
+      // Taux non fourni (champ absent, pas vidé) : taux réglé pour ce client.
+      const commissionRate = data.commissionRate !== undefined
+        ? data.commissionRate
+        : (await chargerTauxApplicable(agencyId, client.id, data.contractType))?.taux ?? null;
+
       const placement = await storage.createAgencyPlacement({
         agencyId,
         candidateId: application.candidateId,
@@ -221,8 +229,8 @@ export function registerAgencyRecruitmentRoutes(app: Express, requireRole: Requi
         salaryCurrency: job.salaryCurrency ?? "XOF",
         startDate: data.startDate,
         endDate: data.endDate ?? null,
-        commissionRate: data.commissionRate ?? null,
-        commissionAmount: data.commissionRate ? Math.round((data.salary * data.commissionRate) / 100) : null,
+        commissionRate: commissionRate ?? null,
+        commissionAmount: commissionRate ? Math.round((data.salary * commissionRate) / 100) : null,
         status: "active",
       });
 
