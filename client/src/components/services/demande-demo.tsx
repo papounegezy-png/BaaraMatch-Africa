@@ -134,7 +134,7 @@ export function DemandeDemo() {
             <button
               type="submit"
               disabled={etat === "envoi"}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-baara-marine px-7 font-texte text-[15px] font-semibold text-white hover:bg-baara-profond disabled:cursor-wait disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:bg-white dark:text-baara-marine min-[900px]:w-auto"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-baara-marine px-7 font-texte text-[15px] font-semibold text-white hover:bg-baara-profond disabled:cursor-wait disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:bg-white dark:text-baara-marine min-[900px]:w-auto"
               data-testid="bouton-envoyer-demo"
             >
               {etat === "envoi" ? "Envoi en cours…" : etat === "echec" ? "Réessayer" : "Envoyer la demande"}

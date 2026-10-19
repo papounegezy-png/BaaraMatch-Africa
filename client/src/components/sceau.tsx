@@ -36,7 +36,7 @@ export function Sceau({ ligne1, ligne2, libelle, taille = "m" }: { ligne1: strin
       <svg
         viewBox="0 0 100 100"
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full overflow-visible fill-baara-bleu stroke-baara-bleu drop-shadow-[0_6px_10px_rgba(13,41,87,0.25)]"
+        className="absolute inset-0 h-full w-full overflow-visible fill-baara-bleu stroke-baara-bleu drop-shadow-[0_6px_10px_theme(colors.baara.marine/25%)]"
       >
         <polygon points={POINTS} strokeWidth={5} strokeLinejoin="round" />
       </svg>

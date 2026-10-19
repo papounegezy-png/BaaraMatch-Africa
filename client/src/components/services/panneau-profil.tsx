@@ -3,7 +3,7 @@ import { Sceau } from "@/components/sceau";
 import { catalogueServices, type Profil } from "@/donnees/services";
 
 const boutonCta =
-  "inline-flex min-h-12 w-full items-center justify-center rounded-full bg-baara-marine px-7 font-texte text-[15px] font-semibold text-white " +
+  "inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-baara-marine px-7 font-texte text-[15px] font-semibold text-white " +
   "hover:bg-baara-profond focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 focus-visible:ring-offset-baara-papier " +
   "dark:bg-white dark:text-baara-marine dark:hover:bg-baara-moyen min-[900px]:w-auto";
 

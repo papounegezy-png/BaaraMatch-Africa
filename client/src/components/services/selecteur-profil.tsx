@@ -39,7 +39,7 @@ export function SelecteurProfil({ profil, onChoisir }: { profil: Profil; onChois
         </div>
         <a
           href="#demo"
-          className="ml-auto hidden min-h-12 items-center rounded-full border border-baara-marine/40 px-6 font-texte text-[15px] font-semibold text-baara-marine hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:border-white/40 dark:text-white dark:hover:bg-white/10 min-[900px]:inline-flex"
+          className="ml-auto hidden min-h-12 items-center rounded-lg border border-baara-marine/40 px-6 font-texte text-[15px] font-semibold text-baara-marine hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:border-white/40 dark:text-white dark:hover:bg-white/10 min-[900px]:inline-flex"
           data-testid="lien-selecteur-demo"
         >
           Demander une démo
