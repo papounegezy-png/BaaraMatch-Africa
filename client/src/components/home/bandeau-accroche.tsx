@@ -1,7 +1,7 @@
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Briefcase, MapPin, Search } from "lucide-react";
-import { contractTypeOptions } from "@/components/offer-form";
+import { contractTypeOptions } from "@/lib/options-offre";
 import { SECTEURS_ACCUEIL, lienSecteur } from "@/lib/secteurs";
 import { ZoneSuivi } from "./zone-suivi";
 

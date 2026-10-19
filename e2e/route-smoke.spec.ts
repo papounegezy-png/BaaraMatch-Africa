@@ -19,6 +19,12 @@ import { Pool } from "pg";
 import "dotenv/config";
 import { randomUUID } from "crypto";
 
+// Les espaces agence et entreprise sont chargés à la demande (App.tsx). En
+// développement, Vite compile leur fichier à la première visite, et réoptimise
+// les dépendances après un changement du fichier de verrous : bien plus que
+// les 5 s par défaut. En production, les fichiers sont précompilés.
+const CHARGEMENT_PAGE = 30_000;
+
 const RUN_ID = randomUUID().slice(0, 8);
 const PASSWORD = "Test1234!";
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -58,7 +64,7 @@ test("un poste d'entreprise se crée puis se modifie sans page blanche", async (
     await expect(page).toHaveURL(/\/company/);
 
     await page.goto("/company/jobs/new");
-    await expect(page.getByTestId("input-offer-title")).toBeVisible();
+    await expect(page.getByTestId("input-offer-title")).toBeVisible({ timeout: CHARGEMENT_PAGE });
     await page.getByTestId("input-offer-title").fill("Smoke Test Job");
     await page.getByTestId("input-offer-location").fill("Dakar");
     await page.getByTestId("select-offer-category").click();
@@ -76,7 +82,7 @@ test("un poste d'entreprise se crée puis se modifie sans page blanche", async (
     // The exact bug this test guards against: this route must render the
     // form, not a blank page.
     await page.goto(`/company/jobs/${job!.id}/edit`);
-    await expect(page.getByTestId("input-offer-title")).toBeVisible();
+    await expect(page.getByTestId("input-offer-title")).toBeVisible({ timeout: CHARGEMENT_PAGE });
     await expect(page.getByTestId("input-offer-title")).toHaveValue("Smoke Test Job");
     await expect(page.getByRole("heading", { name: "Modifier l'offre" })).toBeVisible();
   } finally {
@@ -101,7 +107,7 @@ test("une mission d'agence se crée puis se modifie sans page blanche", async ({
     await expect(page).toHaveURL(/\/agency/);
 
     await page.goto("/agency/missions/new");
-    await expect(page.getByTestId("input-offer-title")).toBeVisible();
+    await expect(page.getByTestId("input-offer-title")).toBeVisible({ timeout: CHARGEMENT_PAGE });
     await page.getByTestId("input-offer-title").fill("Smoke Test Mission");
     await page.getByTestId("input-offer-location").fill("Abidjan");
     await page.getByTestId("select-offer-category").click();
@@ -126,7 +132,7 @@ test("une mission d'agence se crée puis se modifie sans page blanche", async ({
     // "…" actions menu rather than a standalone edit button.
     await page.getByTestId(`button-actions-mission-${mission!.id}`).click();
     await page.getByRole("menuitem", { name: "Modifier" }).click();
-    await expect(page.getByTestId("input-offer-title")).toBeVisible();
+    await expect(page.getByTestId("input-offer-title")).toBeVisible({ timeout: CHARGEMENT_PAGE });
     await expect(page.getByTestId("input-offer-title")).toHaveValue("Smoke Test Mission");
     // A live job opens in plain edit mode ("Modifier l'offre"); an offline
     // one (Standard plan, awaiting moderation) reopens as a draft to continue

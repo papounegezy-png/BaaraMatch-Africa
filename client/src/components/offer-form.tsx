@@ -15,34 +15,9 @@ import { ChevronRight, Clock, Lightbulb, Loader2, RotateCcw } from "lucide-react
 import type { JobPosting } from "@shared/schema";
 import { formatJobType } from "@/lib/job-type-labels";
 
-// French labor-law contract categories (CDI/CDD/etc.) — the sole vocabulary
-// this form writes. Older postings (created before this form existed) may
-// still carry a legacy value like "full-time" — see job-type-labels.ts for
-// how that's displayed, and the SelectContent below for how it's kept
-// selectable (not silently dropped) when editing one of those.
-export const contractTypeOptions = [
-  { value: "cdi", label: "CDI" },
-  { value: "cdd", label: "CDD" },
-  { value: "interim", label: "Intérim" },
-  { value: "stage", label: "Stage" },
-  { value: "journalier", label: "Journalier" },
-  { value: "prestation", label: "Prestation" },
-];
-
-// Liste partagée avec le serveur (shared/categories.ts).
-import { jobCategoryOptions } from "@shared/categories";
-export { jobCategoryOptions };
-
-// Same values as missions-management.tsx's educationLevels — kept aligned
-// deliberately, unlike contractTypeOptions above.
-export const educationLevelOptions = [
-  { value: "none", label: "Sans diplôme" },
-  { value: "bac", label: "Baccalauréat" },
-  { value: "bac+2", label: "Bac+2 (BTS, DUT)" },
-  { value: "bac+3", label: "Bac+3 (Licence)" },
-  { value: "bac+5", label: "Bac+5 (Master)" },
-  { value: "bac+8", label: "Doctorat" },
-];
+// Listes de valeurs : module léger lib/options-offre.ts, réexporté ici.
+import { contractTypeOptions, educationLevelOptions, jobCategoryOptions } from "@/lib/options-offre";
+export { contractTypeOptions, educationLevelOptions, jobCategoryOptions };
 
 export type OfferFormValue = {
   title: string;

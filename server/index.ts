@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -20,6 +21,11 @@ declare module "http" {
 // (inline scripts/HMR websocket), and a default CSP would break it. The other
 // headers (frameguard, noSniff, etc.) apply regardless.
 app.use(helmet({ contentSecurityPolicy: false }));
+
+// Compression gzip des réponses (pages, JavaScript, CSS, JSON de l'API) :
+// le paquet JavaScript passe de plusieurs Mo à quelques centaines de Ko sur
+// le réseau. Aucune route ne diffuse en continu (pas de text/event-stream).
+app.use(compression());
 
 app.use(
   express.json({

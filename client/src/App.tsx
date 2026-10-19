@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,33 +12,41 @@ import type { UserType } from "@shared/schema";
 import { Navbar } from "@/components/navbar";
 import { PiedAccueil } from "@/components/home/pied-accueil";
 import { useDefilementAncre } from "@/hooks/use-defilement-ancre";
+import { LoadingState } from "@/components/loading-state";
 import HomePage from "@/pages/home";
-import LoginPage from "@/pages/login";
-import RegisterPage from "@/pages/register";
-import RegisterOrganizationPage from "@/pages/register-organization";
-import OrganizationClaimPage from "@/pages/organization-claim";
-import SatisfactionSurveyPage from "@/pages/satisfaction-survey";
-import DashboardPage from "@/pages/dashboard";
-import ProfilePage from "@/pages/profile";
-import JobsPage from "@/pages/jobs";
-import AgenciesPage from "@/pages/agencies";
-import ServicesPage from "@/pages/services";
-import AgencyDashboardPage from "@/pages/agency-dashboard";
-import AgencyProfilePage from "@/pages/agency-profile";
-import AgencyJobsPage from "@/pages/agency-jobs";
-import CompanyProfilePage from "@/pages/company-profile";
-import CompanyJobsPage from "@/pages/company-jobs";
-import { AgencyLayout } from "@/components/agency-layout";
-import CompanyDashboardPage from "./pages/company-dashboard";
-import { CompanyLayout } from "@/components/company-layout";
-import AdminDashboardPage from "@/pages/admin-dashboard";
-import CandidateApplicationsPage from "./pages/candidate-applications";
-import SavedJobsPage from "./pages/saved-jobs";
-import JobDetailPage from "@/pages/job-detail";
-import NotificationsPage from "@/pages/notifications";
-import StatisticsPage from "@/pages/statistics";
-import NotFound from "@/pages/not-found";
-import LegalPlaceholderPage from "@/pages/legal-placeholder";
+
+// Découpage par route : chaque page est un fichier JavaScript à part, chargé
+// à la première visite. L'accueil reste dans le paquet principal (page
+// d'arrivée). Les <Suspense> sont dans les mises en page : en-tête, menu et
+// pied de page restent affichés pendant le chargement d'une page.
+// Mises en page des espaces agence et entreprise (menus latéraux) : chargées
+// avec leur espace, pas sur les pages publiques.
+const AgencyLayout = lazy(() => import("@/components/agency-layout").then((m) => ({ default: m.AgencyLayout })));
+const CompanyLayout = lazy(() => import("@/components/company-layout").then((m) => ({ default: m.CompanyLayout })));
+const LoginPage = lazy(() => import("@/pages/login"));
+const RegisterPage = lazy(() => import("@/pages/register"));
+const RegisterOrganizationPage = lazy(() => import("@/pages/register-organization"));
+const OrganizationClaimPage = lazy(() => import("@/pages/organization-claim"));
+const SatisfactionSurveyPage = lazy(() => import("@/pages/satisfaction-survey"));
+const DashboardPage = lazy(() => import("@/pages/dashboard"));
+const ProfilePage = lazy(() => import("@/pages/profile"));
+const JobsPage = lazy(() => import("@/pages/jobs"));
+const AgenciesPage = lazy(() => import("@/pages/agencies"));
+const ServicesPage = lazy(() => import("@/pages/services"));
+const AgencyDashboardPage = lazy(() => import("@/pages/agency-dashboard"));
+const AgencyProfilePage = lazy(() => import("@/pages/agency-profile"));
+const AgencyJobsPage = lazy(() => import("@/pages/agency-jobs"));
+const CompanyProfilePage = lazy(() => import("@/pages/company-profile"));
+const CompanyJobsPage = lazy(() => import("@/pages/company-jobs"));
+const CompanyDashboardPage = lazy(() => import("./pages/company-dashboard"));
+const AdminDashboardPage = lazy(() => import("@/pages/admin-dashboard"));
+const CandidateApplicationsPage = lazy(() => import("./pages/candidate-applications"));
+const SavedJobsPage = lazy(() => import("./pages/saved-jobs"));
+const JobDetailPage = lazy(() => import("@/pages/job-detail"));
+const NotificationsPage = lazy(() => import("@/pages/notifications"));
+const StatisticsPage = lazy(() => import("@/pages/statistics"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const LegalPlaceholderPage = lazy(() => import("@/pages/legal-placeholder"));
 
 // Centralized route guard: redirects to /login (no session) or / (wrong role)
 // before the wrapped router's pages ever mount. Each dashboard page still
@@ -69,6 +77,13 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
   return <>{children}</>;
 }
 
+// Attente pendant le chargement d'une page (fichier JavaScript de la route).
+// Hauteur d'un écran : le pied de page reste hors de vue au lieu d'apparaître
+// en haut puis d'être repoussé (décalage de mise en page).
+function ChargementPage() {
+  return <LoadingState label="Chargement de la page" variant="block" rows={3} className="container mx-auto min-h-screen px-4 py-10" />;
+}
+
 function PublicLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [location] = useLocation();
@@ -78,7 +93,7 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col">
       {/* L'accueil et la page Services affichent leur propre en-tête (EnteteAccueil). */}
       {location !== "/" && location !== "/services" && <Navbar user={user} onLogout={logout} />}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1"><Suspense fallback={<ChargementPage />}>{children}</Suspense></main>
       <PiedAccueil />
     </div>
   );
@@ -121,6 +136,7 @@ function AgencyRouter() {
   return (
     <RequireRole role="agency">
     <AgencyLayout>
+      <Suspense fallback={<ChargementPage />}>
       <Switch>
         <Route path="/agency/dashboard" component={AgencyDashboardPage} />
         <Route path="/agency/dashboard/:subsection" component={AgencyDashboardPage} />
@@ -156,6 +172,7 @@ function AgencyRouter() {
         {/* Deeper unknown paths (/agency/x/y) used to match nothing: blank page. */}
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </AgencyLayout>
     </RequireRole>
   );
@@ -181,6 +198,7 @@ function CompanyRouter() {
   return (
     <RequireRole role="company">
     <CompanyLayout>
+      <Suspense fallback={<ChargementPage />}>
       <Switch>
         <Route path="/company/dashboard" component={CompanyDashboardPage} />
         <Route path="/company/dashboard/:subsection" component={CompanyDashboardPage} />
@@ -222,6 +240,7 @@ function CompanyRouter() {
         <Route path="/company" component={CompanyDashboardPage} />
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </CompanyLayout>
     </RequireRole>
   );
@@ -235,17 +254,19 @@ function AppRouter() {
   if (location.startsWith("/admin")) {
     return (
       <RequireRole role="admin">
-        <AdminDashboardPage />
+        <Suspense fallback={<ChargementPage />}>
+          <AdminDashboardPage />
+        </Suspense>
       </RequireRole>
     );
   }
   
   if (location.startsWith("/agency")) {
-    return <AgencyRouter />;
+    return <Suspense fallback={<ChargementPage />}><AgencyRouter /></Suspense>;
   }
   
   if (location.startsWith("/company")) {
-    return <CompanyRouter />;
+    return <Suspense fallback={<ChargementPage />}><CompanyRouter /></Suspense>;
   }
   
   // Exact prefixes, not startsWith("/candidate"): that also captured

@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatJobType } from "@/lib/job-type-labels";
 import { sanitizeJobDescriptionHtml } from "@/lib/sanitize-html";
-import { jobCategoryOptions as categories } from "@/components/offer-form";
+import { jobCategoryOptions as categories } from "@/lib/options-offre";
 import { MissionCardsGrid, getMissionStatus, type MissionCardData, type MissionStatus } from "@/components/mission-cards-grid";
 import type { JobPosting } from "@shared/schema";
 

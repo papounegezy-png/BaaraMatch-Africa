@@ -35,7 +35,7 @@ import type { CandidateProfile, JobPosting, User } from "@shared/schema";
 import { calculateMatchScore, explainMatchScore } from "@shared/matching";
 import { formatJobType } from "@/lib/job-type-labels";
 import { formatJobPostedLabel } from "@/lib/format-posted-date";
-import { contractTypeOptions, jobCategoryOptions } from "@/components/offer-form";
+import { contractTypeOptions, jobCategoryOptions } from "@/lib/options-offre";
 import { stripJobDescriptionHtml } from "@/lib/sanitize-html";
 import { formatJobSalary } from "@/lib/format-job-salary";
 import { useSavedJobs } from "@/hooks/use-saved-jobs";
