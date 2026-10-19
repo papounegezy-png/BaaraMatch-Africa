@@ -113,8 +113,10 @@ export default {
         sans: ["var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
-        titre: ['"Bricolage Grotesque"', '"Plus Jakarta Sans"', "system-ui", "sans-serif"],
-        texte: ['"Hanken Grotesk"', "Roboto", "system-ui", "sans-serif"],
+        // Police unique du site : Roboto Slab, titres et texte courant. Les deux
+        // classes sont gardées pour ne pas toucher aux composants.
+        titre: ['"Roboto Slab"', "Georgia", "serif"],
+        texte: ['"Roboto Slab"', "Georgia", "serif"],
       },
       keyframes: {
         "accordion-down": {

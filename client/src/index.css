@@ -57,7 +57,7 @@
   --chart-4: 200 65% 50%;
   --chart-5: 280 50% 55%;
 
-  --font-sans: 'Roboto', 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-sans: 'Roboto Slab', Georgia, serif;
   --font-serif: 'Libre Baskerville', Georgia, serif;
   --font-mono: 'JetBrains Mono', Menlo, monospace;
   --radius: .5rem;

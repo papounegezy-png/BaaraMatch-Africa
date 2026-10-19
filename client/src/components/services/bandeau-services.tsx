@@ -9,7 +9,7 @@ export function BandeauServices() {
       <div className="container mx-auto px-4 pb-10 pt-12 min-[900px]:pb-14 min-[900px]:pt-16">
         <h1
           id="titre-services"
-          className="font-titre text-[clamp(36px,4.6vw,58px)] font-extrabold leading-[1.05] tracking-tight text-baara-marine dark:text-white"
+          className="font-titre text-[clamp(36px,4.6vw,58px)] font-extrabold leading-[1.05] tracking-[-0.02em] text-baara-marine dark:text-white"
           data-testid="text-services-title"
         >
           <span className="block overflow-hidden pb-[0.06em]">

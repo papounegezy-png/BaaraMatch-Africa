@@ -653,15 +653,17 @@ export default function AgenciesPage() {
                               </Badge>
                             </div>
 
-                            <div className="flex gap-2 pt-2">
+                            {/* Roboto Slab est large : sous ~280 px de carte, les deux boutons passent
+                                l'un sous l'autre au lieu de couper leur libellé. */}
+                            <div className="flex flex-wrap gap-2 pt-2">
                               {employer.type === "agency" ? (
                                 <>
-                                  <Link href={`/agencies/${employer.id}`} className="flex-1 min-w-0">
+                                  <Link href={`/agencies/${employer.id}`} className="min-w-[8.5rem] flex-1">
                                     <Button variant="outline" className="w-full" data-testid={`button-view-agency-${employer.id}`}>
                                       Voir le profil
                                     </Button>
                                   </Link>
-                                  <Link href={`/jobs?agencyId=${employer.id}&employerName=${encodeURIComponent(employer.displayName)}`} className="flex-1 min-w-0">
+                                  <Link href={`/jobs?agencyId=${employer.id}&employerName=${encodeURIComponent(employer.displayName)}`} className="min-w-[8.5rem] flex-1">
                                     <Button className="w-full gap-2" data-testid={`button-agency-jobs-${employer.id}`}>
                                       <Briefcase className="h-4 w-4" />
                                       Voir les offres
@@ -670,12 +672,12 @@ export default function AgenciesPage() {
                                 </>
                               ) : (
                                 <>
-                                  <Link href={`/companies/${employer.id}`} className="flex-1 min-w-0">
+                                  <Link href={`/companies/${employer.id}`} className="min-w-[8.5rem] flex-1">
                                     <Button variant="outline" className="w-full" data-testid={`button-company-profile-${employer.id}`}>
                                       Voir profil
                                     </Button>
                                   </Link>
-                                  <Link href={`/jobs?companyId=${employer.id}&employerName=${encodeURIComponent(employer.displayName)}`} className="flex-1 min-w-0">
+                                  <Link href={`/jobs?companyId=${employer.id}&employerName=${encodeURIComponent(employer.displayName)}`} className="min-w-[8.5rem] flex-1">
                                     <Button className="w-full gap-2" data-testid={`button-company-jobs-${employer.id}`}>
                                       <Briefcase className="h-4 w-4" />
                                       Voir les offres

@@ -1,9 +1,12 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { ErrorBoundary } from "./components/error-boundary";
-import "@fontsource/roboto/400.css";
-import "@fontsource/roboto/500.css";
-import "@fontsource/roboto/700.css";
+// Roboto Slab, servie depuis le site (latin et latin-ext, font-display: swap).
+import "@fontsource/roboto-slab/400.css";
+import "@fontsource/roboto-slab/500.css";
+import "@fontsource/roboto-slab/600.css";
+import "@fontsource/roboto-slab/700.css";
+import "@fontsource/roboto-slab/800.css";
 import "./index.css";
 // Les animations d'entrée de l'accueil attendent les polices des titres et
 // du texte (voir .polices-pretes dans index.css) : sinon le titre change de
@@ -12,8 +15,8 @@ const marquerPolicesPretes = () => document.documentElement.classList.add("polic
 if (document.fonts?.load) {
   Promise.race([
     Promise.all([
-      document.fonts.load('800 1em "Bricolage Grotesque"'),
-      document.fonts.load('400 1em "Hanken Grotesk"'),
+      document.fonts.load('800 1em "Roboto Slab"'),
+      document.fonts.load('400 1em "Roboto Slab"'),
     ]),
     new Promise((resoudre) => setTimeout(resoudre, 2500)),
   ]).then(marquerPolicesPretes, marquerPolicesPretes);
