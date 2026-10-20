@@ -103,6 +103,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import type { LigneOffre } from "@shared/offre";
+import type { LigneEmployeur } from "@shared/employeur";
 import { eq, and, or, isNotNull, isNull, desc, gte, lte, lt, sql, getTableColumns, inArray } from "drizzle-orm";
 
 export type DashboardKpis = {
@@ -165,6 +166,7 @@ export interface IStorage {
   getJobPosting(id: string): Promise<(JobPosting & { organizationName: string | null }) | undefined>;
   getAllJobPostings(): Promise<(JobPosting & { organizationName: string | null })[]>;
   getOffresPubliques(): Promise<LigneOffre[]>;
+  getEmployeursPublics(): Promise<LigneEmployeur[]>;
   setEmployeurVerifie(userId: string, type: "agency" | "company", verifiePar: string | null): Promise<boolean>;
   getJobPostingsByCompany(companyId: string): Promise<JobPosting[]>;
   getJobPostingsByAgency(agencyId: string): Promise<JobPosting[]>;
@@ -671,6 +673,33 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(companyProfiles, eq(jobPostings.companyId, companyProfiles.userId))
       .where(eq(jobPostings.isActive, true))
       .orderBy(desc(jobPostings.createdAt));
+  }
+
+  // Page Employeurs (GET /api/employeurs) : agences et entreprises avec leur
+  // profil et leur nombre d'offres actives (l'agence si agencyId, sinon
+  // l'entreprise), en une requête. Logo : celui du profil entreprise, sinon
+  // l'avatar du compte (les agences n'ont pas de champ logo).
+  async getEmployeursPublics(): Promise<LigneEmployeur[]> {
+    const { rows } = await db.execute(sql`
+      select u.id,
+             u.user_type as type,
+             coalesce(nullif(trim(a.agency_name), ''), nullif(trim(c.company_name), ''), u.full_name) as nom,
+             coalesce(c.logo_url, u.avatar_url) as "logoUrl",
+             u.city as ville,
+             u.country as pays,
+             coalesce(a.secteur, c.secteur) as secteur,
+             coalesce(a.verified_at, c.verified_at) as "verifieLe",
+             coalesce(o.n, 0)::int as offres
+      from users u
+      left join agency_profiles a on u.user_type = 'agency' and a.user_id = u.id
+      left join company_profiles c on u.user_type = 'company' and c.user_id = u.id
+      left join (
+        select coalesce(agency_id, company_id) as employeur, count(*) as n
+        from job_postings where is_active group by 1
+      ) o on o.employeur = u.id
+      where u.user_type in ('agency', 'company')
+    `);
+    return rows as unknown as LigneEmployeur[];
   }
 
   // Vérification d'un employeur par l'équipe BaaraMatch. verifiePar null :

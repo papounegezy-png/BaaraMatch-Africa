@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, timestamp, boolean, integer, real, index, jsonb, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import type { Secteur } from "./secteurs";
 
 export const userTypes = ["candidate", "agency", "company", "admin"] as const;
 export type UserType = typeof userTypes[number];
@@ -226,6 +227,8 @@ export const agencyProfiles = pgTable("agency_profiles", {
   // seule source du badge « employeur vérifié ». null : non vérifiée.
   verifiedAt: timestamp("verified_at"),
   verifiedBy: varchar("verified_by"),
+  // Secteur d'activité (une des 32 valeurs de shared/secteurs.ts), migration 0042.
+  secteur: text("secteur").$type<Secteur>(),
   subscriptionPlan: text("subscription_plan").$type<AgencySubscriptionPlan>().default("standard"),
   subscriptionUpdatedAt: timestamp("subscription_updated_at"),
   // Set when the plan came from a pilot invitation code redemption (see
@@ -273,6 +276,8 @@ export const companyProfiles = pgTable("company_profiles", {
   // Même vérification que agencyProfiles.verifiedAt.
   verifiedAt: timestamp("verified_at"),
   verifiedBy: varchar("verified_by"),
+  // Même secteur que agencyProfiles.secteur (industry reste le texte saisi).
+  secteur: text("secteur").$type<Secteur>(),
   // Same as agencyProfiles.profileViewCount above.
   profileViewCount: integer("profile_view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauEmployeurs, BarreType, RechercheEmployeurs } from "@/components/employeurs/haut-employeurs";
 import { FiltresEmployeurs, nombreFiltresActifs, type SelectionEmployeurs } from "@/components/employeurs/filtres-employeurs";
@@ -8,20 +8,26 @@ import { usePanneauFiltres } from "@/components/listes/filtres-liste";
 import { CarteEmployeur } from "@/components/employeurs/carte-employeur";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
-import { compterParType, facettesEmployeurs, filtrerEmployeurs } from "@/lib/employeurs";
-import { adresseDepuisEtat, ETAT_VIDE, etatDepuisAdresse, TAILLE_PAGE, trierEmployeurs, type EtatEmployeurs } from "@/lib/etat-employeurs";
+import { adresseDepuisEtat, ETAT_VIDE, etatDepuisAdresse, TAILLE_PAGE, type EtatEmployeurs } from "@/lib/etat-employeurs";
 import type { Secteur } from "@shared/secteurs";
-import {
-  agenceVersEmployeur, entrepriseVersEmployeur, offresParEmployeur,
-  type AgenceApi, type EntrepriseApi, type OffreResumeApi,
-} from "@/types/employeur";
+import type { ReponseEmployeurs } from "@shared/recherche-employeurs";
+
+async function chargerEmployeurs(adresse: string, taille: number): Promise<ReponseEmployeurs> {
+  const parametres = new URLSearchParams(adresse);
+  parametres.set("taille", String(taille));
+  const reponse = await fetch(`/api/employeurs?${parametres}`, { credentials: "include" });
+  if (!reponse.ok) throw new Error(`${reponse.status}`);
+  return reponse.json();
+}
+
+const AUCUN_TYPE = { tous: 0, entreprise: 0, agence: 0 };
 
 /**
  * Page Employeurs (/agencies), refonte d'après la maquette « Page
  * Employeurs ». Tout l'état (recherche, type, filtres, tri) vit dans
  * l'adresse : la frappe la remplace (replaceState), les autres changements
  * ajoutent une entrée d'historique (pushState) que le bouton Retour restaure.
- * Filtrage, compteurs et pagination se font sur les employeurs chargés.
+ * Recherche, compteurs, tri et pagination : GET /api/employeurs.
  */
 export default function EmployeursPage() {
   const { user } = useAuth();
@@ -48,25 +54,6 @@ export default function EmployeursPage() {
     return () => window.removeEventListener("popstate", surRetour);
   }, []);
 
-  const agences = useQuery<AgenceApi[]>({ queryKey: ["/api/agencies"] });
-  const entreprises = useQuery<EntrepriseApi[]>({ queryKey: ["/api/companies"] });
-  const offres = useQuery<OffreResumeApi[]>({ queryKey: ["/api/jobs"] });
-  const requetes = [agences, entreprises, offres];
-  const chargement = requetes.some((q) => q.isLoading || (q.isFetching && !q.data));
-  const erreur = requetes.some((q) => q.isError) && !requetes.some((q) => q.isFetching);
-  const reessayer = () => requetes.forEach((q) => { if (q.isError) q.refetch(); });
-
-  const employeurs = useMemo(() => {
-    const parId = offresParEmployeur(offres.data ?? []);
-    return [
-      ...(entreprises.data ?? []).map((e) => entrepriseVersEmployeur(e, parId)),
-      ...(agences.data ?? []).map((a) => agenceVersEmployeur(a, parId)),
-    ];
-  }, [agences.data, entreprises.data, offres.data]);
-
-  const resultats = useMemo(() => trierEmployeurs(filtrerEmployeurs(employeurs, etat), etat.tri), [employeurs, etat]);
-  const comptes = useMemo(() => compterParType(employeurs, etat), [employeurs, etat]);
-  const compteurs = useMemo(() => facettesEmployeurs(employeurs, etat), [employeurs, etat]);
 
   const selection: SelectionEmployeurs = { secteurs: etat.secteurs, pays: etat.pays, avecOffres: etat.avecOffres };
   const choisirFiltres = (s: SelectionEmployeurs) => modifier({ ...s, secteurs: s.secteurs as Secteur[] });
@@ -77,13 +64,34 @@ export default function EmployeursPage() {
   // recherche, de filtre ou de tri revient aux 12 premiers.
   const [affichage, setAffichage] = useState({ cle: adresse, nombre: TAILLE_PAGE });
   const nombreAffiches = affichage.cle === adresse ? affichage.nombre : TAILLE_PAGE;
-  const visibles = resultats.slice(0, nombreAffiches);
+
+  // La liste précédente reste affichée pendant le chargement de la suivante.
+  const { data, isLoading, isError, isFetching, isPlaceholderData, refetch } = useQuery({
+    queryKey: ["/api/employeurs", adresse, nombreAffiches],
+    queryFn: () => chargerEmployeurs(adresse, nombreAffiches),
+    placeholderData: keepPreviousData,
+  });
+  const visibles = data?.employeurs ?? [];
+  const total = data?.total ?? 0;
+  const comptes = data?.facettes.types ?? AUCUN_TYPE;
+  const compteurs = useMemo(
+    () => ({ secteurs: data?.facettes.secteurs ?? [], pays: data?.facettes.pays ?? [], avecOffres: data?.facettes.avecOffres ?? 0 }),
+    [data],
+  );
+
+  // Après « Afficher plus », le focus passe à la première carte ajoutée,
+  // une fois arrivée (le bouton peut disparaître).
   const liste = useRef<HTMLUListElement>(null);
+  const aFocaliser = useRef<number | null>(null);
+  useEffect(() => {
+    const i = aFocaliser.current;
+    if (i == null || isPlaceholderData || visibles.length <= i) return;
+    aFocaliser.current = null;
+    liste.current?.children[i]?.querySelector<HTMLElement>("a")?.focus();
+  }, [visibles, isPlaceholderData]);
   const afficherPlus = () => {
-    const premierNouveau = nombreAffiches;
+    aFocaliser.current = nombreAffiches;
     setAffichage({ cle: adresse, nombre: nombreAffiches + TAILLE_PAGE });
-    // Le focus passe à la première carte ajoutée (le bouton peut disparaître).
-    requestAnimationFrame(() => liste.current?.children[premierNouveau]?.querySelector<HTMLElement>("a")?.focus());
   };
 
   return (
@@ -118,22 +126,22 @@ export default function EmployeursPage() {
           onReinitialiser={reinitialiserFiltres}
         />
         <div className="min-w-0">
-          {erreur ? (
-            <ErreurEmployeurs onReessayer={reessayer} />
-          ) : chargement ? (
+          {isError && !isFetching ? (
+            <ErreurEmployeurs onReessayer={() => refetch()} />
+          ) : isLoading || !data ? (
             <SquelettesEmployeurs />
           ) : (
-            <>
-              <EnTeteEmployeurs total={resultats.length} tri={etat.tri} onTri={(tri) => modifier({ tri })} />
-              {resultats.length === 0 ? (
+            <div aria-busy={isPlaceholderData}>
+              <EnTeteEmployeurs total={total} tri={etat.tri} onTri={(tri) => modifier({ tri })} />
+              {total === 0 ? (
                 <AucunEmployeur onReinitialiser={toutReinitialiser} />
               ) : (
                 <>
                   {/* Deux colonnes égales dès 640 px ; cartes d'une ligne à la même
-                      hauteur. La clé relance l'entrée douce quand la liste change. */}
+                      hauteur. La clé (12 premières cartes) relance l'entrée douce quand la liste reçue change. */}
                   <ul
                     ref={liste}
-                    key={adresse}
+                    key={visibles.slice(0, TAILLE_PAGE).map((e) => e.id).join(",")}
                     className="grid gap-3 motion-safe:animate-entree-resultats min-[640px]:grid-cols-2 min-[900px]:gap-4"
                     data-testid="liste-employeurs"
                   >
@@ -143,10 +151,10 @@ export default function EmployeursPage() {
                       </li>
                     ))}
                   </ul>
-                  <AfficherPlus affiches={visibles.length} total={resultats.length} onPlus={afficherPlus} />
+                  <AfficherPlus affiches={visibles.length} total={total} onPlus={afficherPlus} />
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

@@ -36,7 +36,9 @@ import { demandeDemoSchema, typeContact } from "@shared/demande-demo";
 import { chargerTauxApplicable, clientDeLAgence, registerAgencyCommissionRoutes } from "./agency-commissions";
 import { ignorerLimitePourLesTests } from "./middlewares/limiteur-tests";
 import { SECTEURS_ACCUEIL_BASE, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
-import { secteurDeCategorie } from "@shared/secteurs";
+import { SECTEURS, secteurDeCategorie } from "@shared/secteurs";
+import { employeurDepuisLigne } from "@shared/employeur";
+import { lireParametresEmployeurs, rechercherEmployeurs } from "@shared/recherche-employeurs";
 import { offreDepuisLigne } from "@shared/offre";
 import { lireParametresOffres, rechercherOffres } from "@shared/recherche-offres";
 import { salaryPeriods } from "@shared/schema";
@@ -197,11 +199,16 @@ const agencyProfileSelfUpdateSchema = z.object({
   averageAge: z.number().int().nullable().optional(),
   genderRatioMale: z.number().int().nullable().optional(),
   visibleAccueil: z.boolean().optional(),
+  // Une des 32 valeurs de shared/secteurs.ts. La vérification BaaraMatch
+  // (verifiedAt, verifiedBy, verificationStatus) n'est jamais modifiable ici.
+  secteur: z.enum(SECTEURS).nullable().optional(),
 }).strict();
 
 const companyProfileSelfUpdateSchema = z.object({
   companyName: z.string().min(1).optional(),
   industry: z.string().nullable().optional(),
+  // Comme pour les agences : secteur choisi, jamais la vérification.
+  secteur: z.enum(SECTEURS).nullable().optional(),
   description: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
   employeeCount: z.string().nullable().optional(),
@@ -457,6 +464,9 @@ export async function registerRoutes(
         });
         await storage.updateAgencyProfile(user.id, {
           rccmNumber: body.rccmNumber ?? null,
+          // Le secteur saisi à l'inscription était perdu pour les agences
+          // (pas de champ industry) : rattaché aux 32 secteurs s'il correspond.
+          secteur: secteurDeCategorie(body.industry),
           // Offre de lancement : essai Partenaire de 60 jours ; un code
           // d'invitation impose son propre plan et sa propre durée.
           ...(invitationCode ? {
@@ -475,6 +485,7 @@ export async function registerRoutes(
           userId: user.id,
           companyName: body.companyName,
           industry: body.industry,
+          secteur: secteurDeCategorie(body.industry),
           description: null,
           website: null,
           employeeCount: null,
@@ -1675,6 +1686,7 @@ export async function registerRoutes(
           userId: prospectUser.id,
           companyName: validatedData.organizationName,
           industry: validatedData.industry ?? null,
+          secteur: secteurDeCategorie(validatedData.industry),
           description: null,
           website: null,
           employeeCount: null,
@@ -2155,6 +2167,20 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching jobs:", error);
       res.status(500).json({ message: "Erreur lors de la récupération des offres" });
+    }
+  });
+
+  // Page Employeurs (/agencies) : recherche, facettes et pagination côté
+  // serveur. Paramètres : q, lieu, type, secteur[], pays[], offres, tri,
+  // page, taille (voir shared/recherche-employeurs.ts). « verifie » ne vient
+  // que de la vérification admin (verified_at).
+  app.get("/api/employeurs", async (req, res) => {
+    try {
+      const lignes = await storage.getEmployeursPublics();
+      res.json(rechercherEmployeurs(lignes.map(employeurDepuisLigne), lireParametresEmployeurs(req.query as Record<string, unknown>)));
+    } catch (error) {
+      console.error("Error searching employers:", error);
+      res.status(500).json({ message: "Erreur lors de la recherche des employeurs" });
     }
   });
 

@@ -8,13 +8,9 @@ import { normaliser, type TypeChoisi } from "@/lib/employeurs";
 
 export const TAILLE_PAGE = 12;
 
-// Tris proposés. Pas de « Mieux notés » : les notes n'ont pas de source
-// réelle (décision du 20/10/2026).
-export const TRIS = [
-  { valeur: "offres", libelle: "Plus d'offres" },
-  { valeur: "nom", libelle: "Nom (A–Z)" },
-] as const;
-export type Tri = (typeof TRIS)[number]["valeur"];
+// Tris : même liste que le serveur (shared/recherche-employeurs.ts).
+export { TRIS, trierEmployeurs, type Tri } from "@shared/recherche-employeurs";
+import { TRIS, type Tri } from "@shared/recherche-employeurs";
 
 export type EtatEmployeurs = {
   recherche: string;
@@ -57,14 +53,6 @@ export function adresseDepuisEtat(e: EtatEmployeurs): string {
   if (e.tri !== "offres") p.set("tri", e.tri);
   const texte = p.toString();
   return texte ? `?${texte}` : "";
-}
-
-type Triable = { nom: string; offresPubliees: number };
-
-/** Plus d'offres : départage par nom. Nom : ordre alphabétique français. */
-export function trierEmployeurs<E extends Triable>(liste: E[], tri: Tri): E[] {
-  const parNom = (a: E, b: E) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" });
-  return [...liste].sort(tri === "nom" ? parNom : (a, b) => b.offresPubliees - a.offresPubliees || parNom(a, b));
 }
 
 /** « 1 employeur », « 22 employeurs », « 0 employeur ». */

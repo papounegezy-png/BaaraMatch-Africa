@@ -8,6 +8,7 @@ import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
+import { SECTEURS } from "@shared/secteurs";
 import {
   Briefcase,
   Building2,
@@ -464,12 +465,18 @@ export default function RegisterOrganizationPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="org-industry">Secteur d'activité</Label>
-                  <Input
+                  {/* Les 32 secteurs de la plateforme (shared/secteurs.ts) : le
+                      même que celui des offres et du filtre de la page Employeurs. */}
+                  <select
                     id="org-industry"
                     value={form.industry}
                     onChange={(e) => update("industry", e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:text-sm"
                     data-testid="input-org-industry"
-                  />
+                  >
+                    <option value="" disabled>Choisissez un secteur</option>
+                    {SECTEURS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
                   <FieldError message={errors.industry} />
                 </div>
                 <div className="space-y-1.5">

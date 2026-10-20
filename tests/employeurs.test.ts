@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { initiales, libelleLieu, libelleLieuSimple, normaliser, regrouperValeurs } from "../client/src/lib/employeurs";
-import { agenceVersEmployeur, entrepriseVersEmployeur, lienProfil, offresParEmployeur } from "../client/src/types/employeur";
+import { employeurDepuisLigne, lienProfil } from "../shared/employeur";
 
 describe("utilitaires Employeurs", () => {
   it("normalise sans accents, casse ni espaces superflues", () => {
@@ -35,23 +35,18 @@ describe("utilitaires Employeurs", () => {
 });
 
 describe("modèle Employeur", () => {
-  const offres = offresParEmployeur([
-    { agencyId: "a1", companyId: "a1" },
-    { agencyId: null, companyId: "c1" },
-    { agencyId: null, companyId: "c1" },
-  ]);
-
-  it("compte les offres de l'agence et celles de l'entreprise séparément", () => {
-    expect([offres.get("a1"), offres.get("c1"), offres.get("x")]).toEqual([1, 2, undefined]);
-  });
+  const ligne = { id: "a1", type: "agency" as const, nom: "AG ", logoUrl: null, ville: " BAMAKO ", pays: null, secteur: null, verifieLe: null, offres: 1 };
 
   it("ne marque jamais vérifié sans verifiedAt, et n'invente rien", () => {
-    const a = agenceVersEmployeur({ id: "a1", fullName: "Contact", avatarUrl: null, city: " BAMAKO ", country: null, profile: { agencyName: "AG " } }, offres);
-    expect(a).toEqual({ id: "a1", nom: "AG", type: "agence", logoUrl: undefined, ville: "BAMAKO", pays: undefined, offresPubliees: 1, verifie: false });
+    const a = employeurDepuisLigne(ligne);
+    expect(a).toEqual({ id: "a1", nom: "AG", type: "agence", logoUrl: undefined, ville: "BAMAKO", pays: undefined, secteur: undefined, offresPubliees: 1, verifie: false });
     expect(a).not.toHaveProperty("note");
-    const e = entrepriseVersEmployeur({ id: "c1", fullName: "X", avatarUrl: null, city: null, country: "Mali", profile: { companyName: "MinesCo", industry: "Mines", logoUrl: "/l.png", verifiedAt: "2026-10-20" } }, offres);
-    expect(e).toMatchObject({ secteur: "Mines et carrières", logoUrl: "/l.png", verifie: true, offresPubliees: 2 });
-    expect(entrepriseVersEmployeur({ id: "c2", fullName: "Y", avatarUrl: null, city: null, country: null, profile: { companyName: "Y", industry: "Divers", logoUrl: null } }, offres).secteur).toBeUndefined();
+    expect(employeurDepuisLigne({ ...ligne, type: "company", secteur: "Mines et carrières", logoUrl: "/l.png", verifieLe: "2026-10-20" }))
+      .toMatchObject({ type: "entreprise", secteur: "Mines et carrières", logoUrl: "/l.png", verifie: true });
+  });
+
+  it("ignore un secteur hors des 32", () => {
+    expect(employeurDepuisLigne({ ...ligne, secteur: "Divers" }).secteur).toBeUndefined();
   });
 
   it("mène au bon profil", () => {
