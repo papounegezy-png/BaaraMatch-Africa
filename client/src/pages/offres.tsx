@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
@@ -9,6 +9,7 @@ import { CarteOffre } from "@/components/offres/carte-offre";
 import { AucuneOffre, EnTeteResultats, ErreurOffres, PaginationOffres, SquelettesOffres } from "@/components/offres/resultats-offres";
 import { useSavedJobs } from "@/hooks/use-saved-jobs";
 import { FiltresOffres, nombreFiltresActifs, type SelectionFiltres } from "@/components/offres/filtres-offres";
+import { usePanneauFiltres } from "@/components/listes/filtres-liste";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { adresseDepuisEtat, etatDepuisAdresse, type EtatOffres } from "@/lib/etat-offres";
@@ -47,10 +48,8 @@ async function chargerOffres(adresse: string): Promise<ReponseOffres> {
  */
 export default function OffresPage() {
   const { user } = useAuth();
-  const idPanneauFiltres = useId();
   const [etat, setEtat] = useState<EtatOffres>(() => etatDepuisAdresse(window.location.search));
   const historique = useRef<"push" | "replace">("replace");
-  const [filtresOuverts, setFiltresOuverts] = useState(false);
   const [, setLocation] = useLocation();
   const { savedJobIds, toggleSave } = useSavedJobs();
 
@@ -97,28 +96,8 @@ export default function OffresPage() {
   const reinitialiserFiltres = () => modifier({ secteurs: [], villes: [], experiences: [], publieeDepuisJours: null });
   const toutReinitialiser = () => modifier({ recherche: "", lieu: "", contrat: null, employeur: null, secteurs: [], villes: [], experiences: [], publieeDepuisJours: null });
 
-  // En-tête (77 px) et barre de contrat collants : un élément ramené dans la
-  // vue (focus clavier, case de filtre) s'arrête sous eux au lieu d'être
-  // masqué. La barre est plus haute sous 900 px (bouton Filtres sur sa ligne).
-  useEffect(() => {
-    const racine = document.documentElement;
-    const avant = racine.style.scrollPaddingTop;
-    racine.style.scrollPaddingTop = "calc(77px + 9rem)";
-    return () => { racine.style.scrollPaddingTop = avant; };
-  }, []);
-
-  // Petit écran : Échap referme le panneau et rend le focus au bouton Filtres.
-  const boutonFiltres = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    if (!filtresOuverts) return;
-    const surTouche = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || window.matchMedia("(min-width: 1000px)").matches) return;
-      setFiltresOuverts(false);
-      boutonFiltres.current?.focus();
-    };
-    document.addEventListener("keydown", surTouche);
-    return () => document.removeEventListener("keydown", surTouche);
-  }, [filtresOuverts]);
+  // Panneau de filtres sous 1000 px (Échap, focus, défilement sous les barres).
+  const panneau = usePanneauFiltres();
 
   // Recherche, facettes et pagination côté serveur (GET /api/offres), avec
   // les paramètres de l'adresse. La liste précédente reste affichée pendant
@@ -172,16 +151,16 @@ export default function OffresPage() {
         comptes={comptes}
         onContrat={(contrat) => modifier({ contrat })}
         nbFiltresActifs={nombreFiltresActifs(selection)}
-        refBoutonFiltres={boutonFiltres}
-        filtresOuverts={filtresOuverts}
-        onBasculerFiltres={() => setFiltresOuverts((o) => !o)}
-        idPanneauFiltres={idPanneauFiltres}
+        refBoutonFiltres={panneau.refBouton}
+        filtresOuverts={panneau.ouvert}
+        onBasculerFiltres={panneau.basculer}
+        idPanneauFiltres={panneau.idPanneau}
       />
       {/* Dès 1000 px : filtres en colonne de 250 px à gauche, résultats à droite. */}
       <div className="container mx-auto grid gap-6 px-4 py-8 min-[1000px]:grid-cols-[250px_minmax(0,1fr)] min-[1000px]:gap-10">
         <FiltresOffres
-          id={idPanneauFiltres}
-          ouvert={filtresOuverts}
+          id={panneau.idPanneau}
+          ouvert={panneau.ouvert}
           facettes={compteurs}
           selection={selection}
           onSelection={choisirFiltres}

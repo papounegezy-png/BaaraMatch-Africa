@@ -3,9 +3,11 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauEmployeurs, BarreType, RechercheEmployeurs } from "@/components/employeurs/haut-employeurs";
+import { FiltresEmployeurs, nombreFiltresActifs, SELECTION_VIDE, type SelectionEmployeurs } from "@/components/employeurs/filtres-employeurs";
+import { usePanneauFiltres } from "@/components/listes/filtres-liste";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
-import { compterParType, filtrerEmployeurs, libelleLieu, type TypeChoisi } from "@/lib/employeurs";
+import { compterParType, facettesEmployeurs, filtrerEmployeurs, libelleLieu, type TypeChoisi } from "@/lib/employeurs";
 import {
   agenceVersEmployeur, entrepriseVersEmployeur, lienProfil, offresParEmployeur,
   type AgenceApi, type EntrepriseApi, type OffreResumeApi,
@@ -17,6 +19,8 @@ export default function EmployeursPage() {
   const [recherche, setRecherche] = useState("");
   const [lieu, setLieu] = useState("");
   const [type, setType] = useState<TypeChoisi>(null);
+  const [selection, setSelection] = useState<SelectionEmployeurs>(SELECTION_VIDE);
+  const panneau = usePanneauFiltres();
 
   const agences = useQuery<AgenceApi[]>({ queryKey: ["/api/agencies"] });
   const entreprises = useQuery<EntrepriseApi[]>({ queryKey: ["/api/companies"] });
@@ -30,9 +34,10 @@ export default function EmployeursPage() {
     ];
   }, [agences.data, entreprises.data, offres.data]);
 
-  const criteres = useMemo(() => ({ recherche, lieu, type }), [recherche, lieu, type]);
+  const criteres = useMemo(() => ({ recherche, lieu, type, ...selection }), [recherche, lieu, type, selection]);
   const resultats = useMemo(() => filtrerEmployeurs(employeurs, criteres), [employeurs, criteres]);
   const comptes = useMemo(() => compterParType(employeurs, criteres), [employeurs, criteres]);
+  const compteurs = useMemo(() => facettesEmployeurs(employeurs, criteres), [employeurs, criteres]);
   const chargement = agences.isLoading || entreprises.isLoading || offres.isLoading;
 
   return (
@@ -41,8 +46,27 @@ export default function EmployeursPage() {
       <BandeauEmployeurs>
         <RechercheEmployeurs recherche={recherche} lieu={lieu} onRecherche={setRecherche} onLieu={setLieu} />
       </BandeauEmployeurs>
-      <BarreType type={type} comptes={comptes} onType={setType} />
-      <div className="container mx-auto px-4 py-8">
+      <BarreType
+        type={type}
+        comptes={comptes}
+        onType={setType}
+        nbFiltresActifs={nombreFiltresActifs(selection)}
+        filtresOuverts={panneau.ouvert}
+        onBasculerFiltres={panneau.basculer}
+        idPanneauFiltres={panneau.idPanneau}
+        refBoutonFiltres={panneau.refBouton}
+      />
+      {/* Dès 1000 px : filtres en colonne de 230 px à gauche, résultats à droite. */}
+      <div className="container mx-auto grid gap-6 px-4 py-8 min-[1000px]:grid-cols-[230px_minmax(0,1fr)] min-[1000px]:gap-10">
+        <FiltresEmployeurs
+          id={panneau.idPanneau}
+          ouvert={panneau.ouvert}
+          facettes={compteurs}
+          selection={selection}
+          onSelection={setSelection}
+          onReinitialiser={() => setSelection(SELECTION_VIDE)}
+        />
+        <div className="min-w-0">
         {/* Liste provisoire : grille de cartes, filtres et pagination arrivent aux prompts 3 à 5. */}
         {chargement ? (
           <p role="status" className="font-texte text-baara-texte">Chargement des employeurs…</p>
@@ -65,6 +89,7 @@ export default function EmployeursPage() {
             </ul>
           </>
         )}
+        </div>
       </div>
       {user && <MobileBottomNav userType={user.userType} />}
     </div>

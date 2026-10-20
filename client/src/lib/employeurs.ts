@@ -1,5 +1,6 @@
 import { correspondTexte, normaliserTexte } from "@shared/filtre-offres";
 import { formatJobTitle } from "@shared/format-job-title";
+import { SECTEURS } from "@shared/secteurs";
 
 // Utilitaires de la page Employeurs. Même normalisation que la page Offres :
 // « BAMAKO », « Bamako » et « bamako » sont une seule valeur.
@@ -67,16 +68,47 @@ export type CriteresEmployeurs = {
   recherche?: string;
   lieu?: string;
   type?: TypeChoisi;
+  // Un secteur coché suffit (sélection multiple).
+  secteurs?: string[];
+  // Clés normalisées (normaliser) des pays cochés.
+  pays?: string[];
+  avecOffres?: boolean;
 };
 
-type EmployeurFiltrable = { nom: string; type: "entreprise" | "agence"; ville?: string; pays?: string };
+type EmployeurFiltrable = { nom: string; type: "entreprise" | "agence"; ville?: string; pays?: string; secteur?: string; offresPubliees: number };
 
-/** Recherche sur le nom, lieu sur la ville ou le pays : chaque mot doit apparaître. */
+/**
+ * Recherche sur le nom, lieu sur la ville ou le pays (chaque mot doit
+ * apparaître), puis type, secteurs, pays et offres en cours.
+ */
 export function filtrerEmployeurs<E extends EmployeurFiltrable>(liste: E[], c: CriteresEmployeurs): E[] {
   return liste.filter((e) =>
     (!c.type || e.type === c.type)
     && (!c.recherche || correspondTexte(c.recherche, [e.nom]))
-    && (!c.lieu || correspondTexte(c.lieu, [e.ville, e.pays])));
+    && (!c.lieu || correspondTexte(c.lieu, [e.ville, e.pays]))
+    && (!c.secteurs?.length || (!!e.secteur && c.secteurs.includes(e.secteur)))
+    && (!c.pays?.length || c.pays.includes(normaliser(e.pays)))
+    && (!c.avecOffres || e.offresPubliees > 0));
+}
+
+/**
+ * Compteurs du panneau, calculés sur les employeurs chargés. Chaque groupe
+ * est compté avec tous les autres critères, mais sans le sien.
+ */
+export function facettesEmployeurs(liste: EmployeurFiltrable[], c: CriteresEmployeurs) {
+  const sansSecteurs = filtrerEmployeurs(liste, { ...c, secteurs: [] });
+  const sansPays = filtrerEmployeurs(liste, { ...c, pays: [] });
+  const sansOffres = filtrerEmployeurs(liste, { ...c, avecOffres: false });
+  const parPays = new Map<string, number>();
+  for (const e of sansPays) parPays.set(normaliser(e.pays), (parPays.get(normaliser(e.pays)) ?? 0) + 1);
+  return {
+    secteurs: SECTEURS.map((s) => ({ valeur: s, libelle: s, nombre: sansSecteurs.filter((e) => e.secteur === s).length })),
+    // Pays présents dans les données (tous, même à 0 avec les filtres actifs).
+    pays: regrouperValeurs(liste.map((e) => e.pays))
+      .map((p) => ({ ...p, nombre: parPays.get(p.valeur) ?? 0 }))
+      .sort((a, b) => b.nombre - a.nombre || a.libelle.localeCompare(b.libelle, "fr")),
+    avecOffres: sansOffres.filter((e) => e.offresPubliees > 0).length,
+  };
 }
 
 /** Nombre d'employeurs par type, tous les autres critères appliqués. */
