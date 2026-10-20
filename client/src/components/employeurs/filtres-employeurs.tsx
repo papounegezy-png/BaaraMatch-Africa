@@ -4,8 +4,6 @@ const EMPLOYEURS: Unite = ["employeur", "employeurs"];
 
 export type SelectionEmployeurs = { secteurs: string[]; pays: string[]; avecOffres: boolean };
 
-export const SELECTION_VIDE: SelectionEmployeurs = { secteurs: [], pays: [], avecOffres: false };
-
 export function nombreFiltresActifs(s: SelectionEmployeurs): number {
   return s.secteurs.length + s.pays.length + (s.avecOffres ? 1 : 0);
 }

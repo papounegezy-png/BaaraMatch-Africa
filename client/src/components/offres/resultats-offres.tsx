@@ -1,8 +1,8 @@
 import { forwardRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { libelleResultats, pagesAAfficher } from "@/lib/etat-offres";
+import { EtatErreur, EtatVide, focusVisible as focus } from "@/components/listes/etats-liste";
 
-const focus = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:focus-visible:ring-offset-baara-profond";
 
 /**
  * « 1–20 sur N offres », titre de la liste : il reçoit le focus après un
@@ -104,38 +104,9 @@ export function SquelettesOffres() {
 }
 
 export function AucuneOffre({ onReinitialiser }: { onReinitialiser: () => void }) {
-  return (
-    <div className="rounded-2xl border-[1.5px] border-dashed border-baara-trait px-6 py-12 text-center dark:border-white/15" data-testid="aucune-offre">
-      <h3 className="font-titre text-xl font-bold text-baara-marine dark:text-white">Aucune offre trouvée</h3>
-      <p className="mx-auto mt-2 max-w-md text-pretty font-texte text-baara-texte dark:text-slate-300">
-        Essayez un autre métier, une autre ville, ou retirez un filtre.
-      </p>
-      <button
-        type="button"
-        onClick={onReinitialiser}
-        className={`mt-6 inline-flex min-h-11 items-center rounded-full bg-baara-marine px-6 font-texte font-semibold text-white hover:bg-baara-bleu dark:bg-white dark:text-baara-marine ${focus}`}
-        data-testid="bouton-reinitialiser-vide"
-      >
-        Réinitialiser les filtres
-      </button>
-    </div>
-  );
+  return <EtatVide titre="Aucune offre trouvée" texte="Essayez un autre métier, une autre ville, ou retirez un filtre." onReinitialiser={onReinitialiser} testId="aucune-offre" />;
 }
 
 export function ErreurOffres({ onReessayer }: { onReessayer: () => void }) {
-  return (
-    <div role="alert" className="rounded-2xl border-[1.5px] border-baara-trait px-6 py-10 text-center dark:border-white/15" data-testid="erreur-offres">
-      <h3 className="font-titre text-xl font-bold text-baara-marine dark:text-white">Les offres n'ont pas pu être chargées</h3>
-      <p className="mx-auto mt-2 max-w-md text-pretty font-texte text-baara-texte dark:text-slate-300">
-        Vérifiez votre connexion puis réessayez. Votre recherche et vos filtres sont conservés.
-      </p>
-      <button
-        type="button"
-        onClick={onReessayer}
-        className={`mt-6 inline-flex min-h-11 items-center rounded-full bg-baara-marine px-6 font-texte font-semibold text-white hover:bg-baara-bleu dark:bg-white dark:text-baara-marine ${focus}`}
-      >
-        Réessayer
-      </button>
-    </div>
-  );
+  return <EtatErreur titre="Les offres n'ont pas pu être chargées" onReessayer={onReessayer} testId="erreur-offres" />;
 }
