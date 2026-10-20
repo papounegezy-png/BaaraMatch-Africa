@@ -72,7 +72,7 @@ export const CarteOffre = memo(function CarteOffre({ offre, enregistree, onEnreg
           </div>
           <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-texte text-[15px] text-baara-texte dark:text-slate-300">
             <strong id={`${id}-employeur`} className="font-semibold text-baara-marine dark:text-white">{offre.employeurNom}</strong>
-            {offre.employeurVerifie && <BadgeVerifie />}
+            {offre.employeurVerifie && <BadgeVerifie marge={false} />}
             {offre.employeurNote != null && (
               <span className="inline-flex items-center gap-1 tabular-nums">
                 <Star className="h-4 w-4 fill-baara-or text-baara-or" aria-hidden="true" />

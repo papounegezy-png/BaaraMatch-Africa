@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
-import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauEmployeurs, BarreType, RechercheEmployeurs } from "@/components/employeurs/haut-employeurs";
 import { FiltresEmployeurs, nombreFiltresActifs, SELECTION_VIDE, type SelectionEmployeurs } from "@/components/employeurs/filtres-employeurs";
 import { usePanneauFiltres } from "@/components/listes/filtres-liste";
+import { CarteEmployeur } from "@/components/employeurs/carte-employeur";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
-import { compterParType, facettesEmployeurs, filtrerEmployeurs, libelleLieu, type TypeChoisi } from "@/lib/employeurs";
+import { compterParType, facettesEmployeurs, filtrerEmployeurs, type TypeChoisi } from "@/lib/employeurs";
 import {
-  agenceVersEmployeur, entrepriseVersEmployeur, lienProfil, offresParEmployeur,
+  agenceVersEmployeur, entrepriseVersEmployeur, offresParEmployeur,
   type AgenceApi, type EntrepriseApi, type OffreResumeApi,
 } from "@/types/employeur";
 
@@ -67,7 +67,7 @@ export default function EmployeursPage() {
           onReinitialiser={() => setSelection(SELECTION_VIDE)}
         />
         <div className="min-w-0">
-        {/* Liste provisoire : grille de cartes, filtres et pagination arrivent aux prompts 3 à 5. */}
+        {/* Tri, états et pagination : prompt 5. */}
         {chargement ? (
           <p role="status" className="font-texte text-baara-texte">Chargement des employeurs…</p>
         ) : (
@@ -75,15 +75,11 @@ export default function EmployeursPage() {
             <p role="status" className="mb-4 font-texte text-baara-texte dark:text-slate-300" data-testid="nombre-employeurs">
               {resultats.length} {resultats.length > 1 ? "employeurs" : "employeur"}
             </p>
-            <ul className="divide-y divide-baara-trait dark:divide-white/10" data-testid="liste-employeurs">
+            {/* Deux colonnes égales dès 640 px ; cartes d'une ligne à la même hauteur. */}
+            <ul className="grid gap-3 min-[640px]:grid-cols-2 min-[900px]:gap-4" data-testid="liste-employeurs">
               {resultats.map((e) => (
-                <li key={`${e.type}-${e.id}`}>
-                  <Link href={lienProfil(e)} className="flex min-h-11 flex-wrap items-baseline gap-x-3 py-2 font-texte text-baara-marine hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu dark:text-white">
-                    <span className="font-semibold">{e.nom}</span>
-                    <span className="text-sm text-baara-texte dark:text-slate-300">
-                      {[e.type === "agence" ? "Agence" : "Entreprise", libelleLieu(e.ville, e.pays)].filter(Boolean).join(" · ")}
-                    </span>
-                  </Link>
+                <li key={`${e.type}-${e.id}`} className="min-w-0">
+                  <CarteEmployeur employeur={e} />
                 </li>
               ))}
             </ul>
