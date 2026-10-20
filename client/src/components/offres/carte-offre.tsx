@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { memo, useId } from "react";
 import { Link } from "wouter";
 import { Banknote, Bookmark, Briefcase, FileText, MapPin, Star } from "lucide-react";
 import { BadgeVerifie } from "@/components/badge-verifie";
@@ -29,10 +29,10 @@ function LogoEmployeur({ offre }: { offre: Offre }) {
  * « Enregistrer » passe au-dessus et ne déclenche pas ce lien. Une donnée
  * absente n'est pas affichée, sauf le salaire (« Selon profil »).
  */
-export function CarteOffre({ offre, enregistree, onEnregistrer, afficherEnregistrer }: {
+export const CarteOffre = memo(function CarteOffre({ offre, enregistree, onEnregistrer, afficherEnregistrer }: {
   offre: Offre;
   enregistree: boolean;
-  onEnregistrer: () => void;
+  onEnregistrer: (id: string) => void;
   afficherEnregistrer: boolean;
 }) {
   const id = useId();
@@ -110,7 +110,7 @@ export function CarteOffre({ offre, enregistree, onEnregistrer, afficherEnregist
         {afficherEnregistrer && (
           <button
             type="button"
-            onClick={onEnregistrer}
+            onClick={() => onEnregistrer(offre.id)}
             aria-pressed={enregistree}
             // Nom constant : l'état « enregistrée » est porté par aria-pressed.
             aria-label={`Enregistrer l'offre : ${titre}`}
@@ -124,4 +124,4 @@ export function CarteOffre({ offre, enregistree, onEnregistrer, afficherEnregist
       </div>
     </article>
   );
-}
+});

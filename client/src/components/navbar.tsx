@@ -4,7 +4,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Menu, X, Briefcase, Building2, Layers, ChevronDown, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@shared/schema";
-import { NotificationBell } from "@/components/notification-bell";
+import { ClocheNotifications } from "@/components/cloche-notifications";
 
 interface NavbarProps {
   user?: User | null;
@@ -82,7 +82,7 @@ export function Navbar({ user, onLogout }: NavbarProps) {
           <div className="flex items-center gap-2">
             {/* Visible at every width: on mobile this was hidden, which left
                 only the dashboard's own bell — a dead button. */}
-            {user && <NotificationBell buttonClassName="text-white/85 hover:text-white" />}
+            {user && <ClocheNotifications buttonClassName="text-white/85 hover:text-white" />}
 
             <ThemeToggle />
 

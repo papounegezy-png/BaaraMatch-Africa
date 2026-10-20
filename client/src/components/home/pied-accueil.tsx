@@ -53,9 +53,10 @@ const LIENS_BAS = [
 ];
 
 // Texte à 90 % de blanc sur marine (contraste > 4,5:1), anneau or au focus.
+// Cible de 44 px au doigt ; plus compacte à la souris sur grand écran.
 const lien =
-  "inline-flex min-h-9 items-center rounded-sm text-white/90 transition-colors hover:text-white hover:underline hover:decoration-baara-or hover:decoration-2 hover:underline-offset-4 " +
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-or min-[900px]:min-h-0";
+  "inline-flex min-h-11 items-center rounded-sm text-white/90 transition-colors hover:text-white hover:underline hover:decoration-baara-or hover:decoration-2 hover:underline-offset-4 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-or min-[900px]:[@media(pointer:fine)]:min-h-0";
 
 /**
  * Pied de page public (maquette « Accueil animé v2 »). Il suit les deux
@@ -75,7 +76,7 @@ export function PiedAccueil() {
         <div className="grid grid-cols-2 gap-x-6 gap-y-10 min-[900px]:grid-cols-[1.4fr_1fr_1fr_1.1fr]">
           {/* 1. BaaraMatch */}
           <div className="col-span-2 space-y-4 min-[900px]:col-span-1">
-            <Link href="/" className="inline-flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-or" data-testid="link-pied-logo">
+            <Link href="/" className="inline-flex min-h-11 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-or" data-testid="link-pied-logo">
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-baara-or font-titre text-base font-extrabold text-baara-marine" aria-hidden="true">B</span>
               <span className="font-titre text-xl font-bold tracking-tight">BaaraMatch</span>
             </Link>
@@ -93,7 +94,7 @@ export function PiedAccueil() {
           {COLONNES.map((colonne) => (
             <nav key={colonne.titre} aria-labelledby={`${id}-${colonne.titre}`} className="space-y-3">
               <h2 id={`${id}-${colonne.titre}`} className="font-titre text-base font-bold text-white">{colonne.titre}</h2>
-              <ul className="space-y-1 text-sm min-[900px]:space-y-2.5">
+              <ul className="text-sm min-[900px]:[@media(pointer:fine)]:space-y-2.5">
                 {colonne.liens.map((l) => (
                   <li key={l.href}>
                     {/* Les liens à ancre (#…) défilent via useDefilementAncre. */}

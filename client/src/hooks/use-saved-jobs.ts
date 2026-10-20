@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 
 type SavedJobRow = { jobId: string };
 
-// Backs the "Heart" save button on job-detail.tsx / jobs.tsx — shared so
+// Backs the "Heart" save button on job-detail.tsx / offres.tsx — shared so
 // every job card/detail view stays in sync on the same saved-state cache
 // instead of each re-fetching and re-implementing the toggle.
 export function useSavedJobs() {

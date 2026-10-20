@@ -3,7 +3,6 @@ import { lazy, Suspense, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { useVisitTracker } from "@/hooks/use-visit-tracker";
@@ -13,7 +12,7 @@ import { Navbar } from "@/components/navbar";
 import { PiedAccueil } from "@/components/home/pied-accueil";
 import { useDefilementAncre } from "@/hooks/use-defilement-ancre";
 import { LoadingState } from "@/components/loading-state";
-import HomePage from "@/pages/home";
+import { EnteteAccueil } from "@/components/home/entete-accueil";
 
 // Découpage par route : chaque page est un fichier JavaScript à part, chargé
 // à la première visite. L'accueil reste dans le paquet principal (page
@@ -34,6 +33,9 @@ const ProfilePage = lazy(() => import("@/pages/profile"));
 // supprimée à la passe finale.
 const JobsPage = lazy(() => import("@/pages/offres"));
 const AgenciesPage = lazy(() => import("@/pages/agencies"));
+// L'accueil aussi est chargé à part : son code est préchargé depuis le HTML
+// sur « / » (vite.config.ts), en parallèle du paquet principal.
+const HomePage = lazy(() => import("@/pages/home"));
 const ServicesPage = lazy(() => import("@/pages/services"));
 const AgencyDashboardPage = lazy(() => import("@/pages/agency-dashboard"));
 const AgencyProfilePage = lazy(() => import("@/pages/agency-profile"));
@@ -82,8 +84,19 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
 // Attente pendant le chargement d'une page (fichier JavaScript de la route).
 // Hauteur d'un écran : le pied de page reste hors de vue au lieu d'apparaître
 // en haut puis d'être repoussé (décalage de mise en page).
-function ChargementPage() {
-  return <LoadingState label="Chargement de la page" variant="block" rows={3} className="container mx-auto min-h-screen px-4 py-10" />;
+// Pages qui affichent leur propre en-tête (EnteteAccueil) au lieu de la Navbar.
+const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs"];
+
+// Pendant le chargement d'une page qui a son propre en-tête, celui-ci
+// s'affiche déjà (il est dans le paquet principal) : premier affichage
+// plus tôt, sans saut quand la page arrive.
+function ChargementPage({ avecEntete = false }: { avecEntete?: boolean }) {
+  return (
+    <>
+      {avecEntete && <EnteteAccueil />}
+      <LoadingState label="Chargement de la page" variant="block" rows={3} className="container mx-auto min-h-screen px-4 py-10" />
+    </>
+  );
 }
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -93,9 +106,8 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* L'accueil, Services et Offres affichent leur propre en-tête (EnteteAccueil). */}
-      {!["/", "/services", "/jobs", "/candidate/jobs"].includes(location) && <Navbar user={user} onLogout={logout} />}
-      <main className="flex-1"><Suspense fallback={<ChargementPage />}>{children}</Suspense></main>
+      {!PAGES_AVEC_ENTETE.includes(location) && <Navbar user={user} onLogout={logout} />}
+      <main className="flex-1"><Suspense fallback={<ChargementPage avecEntete={PAGES_AVEC_ENTETE.includes(location)} />}>{children}</Suspense></main>
       <PiedAccueil />
     </div>
   );
@@ -284,12 +296,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="baaramatch-theme">
-        <TooltipProvider>
-          <AuthProvider>
-            <AppRouter />
-          </AuthProvider>
-          <Toaster />
-        </TooltipProvider>
+        {/* Pas de TooltipProvider global : les infobulles ne servent que dans
+            la barre latérale (ui/sidebar.tsx), qui fournit le sien. */}
+        <AuthProvider>
+          <AppRouter />
+        </AuthProvider>
+        <Toaster />
       </ThemeProvider>
     </QueryClientProvider>
   );

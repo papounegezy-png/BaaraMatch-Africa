@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { NotificationBell } from "@/components/notification-bell";
+import { ClocheNotifications } from "@/components/cloche-notifications";
 
 // Soulignement or qui se déploie au survol ET au focus clavier. L'or n'est
 // qu'un trait ici (jamais du texte sur fond clair : 2,4:1).
@@ -83,7 +83,7 @@ export function EnteteAccueil() {
         </nav>
 
         <div className="hidden items-center gap-2 min-[900px]:flex">
-          {user && <NotificationBell />}
+          {user && <ClocheNotifications />}
           <ThemeToggle className="h-11 w-11" />
           {user ? (
             <>
@@ -112,7 +112,7 @@ export function EnteteAccueil() {
         </div>
 
         <div className="flex items-center gap-1 min-[900px]:hidden">
-          {user && <NotificationBell />}
+          {user && <ClocheNotifications />}
           <ThemeToggle className="h-11 w-11" />
           <button
             ref={boutonMenuRef}

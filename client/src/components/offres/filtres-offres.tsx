@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
 import { NB_SECTEURS_INITIAL } from "@shared/secteurs";
 import { PERIODES_PUBLICATION, type OptionFiltre } from "@/lib/filtre-offres";
 
@@ -78,6 +78,15 @@ export function nombreFiltresActifs(s: SelectionFiltres): number {
  * en dessous, carte repliée qui s'ouvre sous la barre de contrat (bouton
  * « Filtres », ou Échap pour fermer, géré par la page).
  */
+// Dès 1000 px, le panneau est une colonne toujours visible.
+const COLONNE = "(min-width: 1000px)";
+const abonner = (rappel: () => void) => {
+  const m = window.matchMedia(COLONNE);
+  m.addEventListener("change", rappel);
+  return () => m.removeEventListener("change", rappel);
+};
+const enColonne = () => window.matchMedia(COLONNE).matches;
+
 export function FiltresOffres({ id, ouvert, facettes, selection, onSelection, onReinitialiser }: {
   id: string;
   ouvert: boolean;
@@ -88,6 +97,9 @@ export function FiltresOffres({ id, ouvert, facettes, selection, onSelection, on
 }) {
   const idDate = useId();
   const nb = nombreFiltresActifs(selection);
+  // Panneau fermé sous 1000 px : son contenu (une soixantaine de cases)
+  // n'est construit qu'à l'ouverture, pour alléger le premier affichage.
+  const visible = useSyncExternalStore(abonner, enColonne, () => true) || ouvert;
   const basculer = (cle: "secteurs" | "villes" | "experiences") => (v: string) =>
     onSelection({ ...selection, [cle]: selection[cle].includes(v) ? selection[cle].filter((x) => x !== v) : [...selection[cle], v] });
 
@@ -98,6 +110,7 @@ export function FiltresOffres({ id, ouvert, facettes, selection, onSelection, on
       className={`${ouvert ? "block" : "hidden"} rounded-[20px] border border-baara-trait bg-white p-5 dark:border-white/10 dark:bg-white/[0.04] min-[1000px]:block min-[1000px]:rounded-none min-[1000px]:border-0 min-[1000px]:bg-transparent min-[1000px]:p-0 min-[1000px]:dark:bg-transparent`}
       data-testid="panneau-filtres"
     >
+      {visible && <>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-titre text-xl font-bold text-baara-marine dark:text-white">Filtres</h2>
         {nb > 0 && <span className="font-texte text-sm font-semibold text-baara-texte dark:text-slate-300" data-testid="filtres-appliques">Appliqués ({nb})</span>}
@@ -121,6 +134,7 @@ export function FiltresOffres({ id, ouvert, facettes, selection, onSelection, on
           </select>
         </div>
       </div>
+      </>}
     </aside>
   );
 }

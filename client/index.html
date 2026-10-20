@@ -21,10 +21,24 @@
     <title>BaaraMatch Africa - Emploi et Recrutement en Afrique</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Polices chargées sans bloquer le premier affichage (display=swap) :
-         la feuille devient active une fois téléchargée. -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <!-- Polices des tableaux de bord (Libre Baskerville, JetBrains Mono),
+         chargées sans bloquer le premier affichage et en priorité basse :
+         les pages publiques ne les utilisent pas. La feuille devient active
+         une fois téléchargée. -->
+    <link rel="preload" as="style" fetchpriority="low" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"></noscript>
+    <!-- Page Offres : la recherche part dès le HTML, en parallèle du
+         JavaScript (client/src/pages/offres.tsx la reprend si l'adresse
+         est la même). -->
+    <script>
+      if (location.pathname === "/jobs" || location.pathname === "/candidate/jobs") {
+        var offres = { adresse: location.search };
+        offres.json = fetch("/api/offres" + location.search, { credentials: "include" })
+          .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
+        offres.json.then(function (d) { offres.donnees = d; }, function () {});
+        window.__offresPrechargees = offres;
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

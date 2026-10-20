@@ -22,7 +22,7 @@ export function BandeauOffres({ children }: { children?: ReactNode }) {
           </span>
         </h1>
         <p className="mt-5 max-w-[60ch] animate-fondu text-pretty font-texte text-lg text-baara-texte dark:text-slate-300" style={{ animationDelay: "0.45s" }}>
-          BTP, mines et métiers techniques : postulez en quelques clics avec votre profil.
+          BTP, mines et métiers techniques&nbsp;: postulez en quelques clics avec votre profil.
         </p>
         {children && <div className="mt-8">{children}</div>}
       </div>

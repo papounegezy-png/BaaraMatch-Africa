@@ -17,7 +17,23 @@ import type { ReponseOffres } from "@shared/recherche-offres";
 
 const AUCUN_COMPTE = { toutes: 0, CDI: 0, CDD: 0, Freelance: 0 };
 
+declare global {
+  // Recherche lancée par index.html ; donnees est renseigné à son arrivée.
+  interface Window { __offresPrechargees?: { adresse: string; json: Promise<ReponseOffres>; donnees?: ReponseOffres } }
+}
+
 async function chargerOffres(adresse: string): Promise<ReponseOffres> {
+  // Première recherche lancée par index.html, si elle porte sur la même
+  // adresse ; utilisée une seule fois.
+  const prechargee = window.__offresPrechargees;
+  window.__offresPrechargees = undefined;
+  if (prechargee?.adresse === adresse) {
+    try {
+      return await prechargee.json;
+    } catch {
+      // Nouvel essai ci-dessous.
+    }
+  }
   const reponse = await fetch(`/api/offres${adresse}`, { credentials: "include" });
   if (!reponse.ok) throw new Error(`${reponse.status}`);
   return reponse.json();
@@ -69,6 +85,11 @@ export default function OffresPage() {
     }
     toggleSave(id);
   };
+  // Même fonction d'un rendu à l'autre : les cartes (memo) ne se
+  // redessinent que si leur offre ou leur état « enregistrée » change.
+  const refEnregistrer = useRef(enregistrer);
+  refEnregistrer.current = enregistrer;
+  const surEnregistrer = useCallback((id: string) => refEnregistrer.current(id), []);
   const selection: SelectionFiltres = {
     secteurs: etat.secteurs, villes: etat.villes, experiences: etat.experiences, publieeDepuisJours: etat.publieeDepuisJours,
   };
@@ -106,6 +127,9 @@ export default function OffresPage() {
   const { data, isLoading, isError, refetch, isFetching, isPlaceholderData } = useQuery({
     queryKey: ["/api/offres", adresse],
     queryFn: () => chargerOffres(adresse),
+    // Déjà arrivée (préchargement d'index.html) : affichée dès le premier
+    // rendu, sans passer par les cartes fantômes.
+    initialData: () => (window.__offresPrechargees?.adresse === adresse ? window.__offresPrechargees.donnees : undefined),
     placeholderData: keepPreviousData,
   });
   const comptes = data?.facettes.contrats ?? AUCUN_COMPTE;
@@ -186,9 +210,10 @@ export default function OffresPage() {
                 <>
                   {/* La clé relance l'entrée douce quand la liste reçue change. */}
                   <ul key={`${page}:${offresDeLaPage.map((o) => o.id).join(",")}`} className={`space-y-4 transition-opacity motion-safe:animate-entree-resultats ${isPlaceholderData ? "opacity-60" : ""}`} data-testid="liste-offres">
-                    {offresDeLaPage.map((o) => (
-                      <li key={o.id}>
-                        <CarteOffre offre={o} enregistree={savedJobIds.has(o.id)} onEnregistrer={() => enregistrer(o.id)} afficherEnregistrer={peutEnregistrer} />
+                    {/* Cartes hors du premier écran : mises en page seulement à l'approche. */}
+                    {offresDeLaPage.map((o, i) => (
+                      <li key={o.id} className={i >= 3 ? "[contain-intrinsic-size:auto_230px] [content-visibility:auto]" : undefined}>
+                        <CarteOffre offre={o} enregistree={savedJobIds.has(o.id)} onEnregistrer={surEnregistrer} afficherEnregistrer={peutEnregistrer} />
                       </li>
                     ))}
                   </ul>
