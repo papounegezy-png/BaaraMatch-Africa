@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { CONTRATS_BARRE, type ContratBarre } from "@/lib/filtre-offres";
 
@@ -10,7 +11,7 @@ const pastille =
  * bordure) : choix du contrat avec le nombre de résultats, et, sous 1000 px,
  * le bouton qui ouvre le panneau des filtres.
  */
-export function BarreContrat({ contrat, comptes, onContrat, nbFiltresActifs, filtresOuverts, onBasculerFiltres, idPanneauFiltres }: {
+export function BarreContrat({ contrat, comptes, onContrat, nbFiltresActifs, filtresOuverts, onBasculerFiltres, idPanneauFiltres, refBoutonFiltres }: {
   contrat: ContratBarre | null;
   comptes: Record<"toutes" | ContratBarre, number>;
   onContrat: (c: ContratBarre | null) => void;
@@ -18,6 +19,7 @@ export function BarreContrat({ contrat, comptes, onContrat, nbFiltresActifs, fil
   filtresOuverts: boolean;
   onBasculerFiltres: () => void;
   idPanneauFiltres: string;
+  refBoutonFiltres?: RefObject<HTMLButtonElement>;
 }) {
   const choix: { valeur: ContratBarre | null; libelle: string; nombre: number }[] = [
     { valeur: null, libelle: "Toutes", nombre: comptes.toutes },
@@ -51,6 +53,7 @@ export function BarreContrat({ contrat, comptes, onContrat, nbFiltresActifs, fil
           })}
         </div>
         <button
+          ref={refBoutonFiltres}
           type="button"
           aria-expanded={filtresOuverts}
           aria-controls={idPanneauFiltres}

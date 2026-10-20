@@ -1,13 +1,15 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauOffres } from "@/components/offres/bandeau-offres";
 import { RechercheOffres } from "@/components/offres/recherche-offres";
 import { BarreContrat } from "@/components/offres/barre-contrat";
+import { FiltresOffres, nombreFiltresActifs, type SelectionFiltres } from "@/components/offres/filtres-offres";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
-import { compterParContrat, contratDepuisParametre, filtrerOffres, type ContratBarre } from "@/lib/filtre-offres";
+import { compterParContrat, contratDepuisParametre, facettes, filtrerOffres, normaliserTexte, secteursDepuisParametres, type ContratBarre } from "@/lib/filtre-offres";
+import type { Secteur } from "@shared/secteurs";
 import { libelleLieu } from "@/lib/offres";
 import { versOffre, type OffreApi } from "@/types/offre";
 
@@ -22,6 +24,11 @@ function lireAdresse() {
     contrat: contratDepuisParametre(p.get("contrat") ?? p.get("type")),
     employeurId: p.get("agencyId") ?? p.get("companyId"),
     employeurNom: p.get("employerName"),
+    // Secteurs : ?secteur= (32 libellés) ou l'ancien ?category= de l'accueil.
+    secteurs: secteursDepuisParametres([...p.getAll("secteur"), ...p.getAll("category")]),
+    villes: p.getAll("ville").map(normaliserTexte).filter(Boolean),
+    experiences: p.getAll("exp"),
+    publieeDepuisJours: Number(p.get("publiee_depuis_jours")) || null,
   };
 }
 
@@ -37,13 +44,46 @@ export default function OffresPage() {
     depart.employeurId ? { id: depart.employeurId, nom: depart.employeurNom } : null,
   );
   const [filtresOuverts, setFiltresOuverts] = useState(false);
+  const [selection, setSelection] = useState<SelectionFiltres>({
+    secteurs: depart.secteurs, villes: depart.villes, experiences: depart.experiences, publieeDepuisJours: depart.publieeDepuisJours,
+  });
+  const reinitialiserFiltres = () => setSelection({ secteurs: [], villes: [], experiences: [], publieeDepuisJours: null });
+  // Pagination (prompt 5) : tout changement de filtre reviendra à la page 1.
+
+  // En-tête (77 px) et barre de contrat collants : un élément ramené dans la
+  // vue (focus clavier, case de filtre) s'arrête sous eux au lieu d'être
+  // masqué. La barre est plus haute sous 900 px (bouton Filtres sur sa ligne).
+  useEffect(() => {
+    const racine = document.documentElement;
+    const avant = racine.style.scrollPaddingTop;
+    racine.style.scrollPaddingTop = "calc(77px + 9rem)";
+    return () => { racine.style.scrollPaddingTop = avant; };
+  }, []);
+
+  // Petit écran : Échap referme le panneau et rend le focus au bouton Filtres.
+  const boutonFiltres = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (!filtresOuverts) return;
+    const surTouche = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || window.matchMedia("(min-width: 1000px)").matches) return;
+      setFiltresOuverts(false);
+      boutonFiltres.current?.focus();
+    };
+    document.addEventListener("keydown", surTouche);
+    return () => document.removeEventListener("keydown", surTouche);
+  }, [filtresOuverts]);
 
   const { data, isLoading, isError, refetch } = useQuery<OffreApi[]>({ queryKey: ["/api/jobs"] });
   const offres = useMemo(() => (data ?? []).map(versOffre), [data]);
 
-  const criteres = { recherche, lieu, contrat, employeurId: employeur?.id ?? null };
-  const resultats = useMemo(() => filtrerOffres(offres, criteres), [offres, recherche, lieu, contrat, employeur]); // eslint-disable-line react-hooks/exhaustive-deps
-  const comptes = useMemo(() => compterParContrat(offres, criteres), [offres, recherche, lieu, employeur]); // eslint-disable-line react-hooks/exhaustive-deps
+  const criteres = useMemo(() => ({
+    recherche, lieu, contrat, employeurId: employeur?.id ?? null,
+    secteurs: selection.secteurs as Secteur[], villes: selection.villes, experiences: selection.experiences,
+    publieeDepuisJours: selection.publieeDepuisJours,
+  }), [recherche, lieu, contrat, employeur, selection]);
+  const resultats = useMemo(() => filtrerOffres(offres, criteres), [offres, criteres]);
+  const comptes = useMemo(() => compterParContrat(offres, criteres), [offres, criteres]);
+  const compteurs = useMemo(() => facettes(offres, criteres), [offres, criteres]);
 
   return (
     <div className="min-h-screen bg-baara-papier pb-20 dark:bg-baara-profond lg:pb-0">
@@ -55,15 +95,23 @@ export default function OffresPage() {
         contrat={contrat}
         comptes={comptes}
         onContrat={setContrat}
-        nbFiltresActifs={0}
+        nbFiltresActifs={nombreFiltresActifs(selection)}
+        refBoutonFiltres={boutonFiltres}
         filtresOuverts={filtresOuverts}
         onBasculerFiltres={() => setFiltresOuverts((o) => !o)}
         idPanneauFiltres={idPanneauFiltres}
       />
-      {/* Panneau des filtres : contenu au prompt 3. */}
-      <div id={idPanneauFiltres} hidden={!filtresOuverts} />
-
-      <div className="container mx-auto px-4 py-8">
+      {/* Dès 1000 px : filtres en colonne de 250 px à gauche, résultats à droite. */}
+      <div className="container mx-auto grid gap-6 px-4 py-8 min-[1000px]:grid-cols-[250px_minmax(0,1fr)] min-[1000px]:gap-10">
+        <FiltresOffres
+          id={idPanneauFiltres}
+          ouvert={filtresOuverts}
+          facettes={compteurs}
+          selection={selection}
+          onSelection={setSelection}
+          onReinitialiser={reinitialiserFiltres}
+        />
+        <div className="min-w-0">
         {employeur && (
           <p className="mb-5 flex flex-wrap items-center gap-3 font-texte text-baara-marine dark:text-white" data-testid="filtre-employeur">
             Offres de <strong>{employeur.nom ?? "cet employeur"}</strong>
@@ -98,6 +146,7 @@ export default function OffresPage() {
             </ul>
           </>
         )}
+        </div>
       </div>
       {user && <MobileBottomNav userType={user.userType} />}
     </div>

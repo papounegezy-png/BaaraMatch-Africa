@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compterParContrat, contratDepuisParametre, correspondTexte, filtrerOffres, normaliserTexte } from "../client/src/lib/filtre-offres";
+import { compterParContrat, contratDepuisParametre, correspondTexte, facettes, filtrerOffres, normaliserTexte, secteursDepuisParametres } from "../client/src/lib/filtre-offres";
 import type { Offre } from "../client/src/types/offre";
 
 const offre = (o: Partial<Offre>): Offre => ({
@@ -46,5 +46,48 @@ describe("filtrage des offres", () => {
     expect(contratDepuisParametre("Freelance")).toBe("Freelance");
     expect(contratDepuisParametre("stage")).toBeNull();
     expect(contratDepuisParametre(null)).toBeNull();
+  });
+});
+
+describe("filtres du panneau", () => {
+  const maintenant = new Date("2026-10-20T12:00:00Z");
+  const jours = (n: number) => new Date(maintenant.getTime() - n * 86_400_000).toISOString();
+  const liste = [
+    offre({ id: "a", ville: "Bamako", secteur: "BTP et construction", experienceMin: 3, publieLe: jours(0.5) }),
+    offre({ id: "b", ville: "BAMAKO", secteur: "Mines et carrières", experienceMin: 6, publieLe: jours(3) }),
+    offre({ id: "c", ville: "Dakar", secteur: "BTP et construction", publieLe: jours(20) }),
+    offre({ id: "d", ville: "Kayes", secteur: undefined, experienceMin: 0, publieLe: jours(45) }),
+  ];
+  const ids = (c: Parameters<typeof filtrerOffres>[1]) => filtrerOffres(liste, { maintenant, ...c }).map((o) => o.id);
+
+  it("retient une offre si elle correspond à l'une des valeurs cochées du groupe", () => {
+    expect(ids({ secteurs: ["BTP et construction", "Mines et carrières"] })).toEqual(["a", "b", "c"]);
+    expect(ids({ villes: ["bamako"] })).toEqual(["a", "b"]);
+    expect(ids({ experiences: ["2-5", "0-2"] })).toEqual(["a", "d"]);
+  });
+
+  it("combine les groupes entre eux", () => {
+    expect(ids({ secteurs: ["BTP et construction"], villes: ["bamako"] })).toEqual(["a"]);
+    expect(ids({ secteurs: ["BTP et construction"], experiences: ["5-10"] })).toEqual([]);
+  });
+
+  it("filtre par date de publication", () => {
+    expect(ids({ publieeDepuisJours: 1 })).toEqual(["a"]);
+    expect(ids({ publieeDepuisJours: 7 })).toEqual(["a", "b"]);
+    expect(ids({ publieeDepuisJours: 30 })).toEqual(["a", "b", "c"]);
+  });
+
+  it("compte chaque groupe sans son propre filtre, et regroupe les villes", () => {
+    const f = facettes(liste, { maintenant, villes: ["bamako"], secteurs: ["Mines et carrières"] });
+    expect(f.villes.find((v) => v.valeur === "bamako")).toEqual({ valeur: "bamako", libelle: "Bamako", nombre: 1 });
+    expect(f.villes.map((v) => v.valeur)).toEqual(["bamako", "dakar", "kayes"]);
+    expect(f.secteurs.find((s) => s.valeur === "BTP et construction")?.nombre).toBe(1);
+    expect(f.secteurs.find((s) => s.valeur === "Mines et carrières")?.nombre).toBe(1);
+    expect(f.secteurs).toHaveLength(32);
+    expect(f.experiences.map((e) => e.nombre)).toEqual([0, 0, 1, 0]);
+  });
+
+  it("lit les secteurs de l'adresse, nouveaux ou anciens", () => {
+    expect(secteursDepuisParametres(["BTP & Construction", "Mines et carrières", "inconnu"])).toEqual(["BTP et construction", "Mines et carrières"]);
   });
 });
