@@ -32,7 +32,7 @@ const ProfilePage = lazy(() => import("@/pages/profile"));
 // Page Offres refondue (pages/offres.tsx) ; l'ancienne pages/jobs.tsx sera
 // supprimée à la passe finale.
 const JobsPage = lazy(() => import("@/pages/offres"));
-const AgenciesPage = lazy(() => import("@/pages/agencies"));
+const AgenciesPage = lazy(() => import("@/pages/employeurs"));
 // L'accueil aussi est chargé à part : son code est préchargé depuis le HTML
 // sur « / » (vite.config.ts), en parallèle du paquet principal.
 const HomePage = lazy(() => import("@/pages/home"));
@@ -85,7 +85,7 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
 // Hauteur d'un écran : le pied de page reste hors de vue au lieu d'apparaître
 // en haut puis d'être repoussé (décalage de mise en page).
 // Pages qui affichent leur propre en-tête (EnteteAccueil) au lieu de la Navbar.
-const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs"];
+const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs", "/agencies"];
 
 // Pendant le chargement d'une page qui a son propre en-tête, celui-ci
 // s'affiche déjà (il est dans le paquet principal) : premier affichage

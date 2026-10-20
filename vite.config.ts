@@ -8,7 +8,7 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 // - Roboto Slab (caractères latins, 5 graisses), en priorité basse pour
 //   arriver tôt sans passer devant le CSS et le JavaScript. Mêmes fichiers
 //   que les @font-face de @fontsource (main.tsx) : un seul téléchargement.
-// - le code de la page affichée (accueil, Services, Offres) et ses
+// - le code de la page affichée (accueil, Services, Offres, Employeurs) et ses
 //   dépendances, demandé en même temps que le paquet principal au lieu
 //   d'après lui. Seulement sur l'adresse de cette page.
 const prechargements = (): Plugin => ({
@@ -45,6 +45,7 @@ const prechargements = (): Plugin => ({
         "/services": fichiersDe("services"),
         "/jobs": fichiersDe("offres"),
         "/candidate/jobs": fichiersDe("offres"),
+        "/agencies": fichiersDe("employeurs"),
       };
       return [
         ...polices,

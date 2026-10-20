@@ -1,4 +1,4 @@
-import { normaliserTexte } from "@shared/filtre-offres";
+import { correspondTexte, normaliserTexte } from "@shared/filtre-offres";
 import { formatJobTitle } from "@shared/format-job-title";
 
 // Utilitaires de la page Employeurs. Même normalisation que la page Offres :
@@ -59,4 +59,32 @@ export function regrouperValeurs(valeurs: (string | null | undefined)[]): Valeur
       nombre: g.nombre,
     }))
     .sort((a, b) => b.nombre - a.nombre || a.libelle.localeCompare(b.libelle, "fr"));
+}
+
+export type TypeChoisi = "entreprise" | "agence" | null;
+
+export type CriteresEmployeurs = {
+  recherche?: string;
+  lieu?: string;
+  type?: TypeChoisi;
+};
+
+type EmployeurFiltrable = { nom: string; type: "entreprise" | "agence"; ville?: string; pays?: string };
+
+/** Recherche sur le nom, lieu sur la ville ou le pays : chaque mot doit apparaître. */
+export function filtrerEmployeurs<E extends EmployeurFiltrable>(liste: E[], c: CriteresEmployeurs): E[] {
+  return liste.filter((e) =>
+    (!c.type || e.type === c.type)
+    && (!c.recherche || correspondTexte(c.recherche, [e.nom]))
+    && (!c.lieu || correspondTexte(c.lieu, [e.ville, e.pays])));
+}
+
+/** Nombre d'employeurs par type, tous les autres critères appliqués. */
+export function compterParType(liste: EmployeurFiltrable[], c: CriteresEmployeurs): Record<"tous" | "entreprise" | "agence", number> {
+  const base = filtrerEmployeurs(liste, { ...c, type: null });
+  return {
+    tous: base.length,
+    entreprise: base.filter((e) => e.type === "entreprise").length,
+    agence: base.filter((e) => e.type === "agence").length,
+  };
 }
