@@ -30,7 +30,9 @@ const OrganizationClaimPage = lazy(() => import("@/pages/organization-claim"));
 const SatisfactionSurveyPage = lazy(() => import("@/pages/satisfaction-survey"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
-const JobsPage = lazy(() => import("@/pages/jobs"));
+// Page Offres refondue (pages/offres.tsx) ; l'ancienne pages/jobs.tsx sera
+// supprimée à la passe finale.
+const JobsPage = lazy(() => import("@/pages/offres"));
 const AgenciesPage = lazy(() => import("@/pages/agencies"));
 const ServicesPage = lazy(() => import("@/pages/services"));
 const AgencyDashboardPage = lazy(() => import("@/pages/agency-dashboard"));
@@ -91,8 +93,8 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* L'accueil et la page Services affichent leur propre en-tête (EnteteAccueil). */}
-      {location !== "/" && location !== "/services" && <Navbar user={user} onLogout={logout} />}
+      {/* L'accueil, Services et Offres affichent leur propre en-tête (EnteteAccueil). */}
+      {!["/", "/services", "/jobs", "/candidate/jobs"].includes(location) && <Navbar user={user} onLogout={logout} />}
       <main className="flex-1"><Suspense fallback={<ChargementPage />}>{children}</Suspense></main>
       <PiedAccueil />
     </div>
