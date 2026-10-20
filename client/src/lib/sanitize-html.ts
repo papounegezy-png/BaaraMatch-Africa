@@ -17,8 +17,15 @@ export function sanitizeJobDescriptionHtml(html: string): string {
 // show literal "<p>...</p>" tags as text. Strips all tags via the same
 // DOMPurify parser (safe against malformed/malicious markup) and keeps only
 // the text content.
+//
+// Texte réel, pas du HTML échappé : les entités (&nbsp;, &amp;…) sont
+// décodées, et une espace sépare les blocs (paragraphes, éléments de liste,
+// titres) pour que « PROFIL RECHERCHÉ » et « Formation » ne se collent pas.
+const BLOCS = "p, li, h1, h2, h3, h4, h5, h6, div, br, ul, ol, blockquote, tr";
 export function stripJobDescriptionHtml(html: string): string {
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  const fragment = DOMPurify.sanitize(html, { RETURN_DOM_FRAGMENT: true });
+  fragment.querySelectorAll(BLOCS).forEach((bloc) => bloc.after(" "));
+  return (fragment.textContent ?? "").replace(/\s+/g, " ").trim();
 }
 
 // Seed/test jobs in the database carry this filler as their whole

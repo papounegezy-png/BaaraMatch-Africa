@@ -106,6 +106,10 @@ export default {
           "or-fonce": "#7A5A0C",
           papier: "#F7FAFE",
           texte: "#475569",
+          // Couleurs de statut, réservées à ces deux usages (page Offres) :
+          // « Urgent » (rouge sur rouge clair, ≈ 5,5:1) et employeur vérifié.
+          urgent: { DEFAULT: "#B91C1C", fond: "#FEE2E2" },
+          verifie: "#15803D",
           trait: "rgba(13, 41, 87, 0.14)",
         },
       },

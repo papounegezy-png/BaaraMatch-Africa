@@ -53,6 +53,16 @@ function getRedirectPathByUserType(rawUserType?: string) {
   return "/dashboard";
 }
 
+// Adresse de retour après connexion (?retour=/jobs?contrat=CDI…), posée par
+// les pages qui demandent de se connecter (« Enregistrer » une offre). Seules
+// les adresses internes au site sont suivies : pas d'autre domaine ni de
+// « //… », pour ne pas servir de redirection ouverte.
+function adresseDeRetour(): string | null {
+  const retour = new URLSearchParams(window.location.search).get("retour");
+  if (!retour || !retour.startsWith("/") || retour.startsWith("//") || retour.startsWith("/login")) return null;
+  return retour;
+}
+
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -64,7 +74,7 @@ export default function LoginPage() {
       return;
     }
 
-    setLocation(getRedirectPathByUserType(user.userType));
+    setLocation(adresseDeRetour() ?? getRedirectPathByUserType(user.userType));
   }, [user, isLoading, setLocation]);
 
   const form = useForm<LoginFormData>({
@@ -107,7 +117,7 @@ export default function LoginPage() {
         }
       }
 
-      setLocation(getRedirectPathByUserType(resolvedUserType));
+      setLocation(adresseDeRetour() ?? getRedirectPathByUserType(resolvedUserType));
     },
     onError: (error: Error) => {
       toast({

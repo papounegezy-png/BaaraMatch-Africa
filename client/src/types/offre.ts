@@ -1,6 +1,6 @@
 import type { JobPosting } from "@shared/schema";
 import { secteurDeCategorie, type Secteur } from "@shared/secteurs";
-import { stripJobDescriptionHtml } from "@/lib/sanitize-html";
+import { jobDescriptionPreview } from "@/lib/sanitize-html";
 
 // Modèle d'une offre pour la page Offres (/jobs), adapté de GET /api/jobs.
 
@@ -72,7 +72,8 @@ export function versOffre(job: OffreApi): Offre {
     salaireMax: nombre(job.salaryMax),
     devise: job.salaryCurrency ?? undefined,
     ville: job.location?.trim() || undefined,
-    description: stripJobDescriptionHtml(job.description ?? ""),
+    // Aperçu texte ; vide pour le texte de remplissage « Mission de démonstration ».
+    description: jobDescriptionPreview(job.description) ?? "",
     urgent: !!job.isUrgent,
     publieLe: new Date(job.createdAt ?? Date.now()).toISOString(),
   };

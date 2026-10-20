@@ -1,16 +1,17 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauOffres } from "@/components/offres/bandeau-offres";
 import { RechercheOffres } from "@/components/offres/recherche-offres";
 import { BarreContrat } from "@/components/offres/barre-contrat";
+import { CarteOffre } from "@/components/offres/carte-offre";
+import { useSavedJobs } from "@/hooks/use-saved-jobs";
 import { FiltresOffres, nombreFiltresActifs, type SelectionFiltres } from "@/components/offres/filtres-offres";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { compterParContrat, contratDepuisParametre, facettes, filtrerOffres, normaliserTexte, secteursDepuisParametres, type ContratBarre } from "@/lib/filtre-offres";
 import type { Secteur } from "@shared/secteurs";
-import { libelleLieu } from "@/lib/offres";
 import { versOffre, type OffreApi } from "@/types/offre";
 
 // Paramètres d'adresse lus à l'arrivée. Les anciens noms restent compris :
@@ -44,6 +45,19 @@ export default function OffresPage() {
     depart.employeurId ? { id: depart.employeurId, nom: depart.employeurNom } : null,
   );
   const [filtresOuverts, setFiltresOuverts] = useState(false);
+  const [, setLocation] = useLocation();
+  const { savedJobIds, toggleSave } = useSavedJobs();
+  // Enregistrer : réservé aux candidats (/api/saved-jobs). Un visiteur est
+  // envoyé à la connexion puis ramené ici ; une entreprise ou une agence ne
+  // voit pas le bouton.
+  const peutEnregistrer = !user || user.userType === "candidate";
+  const enregistrer = (id: string) => {
+    if (!user) {
+      setLocation(`/login?retour=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
+    }
+    toggleSave(id);
+  };
   const [selection, setSelection] = useState<SelectionFiltres>({
     secteurs: depart.secteurs, villes: depart.villes, experiences: depart.experiences, publieeDepuisJours: depart.publieeDepuisJours,
   });
@@ -121,7 +135,7 @@ export default function OffresPage() {
           </p>
         )}
 
-        {/* Liste provisoire : cartes au prompt 4, résultats et états au prompt 5. */}
+        {/* Résultats, tri, pagination et états : prompt 5. */}
         {isError ? (
           <div role="alert" className="font-texte text-baara-marine dark:text-white">
             Impossible de charger les offres pour le moment.{" "}
@@ -134,13 +148,10 @@ export default function OffresPage() {
             <p role="status" className="mb-4 font-texte text-baara-texte dark:text-slate-300" data-testid="nombre-resultats">
               {resultats.length} {resultats.length > 1 ? "offres" : "offre"}
             </p>
-            <ul className="space-y-3" data-testid="liste-offres">
+            <ul className="space-y-4" data-testid="liste-offres">
               {resultats.map((o) => (
-                <li key={o.id} className="rounded-2xl border border-baara-trait bg-white p-4 dark:border-white/10 dark:bg-white/[0.04]">
-                  <Link href={`/jobs/${o.id}`} className="font-titre text-lg font-bold text-baara-marine hover:underline dark:text-white">{o.titre}</Link>
-                  <p className="font-texte text-sm text-baara-texte dark:text-slate-300">
-                    {[o.employeurNom, libelleLieu(o.ville, o.pays), o.contrat].filter(Boolean).join(" · ")}
-                  </p>
+                <li key={o.id}>
+                  <CarteOffre offre={o} enregistree={savedJobIds.has(o.id)} onEnregistrer={() => enregistrer(o.id)} afficherEnregistrer={peutEnregistrer} />
                 </li>
               ))}
             </ul>
