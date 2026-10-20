@@ -60,10 +60,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiRequest, type ApiError } from "@/lib/queryClient";
+import { VerificationEmployeur } from "@/components/verification-employeur";
 import { useToast } from "@/hooks/use-toast";
 import { hasAdminPermission } from "@shared/schema";
 import { OrganisationPickerOrCreate, type PickedOrganization } from "@/components/organization-picker-or-create";
-import { OfferForm, type OfferFormValue, type OfferSaveResult } from "@/components/offer-form";
+import { OfferForm, champsOffreComplementaires, type OfferFormValue, type OfferSaveResult } from "@/components/offer-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingState } from "@/components/loading-state";
 import { KpiCard } from "@/components/kpi-card";
@@ -163,6 +164,8 @@ type AdminCompany = {
   industry: string;
   employeeCount: string;
   status: "active" | "pending";
+  // Vérification BaaraMatch (badge des offres) ; null : non vérifiée.
+  verifiedAt: string | null;
   createdAt: string;
   contact: string;
   country: string | null;
@@ -177,6 +180,7 @@ type AdminAgency = {
   city: string | null;
   country: string | null;
   status: "verified" | "pending";
+  verifiedAt: string | null;
   licenseNumber: string | null;
   specializations: string[];
   totalPlacements: number;
@@ -927,6 +931,7 @@ function CompaniesManagement({
                 <TableHead>Secteur</TableHead>
                 <TableHead>Employés</TableHead>
                 <TableHead>Statut</TableHead>
+                <TableHead>Vérification</TableHead>
                 <TableHead>Modules activés</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -965,6 +970,9 @@ function CompaniesManagement({
                           En attente
                         </Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <VerificationEmployeur employeurId={company.id} nom={company.name} verifieLe={company.verifiedAt} cleListe="/api/admin/companies" />
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
@@ -1194,7 +1202,7 @@ function AgenciesManagement({
             <TableHeader>
               <TableRow>
                 <TableHead>Agence</TableHead>
-                <TableHead>Statut</TableHead>
+                <TableHead>Vérification</TableHead>
                 <TableHead>Implantation</TableHead>
                 <TableHead>Spécialisations</TableHead>
                 <TableHead>Placements</TableHead>
@@ -1211,9 +1219,7 @@ function AgenciesManagement({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={agency.status === "verified" ? "default" : "secondary"}>
-                      {agency.status === "verified" ? "Vérifiée" : "En attente"}
-                    </Badge>
+                    <VerificationEmployeur employeurId={agency.id} nom={agency.name} verifieLe={agency.verifiedAt} cleListe="/api/admin/agencies" />
                   </TableCell>
                   <TableCell>{agency.city || agency.country ? `${agency.city ?? "-"}, ${agency.country ?? "-"}` : "-"}</TableCell>
                   <TableCell>{agency.specializations.length ? agency.specializations.join(", ") : "-"}</TableCell>
@@ -2948,6 +2954,7 @@ export default function AdminDashboardPage() {
         educationLevel: data.educationLevel || undefined,
         salaryMin: data.salaryMin ? Number(data.salaryMin) : undefined,
         salaryMax: data.salaryMax ? Number(data.salaryMax) : undefined,
+        ...champsOffreComplementaires(data, undefined),
         requiredSkills: data.skills,
         applicationDeadline: data.applicationDeadline || undefined,
         startDate: data.startDate || undefined,

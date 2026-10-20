@@ -35,7 +35,11 @@ import { placementContractTypes } from "@shared/commissions";
 import { demandeDemoSchema, typeContact } from "@shared/demande-demo";
 import { chargerTauxApplicable, clientDeLAgence, registerAgencyCommissionRoutes } from "./agency-commissions";
 import { ignorerLimitePourLesTests } from "./middlewares/limiteur-tests";
-import { SECTEURS_ACCUEIL_BASE, categorieCanonique, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
+import { SECTEURS_ACCUEIL_BASE, type EmployeurQuiRecrute, type SecteurQuiRecrute } from "@shared/categories";
+import { secteurDeCategorie } from "@shared/secteurs";
+import { offreDepuisLigne } from "@shared/offre";
+import { lireParametresOffres, rechercherOffres } from "@shared/recherche-offres";
+import { salaryPeriods } from "@shared/schema";
 import {
   parseWhatsAppWebhook,
   getMessagesFromWebhook,
@@ -221,6 +225,7 @@ const jobUpdateSchema = z.object({
   salaryMin: z.number().int().nullable().optional(),
   salaryMax: z.number().int().nullable().optional(),
   salaryCurrency: z.string().nullable().optional(),
+  salaryPeriod: z.enum(salaryPeriods).nullable().optional(),
   jobType: z.string().min(1).optional(),
   category: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
@@ -758,6 +763,37 @@ export async function registerRoutes(
     }
   });
 
+  // Vérification d'un employeur (agence ou entreprise) par l'équipe
+  // BaaraMatch : seule source du badge « Employeur vérifié » de la page
+  // Offres. Réversible, journalisée.
+  app.patch("/api/admin/employeurs/:id/verification", requireAdmin, requireAdminPermission("organisations:gerer"), async (req, res) => {
+    try {
+      const { verifie } = z.object({ verifie: z.boolean() }).strict().parse(req.body);
+      const employeur = await storage.getUser(String(req.params.id));
+      if (!employeur || (employeur.userType !== "agency" && employeur.userType !== "company")) {
+        return res.status(404).json({ message: "Employeur non trouvé" });
+      }
+      const admin = req.adminUser;
+      const ok = await storage.setEmployeurVerifie(employeur.id, employeur.userType, verifie ? (admin?.id ?? req.session.userId ?? "admin") : null);
+      if (!ok) return res.status(404).json({ message: "Profil employeur introuvable" });
+      await storage.createActivityLog({
+        action: "settings_change",
+        userId: admin?.id ?? null,
+        userLabel: admin?.email ?? "admin",
+        ipAddress: req.ip ?? null,
+        status: "success",
+        details: `${employeur.fullName} ${verifie ? "vérifié" : "n'est plus vérifié"} par BaaraMatch`,
+      });
+      res.json({ employeurId: employeur.id, verifie });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Données invalides", errors: error.errors });
+      }
+      console.error("Admin employer verification error:", error);
+      res.status(500).json({ message: "Erreur lors de la vérification de l'employeur" });
+    }
+  });
+
   app.get("/api/admin/companies", requireAdmin, async (_req, res) => {
     try {
       const companies = await storage.getAllCompanies();
@@ -771,6 +807,7 @@ export async function registerRoutes(
             industry: company.profile?.industry ?? "Non défini",
             employeeCount: company.profile?.employeeCount ?? "Non défini",
             status: company.isVerified ? "active" : "pending",
+            verifiedAt: company.profile?.verifiedAt ?? null,
             createdAt: company.createdAt,
             contact: company.email,
             country: company.country,
@@ -1287,7 +1324,10 @@ export async function registerRoutes(
           email: agency.email,
           city: agency.city,
           country: agency.country,
-          status: agency.isVerified ? "verified" : "pending",
+          // Vérification BaaraMatch (et non users.isVerified, qui signifie
+          // seulement qu'un compte prospect a été réclamé).
+          status: agency.profile?.verifiedAt ? "verified" : "pending",
+          verifiedAt: agency.profile?.verifiedAt ?? null,
           licenseNumber: agency.profile?.licenseNumber ?? null,
           specializations: agency.profile?.specializations ?? [],
           totalPlacements: agency.profile?.totalPlacements ?? 0,
@@ -2118,6 +2158,23 @@ export async function registerRoutes(
     }
   });
 
+  // Page Offres (/jobs) : recherche, facettes et pagination côté serveur.
+  // Paramètres : q, lieu, contrat, secteur[], ville[], exp[],
+  // publiee_depuis_jours, tri, page, taille (voir shared/recherche-offres.ts).
+  // Même règle de visibilité pour les agences que GET /api/jobs.
+  app.get("/api/offres", async (req, res) => {
+    try {
+      const lignes = await storage.getOffresPubliques();
+      const visibles = req.session.userType === "agency"
+        ? lignes.filter((job) => job.agencyId === req.session.userId || job.visibleToAgencies !== false)
+        : lignes;
+      res.json(rechercherOffres(visibles.map(offreDepuisLigne), lireParametresOffres(req.query as Record<string, unknown>)));
+    } catch (error) {
+      console.error("Error searching jobs:", error);
+      res.status(500).json({ message: "Erreur lors de la recherche des offres" });
+    }
+  });
+
   app.get("/api/jobs/:id", async (req, res) => {
     try {
       const job = await storage.getJobPosting(req.params.id);
@@ -2552,14 +2609,15 @@ export async function registerRoutes(
   // Accueil, « Entreprises qui recrutent en ce moment ». Les 6 secteurs de
   // l'accueil qui ont au moins une offre active, triés par nombre d'offres.
   // offresActives compte toutes les offres actives du secteur (anciennes
-  // catégories comprises, voir categorieCanonique) ; entreprises ne liste que
+  // catégories comprises, voir secteurDeCategorie) ; entreprises ne liste que
   // les organisations qui ont coché visibleAccueil (opt-in), 4 au plus, par
   // nombre d'offres décroissant. Une requête SQL groupée, sans session.
   app.get("/api/accueil/secteurs", async (_req, res) => {
     try {
       const lignes = await storage.getOffresActivesParCategorieEtEmployeur();
       const secteurs: SecteurQuiRecrute[] = SECTEURS_ACCUEIL_BASE.map(({ libelle, valeur }) => {
-        const duSecteur = lignes.filter((l) => categorieCanonique(l.category) === valeur);
+        const cible = secteurDeCategorie(valeur);
+        const duSecteur = lignes.filter((l) => secteurDeCategorie(l.category) === cible);
         const parEmployeur = new Map<string, EmployeurQuiRecrute & { offres: number }>();
         for (const l of duSecteur) {
           if (!l.visibleAccueil || !l.nom) continue;

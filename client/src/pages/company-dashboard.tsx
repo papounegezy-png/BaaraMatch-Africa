@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/lib/auth";
 import { VisibiliteAccueil } from "@/components/visibilite-accueil";
-import { OfferForm, mapJobPostingToOfferFormValue, type OfferFormValue, type OfferSaveResult } from "@/components/offer-form";
+import { OfferForm, champsOffreComplementaires, mapJobPostingToOfferFormValue, type OfferFormValue, type OfferSaveResult } from "@/components/offer-form";
 import { ProposeInterviewSlotsDialog } from "@/components/propose-interview-slots-dialog";
 import { InterviewCalendar } from "@/components/interview-calendar";
 import { SendMessageDialog } from "@/components/send-message-dialog";
@@ -178,6 +178,7 @@ function buildJobUpdatePayload(form: OfferFormValue) {
     educationLevel: form.educationLevel || null,
     salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
     salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
+    ...champsOffreComplementaires(form, null),
     requiredSkills: form.skills,
     applicationDeadline: form.applicationDeadline || null,
     startDate: form.startDate || null,
@@ -903,6 +904,7 @@ export default function CompanyDashboardPage() {
         educationLevel: form.educationLevel || undefined,
         salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
         salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
+        ...champsOffreComplementaires(form, undefined),
         requiredSkills: form.skills,
         applicationDeadline: form.applicationDeadline || undefined,
         startDate: form.startDate || undefined,

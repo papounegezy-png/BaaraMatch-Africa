@@ -12,7 +12,7 @@ import { InterviewCalendar } from "@/components/interview-calendar";
 import { FieldMissionsList } from "@/components/field-missions-list";
 import { FieldMissionDetail } from "@/components/field-mission-detail";
 import { FieldMissionClients } from "@/components/field-mission-clients";
-import { OfferForm, mapJobPostingToOfferFormValue, type OfferFormValue, type OfferSaveResult } from "@/components/offer-form";
+import { OfferForm, champsOffreComplementaires, mapJobPostingToOfferFormValue, type OfferFormValue, type OfferSaveResult } from "@/components/offer-form";
 import type { JobPosting } from "@shared/schema";
 import { NewCandidateForm } from "@/components/new-candidate-form";
 import { CvAttachmentsManager } from "@/components/cv-attachments-manager";
@@ -136,6 +136,7 @@ function buildJobUpdatePayload(form: OfferFormValue) {
     educationLevel: form.educationLevel || null,
     salaryMin: form.salaryMin ? Number(form.salaryMin) : null,
     salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
+    ...champsOffreComplementaires(form, null),
     requiredSkills: form.skills,
     applicationDeadline: form.applicationDeadline || null,
     startDate: form.startDate || null,
@@ -328,6 +329,7 @@ export default function AgencyDashboardPage() {
         educationLevel: form.educationLevel || undefined,
         salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
         salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
+        ...champsOffreComplementaires(form, undefined),
         requiredSkills: form.skills,
         applicationDeadline: form.applicationDeadline || undefined,
         startDate: form.startDate || undefined,

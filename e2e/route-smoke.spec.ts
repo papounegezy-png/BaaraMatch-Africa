@@ -68,7 +68,7 @@ test("un poste d'entreprise se crée puis se modifie sans page blanche", async (
     await page.getByTestId("input-offer-title").fill("Smoke Test Job");
     await page.getByTestId("input-offer-location").fill("Dakar");
     await page.getByTestId("select-offer-category").click();
-    await page.getByText("Informatique & Tech").click();
+    await page.getByRole("option", { name: "Informatique, IT et numérique" }).click();
     await page.locator('[data-testid="rich-text-editor-content"] .ProseMirror').click();
     await page.keyboard.type("Description suffisamment longue pour passer la validation du formulaire.");
     await page.getByTestId("button-publish-offer").click();
@@ -111,7 +111,7 @@ test("une mission d'agence se crée puis se modifie sans page blanche", async ({
     await page.getByTestId("input-offer-title").fill("Smoke Test Mission");
     await page.getByTestId("input-offer-location").fill("Abidjan");
     await page.getByTestId("select-offer-category").click();
-    await page.getByText("BTP & Construction").click();
+    await page.getByRole("option", { name: "BTP et construction" }).click();
     await page.locator('[data-testid="rich-text-editor-content"] .ProseMirror').click();
     await page.keyboard.type("Description suffisamment longue pour passer la validation du formulaire.");
     await page.getByTestId("button-publish-offer").click();

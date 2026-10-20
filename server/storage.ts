@@ -102,6 +102,7 @@ import {
   salaryPayments,
 } from "@shared/schema";
 import { db } from "./db";
+import type { LigneOffre } from "@shared/offre";
 import { eq, and, or, isNotNull, isNull, desc, gte, lte, lt, sql, getTableColumns, inArray } from "drizzle-orm";
 
 export type DashboardKpis = {
@@ -163,6 +164,8 @@ export interface IStorage {
   
   getJobPosting(id: string): Promise<(JobPosting & { organizationName: string | null }) | undefined>;
   getAllJobPostings(): Promise<(JobPosting & { organizationName: string | null })[]>;
+  getOffresPubliques(): Promise<LigneOffre[]>;
+  setEmployeurVerifie(userId: string, type: "agency" | "company", verifiePar: string | null): Promise<boolean>;
   getJobPostingsByCompany(companyId: string): Promise<JobPosting[]>;
   getJobPostingsByAgency(agencyId: string): Promise<JobPosting[]>;
   createJobPosting(job: InsertJobPosting): Promise<JobPosting>;
@@ -650,6 +653,34 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(companyProfiles, eq(jobPostings.companyId, companyProfiles.userId))
       .where(eq(jobPostings.isActive, true))
       .orderBy(desc(jobPostings.createdAt));
+  }
+
+  // Page Offres (GET /api/offres) : offres actives avec le nom, le logo et
+  // la vérification de l'employeur qui publie (l'agence si agencyId est
+  // renseigné, sinon l'entreprise ; les agences n'ont pas de logo).
+  async getOffresPubliques(): Promise<LigneOffre[]> {
+    return db
+      .select({
+        ...getTableColumns(jobPostings),
+        organizationName: sql<string | null>`coalesce(${agencyProfiles.agencyName}, ${companyProfiles.companyName})`,
+        logoUrl: sql<string | null>`case when ${jobPostings.agencyId} is null then ${companyProfiles.logoUrl} end`,
+        verifiedAt: sql<Date | null>`case when ${jobPostings.agencyId} is not null then ${agencyProfiles.verifiedAt} else ${companyProfiles.verifiedAt} end`,
+      })
+      .from(jobPostings)
+      .leftJoin(agencyProfiles, eq(jobPostings.agencyId, agencyProfiles.userId))
+      .leftJoin(companyProfiles, eq(jobPostings.companyId, companyProfiles.userId))
+      .where(eq(jobPostings.isActive, true))
+      .orderBy(desc(jobPostings.createdAt));
+  }
+
+  // Vérification d'un employeur par l'équipe BaaraMatch. verifiePar null :
+  // retire la vérification. Côté agence, verificationStatus suit.
+  async setEmployeurVerifie(userId: string, type: "agency" | "company", verifiePar: string | null): Promise<boolean> {
+    const valeurs = { verifiedAt: verifiePar ? new Date() : null, verifiedBy: verifiePar, updatedAt: new Date() };
+    const lignes = type === "agency"
+      ? await db.update(agencyProfiles).set({ ...valeurs, verificationStatus: verifiePar ? "verified" : "pending" }).where(eq(agencyProfiles.userId, userId)).returning({ id: agencyProfiles.id })
+      : await db.update(companyProfiles).set(valeurs).where(eq(companyProfiles.userId, userId)).returning({ id: companyProfiles.id });
+    return lignes.length > 0;
   }
 
   async getJobPostingsByCompany(companyId: string): Promise<JobPosting[]> {

@@ -206,6 +206,10 @@ export const candidateProfiles = pgTable("candidate_profiles", {
 export const agencySubscriptionPlans = ["standard", "partner"] as const;
 export type AgencySubscriptionPlan = typeof agencySubscriptionPlans[number];
 
+// Période d'un salaire d'offre (migration 0041).
+export const salaryPeriods = ["mois", "jour", "mission"] as const;
+export type SalaryPeriod = typeof salaryPeriods[number];
+
 export const agencyProfiles = pgTable("agency_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -218,6 +222,10 @@ export const agencyProfiles = pgTable("agency_profiles", {
   apdpCertificateUrl: text("apdp_certificate_url"),
   businessRegistrationUrl: text("business_registration_url"),
   verificationStatus: text("verification_status").default("pending"),
+  // Vérification par l'équipe BaaraMatch (action admin, migration 0041) :
+  // seule source du badge « employeur vérifié ». null : non vérifiée.
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: varchar("verified_by"),
   subscriptionPlan: text("subscription_plan").$type<AgencySubscriptionPlan>().default("standard"),
   subscriptionUpdatedAt: timestamp("subscription_updated_at"),
   // Set when the plan came from a pilot invitation code redemption (see
@@ -262,6 +270,9 @@ export const companyProfiles = pgTable("company_profiles", {
   rccmNumber: text("rccm_number"),
   // Même opt-in que agencyProfiles.visibleAccueil.
   visibleAccueil: boolean("visible_accueil").notNull().default(false),
+  // Même vérification que agencyProfiles.verifiedAt.
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: varchar("verified_by"),
   // Same as agencyProfiles.profileViewCount above.
   profileViewCount: integer("profile_view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -309,6 +320,8 @@ export const jobPostings = pgTable("job_postings", {
   salaryMin: integer("salary_min"),
   salaryMax: integer("salary_max"),
   salaryCurrency: text("salary_currency").default("XOF"),
+  // Période du salaire (mois, jour ou mission) ; null : non précisée.
+  salaryPeriod: text("salary_period").$type<SalaryPeriod>(),
   jobType: text("job_type").notNull(),
   category: text("category"),
   // How many people are being hired for this exact posting — most postings
@@ -1110,6 +1123,7 @@ export const insertJobPostingSchema = createInsertSchema(jobPostings)
   .extend({
     applicationDeadline: z.coerce.date().nullable().optional(),
     startDate: z.coerce.date().nullable().optional(),
+    salaryPeriod: z.enum(salaryPeriods).nullable().optional(),
   });
 export const insertJobRequiredSkillSchema = createInsertSchema(jobRequiredSkills).omit({ id: true });
 export const insertApplicationSchema = createInsertSchema(applications).omit({ id: true, createdAt: true, updatedAt: true });

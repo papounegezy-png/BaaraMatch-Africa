@@ -12,12 +12,13 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { SkillsTagInput } from "@/components/skills-tag-input";
 import { JobPreviewCard } from "@/components/job-preview-card";
 import { ChevronRight, Clock, Lightbulb, Loader2, RotateCcw } from "lucide-react";
-import type { JobPosting } from "@shared/schema";
+import type { JobPosting, SalaryPeriod } from "@shared/schema";
+import { secteurDeCategorie } from "@shared/secteurs";
 import { formatJobType } from "@/lib/job-type-labels";
 
 // Listes de valeurs : module léger lib/options-offre.ts, réexporté ici.
-import { contractTypeOptions, educationLevelOptions, jobCategoryOptions } from "@/lib/options-offre";
-export { contractTypeOptions, educationLevelOptions, jobCategoryOptions };
+import { contractTypeOptions, educationLevelOptions, jobCategoryOptions, salaryPeriodOptions, secteurOptions } from "@/lib/options-offre";
+export { contractTypeOptions, educationLevelOptions, jobCategoryOptions, salaryPeriodOptions, secteurOptions };
 
 export type OfferFormValue = {
   title: string;
@@ -27,6 +28,9 @@ export type OfferFormValue = {
   location: string;
   salaryMin: string;
   salaryMax: string;
+  salaryPeriod: SalaryPeriod | "";
+  experienceMin: string;
+  experienceMax: string;
   descriptionHtml: string;
   skills: string[];
   visibleToAgencies: boolean;
@@ -47,6 +51,9 @@ export function emptyOfferFormValue(): OfferFormValue {
     location: "",
     salaryMin: "",
     salaryMax: "",
+    salaryPeriod: "mois",
+    experienceMin: "",
+    experienceMax: "",
     descriptionHtml: "",
     skills: [],
     visibleToAgencies: true,
@@ -67,11 +74,16 @@ export function mapJobPostingToOfferFormValue(job: JobPosting): OfferFormValue {
   return {
     title: job.title,
     contractType: job.jobType,
-    category: job.category ?? "",
+    // Ancienne catégorie (« BTP & Construction ») : son secteur ; une valeur
+    // sans secteur connu reste telle quelle.
+    category: secteurDeCategorie(job.category) ?? job.category ?? "",
     educationLevel: job.educationLevel ?? "",
     location: job.location,
     salaryMin: job.salaryMin != null ? String(job.salaryMin) : "",
     salaryMax: job.salaryMax != null ? String(job.salaryMax) : "",
+    salaryPeriod: job.salaryPeriod ?? "",
+    experienceMin: job.experienceMin != null ? String(job.experienceMin) : "",
+    experienceMax: job.experienceMax != null ? String(job.experienceMax) : "",
     descriptionHtml: job.description,
     skills: job.requiredSkills ?? [],
     visibleToAgencies: job.visibleToAgencies ?? true,
@@ -84,6 +96,20 @@ export function mapJobPostingToOfferFormValue(job: JobPosting): OfferFormValue {
   };
 }
 
+/**
+ * Champs ajoutés avec la page Offres (période du salaire, expérience), dans
+ * le corps envoyé par chaque écran : `absent` vaut null pour une
+ * modification (le champ vidé est effacé) et undefined pour une création.
+ */
+export function champsOffreComplementaires(form: OfferFormValue, absent: null | undefined) {
+  const annees = (v: string) => (v ? Number(v) : absent);
+  return {
+    salaryPeriod: form.salaryMin || form.salaryMax ? (form.salaryPeriod || absent) : absent,
+    experienceMin: annees(form.experienceMin),
+    experienceMax: annees(form.experienceMax),
+  };
+}
+
 function formatThousands(digits: string): string {
   if (!digits) return "";
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -93,7 +119,7 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-type FieldErrors = Partial<Record<"title" | "contractType" | "category" | "location" | "descriptionHtml" | "salaryMax", string>>;
+type FieldErrors = Partial<Record<"title" | "contractType" | "category" | "location" | "descriptionHtml" | "salaryMax" | "experienceMax", string>>;
 
 const fieldInputId: Record<keyof FieldErrors, string> = {
   title: "offer-title",
@@ -102,8 +128,9 @@ const fieldInputId: Record<keyof FieldErrors, string> = {
   location: "offer-location",
   descriptionHtml: "rich-text-editor",
   salaryMax: "offer-salary-max",
+  experienceMax: "offer-experience-max",
 };
-const fieldOrder: (keyof FieldErrors)[] = ["title", "contractType", "category", "location", "descriptionHtml", "salaryMax"];
+const fieldOrder: (keyof FieldErrors)[] = ["title", "contractType", "category", "location", "descriptionHtml", "salaryMax", "experienceMax"];
 
 export type OfferSaveResult = { id: string; status: "PUBLIEE" | "EN_REVISION" };
 
@@ -182,7 +209,7 @@ export function OfferForm({
     const next: FieldErrors = {};
     if (!value.title.trim()) next.title = "Le titre du poste est obligatoire.";
     if (!value.contractType) next.contractType = "Le type de contrat est obligatoire.";
-    if (!value.category.trim()) next.category = "Le métier est obligatoire.";
+    if (!value.category.trim()) next.category = "Le secteur d'activité est obligatoire.";
     if (!value.location.trim()) next.location = "La ville est obligatoire.";
     if (stripHtml(value.descriptionHtml).length < 20) {
       next.descriptionHtml = "La description doit contenir au moins quelques phrases avant publication.";
@@ -191,6 +218,11 @@ export function OfferForm({
     const max = parseInt(value.salaryMax, 10);
     if (!Number.isNaN(min) && !Number.isNaN(max) && max < min) {
       next.salaryMax = "Le salaire maximum doit être supérieur ou égal au salaire minimum.";
+    }
+    const expMin = parseInt(value.experienceMin, 10);
+    const expMax = parseInt(value.experienceMax, 10);
+    if (!Number.isNaN(expMin) && !Number.isNaN(expMax) && expMax < expMin) {
+      next.experienceMax = "L'expérience maximale doit être supérieure ou égale à l'expérience minimale.";
     }
     return next;
   };
@@ -391,7 +423,7 @@ export function OfferForm({
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="offer-category">Métier</Label>
+                  <Label htmlFor="offer-category">Secteur d'activité</Label>
                   <Select value={value.category} onValueChange={(v) => set("category", v)}>
                     <SelectTrigger
                       id="offer-category"
@@ -400,12 +432,15 @@ export function OfferForm({
                       aria-describedby={errors.category ? "offer-category-error" : undefined}
                       data-testid="select-offer-category"
                     >
-                      <SelectValue placeholder="Sélectionnez un métier" />
+                      <SelectValue placeholder="Sélectionnez un secteur" />
                     </SelectTrigger>
                     <SelectContent>
-                      {jobCategoryOptions.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      {secteurOptions.map((secteur) => (
+                        <SelectItem key={secteur} value={secteur}>{secteur}</SelectItem>
                       ))}
+                      {value.category && !(secteurOptions as readonly string[]).includes(value.category) && (
+                        <SelectItem value={value.category}>{value.category}</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   {errors.category && (
@@ -458,6 +493,51 @@ export function OfferForm({
                   {errors.salaryMax && (
                     <p id="offer-salary-max-error" role="alert" aria-live="polite" className="text-sm text-destructive">
                       {errors.salaryMax}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offer-salary-period">Période du salaire</Label>
+                  <Select value={value.salaryPeriod} onValueChange={(v) => set("salaryPeriod", v as SalaryPeriod)}>
+                    <SelectTrigger id="offer-salary-period" data-testid="select-offer-salary-period">
+                      <SelectValue placeholder="Non précisée" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {salaryPeriodOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="offer-experience-min">Expérience minimale (années)</Label>
+                  <Input
+                    id="offer-experience-min"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={value.experienceMin}
+                    onChange={(e) => set("experienceMin", e.target.value.replace(/\D/g, ""))}
+                    data-testid="input-offer-experience-min"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="offer-experience-max">Expérience maximale (années)</Label>
+                  <Input
+                    id="offer-experience-max"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={value.experienceMax}
+                    onChange={(e) => set("experienceMax", e.target.value.replace(/\D/g, ""))}
+                    aria-invalid={!!errors.experienceMax}
+                    aria-describedby={errors.experienceMax ? "offer-experience-max-error" : undefined}
+                    data-testid="input-offer-experience-max"
+                  />
+                  {errors.experienceMax && (
+                    <p id="offer-experience-max-error" role="alert" aria-live="polite" className="text-sm text-destructive">
+                      {errors.experienceMax}
                     </p>
                   )}
                 </div>

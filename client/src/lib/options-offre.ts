@@ -10,14 +10,23 @@
 export const contractTypeOptions = [
   { value: "cdi", label: "CDI" },
   { value: "cdd", label: "CDD" },
+  { value: "freelance", label: "Freelance" },
   { value: "interim", label: "Intérim" },
   { value: "stage", label: "Stage" },
   { value: "journalier", label: "Journalier" },
   { value: "prestation", label: "Prestation" },
 ];
 
-// Liste partagée avec le serveur (shared/categories.ts).
+// Ancien vocabulaire de 17 catégories (shared/categories.ts), encore utilisé
+// par l'écran Missions. Le formulaire d'offre écrit les 32 secteurs.
 export { jobCategoryOptions } from "@shared/categories";
+export { SECTEURS as secteurOptions } from "@shared/secteurs";
+
+export const salaryPeriodOptions = [
+  { value: "mois", label: "Par mois" },
+  { value: "jour", label: "Par jour" },
+  { value: "mission", label: "Par mission" },
+] as const;
 
 // Same values as missions-management.tsx's educationLevels — kept aligned
 // deliberately, unlike contractTypeOptions above.

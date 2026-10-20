@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauOffres } from "@/components/offres/bandeau-offres";
 import { RechercheOffres } from "@/components/offres/recherche-offres";
@@ -11,10 +11,17 @@ import { useSavedJobs } from "@/hooks/use-saved-jobs";
 import { FiltresOffres, nombreFiltresActifs, type SelectionFiltres } from "@/components/offres/filtres-offres";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
-import { compterParContrat, facettes, filtrerOffres } from "@/lib/filtre-offres";
-import { adresseDepuisEtat, etatDepuisAdresse, TAILLE_PAGE, type EtatOffres } from "@/lib/etat-offres";
+import { adresseDepuisEtat, etatDepuisAdresse, type EtatOffres } from "@/lib/etat-offres";
 import type { Secteur } from "@shared/secteurs";
-import { versOffre, type OffreApi } from "@/types/offre";
+import type { ReponseOffres } from "@shared/recherche-offres";
+
+const AUCUN_COMPTE = { toutes: 0, CDI: 0, CDD: 0, Freelance: 0 };
+
+async function chargerOffres(adresse: string): Promise<ReponseOffres> {
+  const reponse = await fetch(`/api/offres${adresse}`, { credentials: "include" });
+  if (!reponse.ok) throw new Error(`${reponse.status}`);
+  return reponse.json();
+}
 
 /**
  * Page Offres (/jobs), refonte d'après la maquette « Page Offres ».
@@ -92,25 +99,26 @@ export default function OffresPage() {
     return () => document.removeEventListener("keydown", surTouche);
   }, [filtresOuverts]);
 
-  const { data, isLoading, isError, refetch, isRefetching } = useQuery<OffreApi[]>({ queryKey: ["/api/jobs"] });
-  const offres = useMemo(() => (data ?? []).map(versOffre), [data]);
-
-  const criteres = useMemo(() => ({
-    recherche: etat.recherche, lieu: etat.lieu, contrat: etat.contrat, employeurId: etat.employeur?.id ?? null,
-    secteurs: etat.secteurs, villes: etat.villes, experiences: etat.experiences, publieeDepuisJours: etat.publieeDepuisJours,
-  }), [etat]);
-  // Tri unique « plus récentes d'abord ».
-  const resultats = useMemo(
-    () => filtrerOffres(offres, criteres).sort((a, b) => b.publieLe.localeCompare(a.publieLe)),
-    [offres, criteres],
+  // Recherche, facettes et pagination côté serveur (GET /api/offres), avec
+  // les paramètres de l'adresse. La liste précédente reste affichée pendant
+  // le chargement de la suivante.
+  const adresse = adresseDepuisEtat(etat);
+  const { data, isLoading, isError, refetch, isFetching, isPlaceholderData } = useQuery({
+    queryKey: ["/api/offres", adresse],
+    queryFn: () => chargerOffres(adresse),
+    placeholderData: keepPreviousData,
+  });
+  const comptes = data?.facettes.contrats ?? AUCUN_COMPTE;
+  const compteurs = useMemo(
+    () => ({ secteurs: data?.facettes.secteurs ?? [], villes: data?.facettes.villes ?? [], experiences: data?.facettes.experiences ?? [] }),
+    [data],
   );
-  const comptes = useMemo(() => compterParContrat(offres, criteres), [offres, criteres]);
-  const compteurs = useMemo(() => facettes(offres, criteres), [offres, criteres]);
-
-  const nbPages = Math.max(1, Math.ceil(resultats.length / TAILLE_PAGE));
-  // Page au-delà de la dernière (adresse ancienne ou partagée) : la dernière.
-  const page = Math.min(etat.page, nbPages);
-  const offresDeLaPage = resultats.slice((page - 1) * TAILLE_PAGE, page * TAILLE_PAGE);
+  const offresDeLaPage = data?.offres ?? [];
+  const total = data?.total ?? 0;
+  // Page au-delà de la dernière (adresse ancienne ou partagée) : le serveur
+  // renvoie la dernière.
+  const page = data?.page ?? etat.page;
+  const nbPages = data?.nbPages ?? 1;
 
   const titreResultats = useRef<HTMLHeadingElement>(null);
   const changerDePage = (p: number) => {
@@ -165,19 +173,19 @@ export default function OffresPage() {
             </p>
           )}
 
-          {isError && !isRefetching ? (
+          {isError && !isFetching ? (
             <ErreurOffres onReessayer={() => refetch()} />
-          ) : isLoading || isRefetching ? (
+          ) : isLoading || !data ? (
             <SquelettesOffres />
           ) : (
-            <>
-              <EnTeteResultats ref={titreResultats} page={page} total={resultats.length} />
-              {resultats.length === 0 ? (
+            <div aria-busy={isPlaceholderData}>
+              <EnTeteResultats ref={titreResultats} page={page} total={total} />
+              {total === 0 ? (
                 <AucuneOffre onReinitialiser={toutReinitialiser} />
               ) : (
                 <>
-                  {/* La clé relance l'entrée douce à chaque nouvelle liste. */}
-                  <ul key={adresseDepuisEtat({ ...etat, page })} className="space-y-4 motion-safe:animate-entree-resultats" data-testid="liste-offres">
+                  {/* La clé relance l'entrée douce quand la liste reçue change. */}
+                  <ul key={`${page}:${offresDeLaPage.map((o) => o.id).join(",")}`} className={`space-y-4 transition-opacity motion-safe:animate-entree-resultats ${isPlaceholderData ? "opacity-60" : ""}`} data-testid="liste-offres">
                     {offresDeLaPage.map((o) => (
                       <li key={o.id}>
                         <CarteOffre offre={o} enregistree={savedJobIds.has(o.id)} onEnregistrer={() => enregistrer(o.id)} afficherEnregistrer={peutEnregistrer} />
@@ -187,7 +195,7 @@ export default function OffresPage() {
                   <PaginationOffres page={page} nbPages={nbPages} onPage={changerDePage} />
                 </>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
