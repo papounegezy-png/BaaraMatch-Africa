@@ -168,6 +168,11 @@ export default {
           from: { boxShadow: "0 0 0 0 rgba(212, 160, 23, 0.7)" },
           to: { boxShadow: "0 0 0 16px rgba(212, 160, 23, 0)" },
         },
+        // Liste de résultats renouvelée (filtre, tri, page).
+        "entree-resultats": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
         flotte: {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-5px)" },
@@ -184,6 +189,7 @@ export default {
         "pop-b": "pop-b 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both",
         "onde-a": "onde-a 1.1s ease-out both",
         "onde-b": "onde-b 1.1s ease-out both",
+        "entree-resultats": "entree-resultats 0.4s ease-out both",
         flotte: "flotte 3.2s ease-in-out infinite",
       },
     },
