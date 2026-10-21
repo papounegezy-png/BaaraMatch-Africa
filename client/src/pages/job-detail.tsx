@@ -24,9 +24,13 @@ import {
   GraduationCap,
   Languages,
   Calendar,
+  CalendarClock,
+  House,
 } from "lucide-react";
 import type { JobPosting } from "@shared/schema";
 import { formatJobSalary as formatSalaryDisplay } from "@/lib/format-job-salary";
+import { libelleExperience } from "@/lib/offres";
+import { educationLevelOptions } from "@/lib/options-offre";
 import { usePageTitle } from "@/lib/page-title";
 
 export default function JobDetailPage() {
@@ -40,6 +44,13 @@ export default function JobDetailPage() {
   });
   usePageTitle(job?.title, "Offre d'emploi");
   const salaryDisplay = job ? formatSalaryDisplay(job) : null;
+  // Champs enregistrés par le formulaire d'offre, affichés s'ils existent.
+  const nettoyer = (l: string[] | null | undefined) => Array.from(new Set((l ?? []).map((v) => v.trim()).filter(Boolean)));
+  const competencesRequises = nettoyer(job?.requiredSkills);
+  const competencesAppreciees = nettoyer(job?.preferredSkills).filter((c) => !competencesRequises.includes(c));
+  const langues = nettoyer(job?.languages);
+  const experience = job ? libelleExperience(job.experienceMin, job.experienceMax) : null;
+  const niveauEtudes = educationLevelOptions.find((o) => o.value === job?.educationLevel)?.label ?? null;
   const { savedJobIds, toggleSave, isPending: isSavePending } = useSavedJobs();
   const isSaved = !!job && savedJobIds.has(job.id);
 
@@ -203,6 +214,45 @@ export default function JobDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {(competencesRequises.length > 0 || competencesAppreciees.length > 0) && (
+            <Card data-testid="carte-competences">
+              <CardHeader>
+                <CardTitle>Compétences</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {competencesRequises.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Requises</p>
+                    <ul className="flex flex-wrap gap-2">
+                      {competencesRequises.map((c) => <li key={c}><Badge>{c}</Badge></li>)}
+                    </ul>
+                  </div>
+                )}
+                {competencesAppreciees.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-sm font-medium">Appréciées</p>
+                    <ul className="flex flex-wrap gap-2">
+                      {competencesAppreciees.map((c) => <li key={c}><Badge variant="outline">{c}</Badge></li>)}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {langues.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Languages className="h-5 w-5" aria-hidden="true" />Langues</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="flex flex-wrap gap-2">
+                  {langues.map((l) => <li key={l}><Badge variant="secondary">{l}</Badge></li>)}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -255,6 +305,68 @@ export default function JobDetailPage() {
                   </p>
                 </div>
               </div>
+
+              {job.startDate && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <CalendarClock className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Date de début</p>
+                    <p className="font-semibold" data-testid="text-start-date">
+                      {new Date(job.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {experience && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-secondary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Expérience</p>
+                    <p className="font-semibold" data-testid="text-experience">{experience}</p>
+                  </div>
+                </div>
+              )}
+
+              {niveauEtudes && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+                    <GraduationCap className="h-5 w-5 text-secondary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Niveau d'études</p>
+                    <p className="font-semibold">{niveauEtudes}</p>
+                  </div>
+                </div>
+              )}
+
+              {(job.positions ?? 1) > 1 && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Briefcase className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Postes à pourvoir</p>
+                    <p className="font-semibold">{job.positions}</p>
+                  </div>
+                </div>
+              )}
+
+              {job.isRemote && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <House className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Télétravail</p>
+                    <p className="font-semibold">Possible</p>
+                  </div>
+                </div>
+              )}
 
               {job.applicationDeadline && (
                 <div className="flex items-center gap-3">

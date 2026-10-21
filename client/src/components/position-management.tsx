@@ -63,15 +63,6 @@ interface Position {
   createdAt: string;
 }
 
-const departments = [
-  "Ressources Humaines",
-  "Informatique",
-  "Finance",
-  "Commercial",
-  "Marketing",
-  "Production",
-];
-
 const levels: { value: Position["level"]; label: string }[] = [
   { value: "junior", label: "Junior" },
   { value: "intermediate", label: "Intermédiaire" },
@@ -96,6 +87,15 @@ export function PositionManagement() {
     positions: [] as Position[],
   });
   const positions = moduleState.positions ?? [];
+  // Départements de l'entreprise (module Départements), plus ceux déjà
+  // utilisés par des postes : plus de liste fictive codée en dur.
+  const { moduleState: etatDepartements } = useOperationalModuleState("departments", {
+    departments: [] as { name: string; status?: string }[],
+  });
+  const departments = Array.from(new Set([
+    ...(etatDepartements.departments ?? []).filter((d) => d.status !== "inactive").map((d) => d.name.trim()),
+    ...positions.map((p) => p.department?.trim()),
+  ].filter(Boolean))).sort((a, b) => a.localeCompare(b, "fr"));
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -266,6 +266,9 @@ export function PositionManagement() {
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
                     <SelectContent>
+                      {departments.length === 0 && (
+                        <SelectItem value="__aucun" disabled>Créez d'abord un département</SelectItem>
+                      )}
                       {departments.map((dept) => (
                         <SelectItem key={dept} value={dept}>
                           {dept}

@@ -35,8 +35,6 @@ export const catalogueServices: Record<Profil, ProfilServices> = {
           // repère filtre sur le nom du quartier (texte), sans calcul de distance.
           { nom: "Recherche par repères", desc: "Offres autour d'un quartier connu." },
           { nom: "Offres recommandées", desc: "Classées par score, avec la raison." },
-          // À CONFIRMER : la fiche affiche salaire et partage, mais ni les
-          // compétences requises ni la date de début.
           { nom: "Fiche offre complète", desc: "Salaire, compétences, début, partage." },
           { nom: "Annuaire des employeurs", desc: "Profil et offres de chaque employeur." },
           { nom: "Offres sauvegardées", desc: "À garder pour plus tard." },
@@ -90,8 +88,7 @@ export const catalogueServices: Record<Profil, ProfilServices> = {
         services: [
           { nom: "Annuaire des employés", desc: "Fiches, rôles, intégration." },
           { nom: "Congés et absences", desc: "Demandes, calendrier, soldes." },
-          // À CONFIRMER : départements et postes sont réels, mais l'organigramme
-          // affiche un arbre fictif codé en dur (org-chart.tsx, « Marie Dupont »…).
+          // Organigramme construit à partir de l'annuaire et des départements.
           { nom: "Organisation", desc: "Organigramme, départements, postes." },
         ],
       },

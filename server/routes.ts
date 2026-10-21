@@ -631,9 +631,12 @@ export async function registerRoutes(
   });
 
   // Demande de démo (page /services). Champ piège rempli = robot : on répond
-  // comme si tout allait bien, sans rien enregistrer. L'équipe est prévenue
-  // par e-mail (DEMO_NOTIFICATION_EMAIL, sinon contact@baaramatch.africa) ;
-  // sans SMTP configuré, sendEmail se contente d'un avertissement au journal.
+  // comme si tout allait bien, sans rien enregistrer. La demande est visible
+  // dans la console admin (Supervision → Demandes de démo) ; l'équipe est en
+  // plus prévenue par e-mail si DEMO_NOTIFICATION_EMAIL est défini (plus de
+  // repli vers contact@baaramatch.africa : ce domaine n'a pas de messagerie,
+  // l'envoi échouait en 550). Sans SMTP configuré, sendEmail se contente
+  // d'un avertissement au journal.
   app.post("/api/demo-requests", demoRateLimiter, async (req, res) => {
     try {
       const data = demandeDemoSchema.parse(req.body);
@@ -650,8 +653,11 @@ export async function registerRoutes(
         message: null,
       });
       const libelleProfil = data.profileType === "agence" ? "Agence de placement" : "Entreprise";
-      sendEmail({
-        to: process.env.DEMO_NOTIFICATION_EMAIL || "contact@baaramatch.africa",
+      const destinataire = process.env.DEMO_NOTIFICATION_EMAIL?.trim();
+      if (!destinataire) {
+        console.warn("[demo] DEMO_NOTIFICATION_EMAIL non défini : pas d'e-mail, la demande est dans la console admin.");
+      } else sendEmail({
+        to: destinataire,
         subject: `Demande de démo : ${data.company}`,
         replyTo: estEmail ? data.contact : undefined,
         html: `<p>Nouvelle demande de démo depuis la page Services.</p>
