@@ -48,15 +48,16 @@ export function EnteteAccueil() {
         : user?.userType === "candidate" ? "/espace-personnel"
           : "/dashboard";
 
-  // Même règle que la Navbar : un candidat connecté n'a pas besoin des pages
-  // destinées aux recruteurs. Le menu « Offres » n'a pas de sous-menu dans
-  // le produit : c'est un lien simple (plus de chevron trompeur).
+  // Même règle que la Navbar : un candidat connecté voit Offres et
+  // Employeurs (suivre un employeur, lire ou laisser un avis) ; Services,
+  // l'offre BaaraMatch pour les recruteurs, lui est masqué. Le menu
+  // « Offres » n'a pas de sous-menu dans le produit : c'est un lien simple.
   // `actif` : la page de la rubrique et ses sous-pages (une offre, un
   // profil d'employeur, agence ou entreprise).
   const liens = [
     { href: "/jobs", libelle: "Offres", rubriques: ["/jobs", "/candidate/jobs"] },
+    { href: "/agencies", libelle: "Employeurs", rubriques: ["/agencies", "/companies"] },
     ...(user?.userType === "candidate" ? [] : [
-      { href: "/agencies", libelle: "Employeurs", rubriques: ["/agencies", "/companies"] },
       { href: "/services", libelle: "Services", rubriques: ["/services"] },
     ]),
   ].map((lien) => ({ ...lien, actif: lien.rubriques.some((r) => location === r || location.startsWith(`${r}/`)) }));

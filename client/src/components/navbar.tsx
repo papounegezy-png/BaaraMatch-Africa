@@ -38,12 +38,13 @@ export function Navbar({ user, onLogout }: NavbarProps) {
           ? "/espace-personnel"
           : "/dashboard";
 
-  // "Employeurs" and "Services" are aimed at visitors and recruiters; a
-  // logged-in candidate only gets what they use (Offres, Mon espace).
+  // "Services" (BaaraMatch's offer for recruiters) is hidden from a
+  // logged-in candidate; "Employeurs" stays: candidates follow employers and
+  // read or leave reviews there.
   const navLinks = [
     { href: "/jobs", label: "Offres", icon: Briefcase, chevron: true },
+    { href: "/agencies", label: "Employeurs", icon: Building2 },
     ...(user?.userType === "candidate" ? [] : [
-      { href: "/agencies", label: "Employeurs", icon: Building2 },
       { href: "/services", label: "Services", icon: Layers },
     ]),
   ];
