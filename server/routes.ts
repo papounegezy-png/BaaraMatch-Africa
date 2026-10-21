@@ -39,6 +39,8 @@ import { SECTEURS_ACCUEIL_BASE, type EmployeurQuiRecrute, type SecteurQuiRecrute
 import { SECTEURS, secteurDeCategorie } from "@shared/secteurs";
 import { employeurDepuisLigne } from "@shared/employeur";
 import { lireParametresEmployeurs, rechercherEmployeurs } from "@shared/recherche-employeurs";
+import { profilDepuisLigne } from "@shared/profil-employeur";
+import { avisSchema, resumerAvis, type AvisPublic } from "@shared/avis";
 import { offreDepuisLigne } from "@shared/offre";
 import { lireParametresOffres, rechercherOffres } from "@shared/recherche-offres";
 import { salaryPeriods } from "@shared/schema";
@@ -805,6 +807,29 @@ export async function registerRoutes(
     }
   });
 
+  // Masquer ou rétablir un avis de candidat (modération), journalisé.
+  app.patch("/api/admin/avis/:id", requireAdmin, async (req, res) => {
+    try {
+      const { masque } = z.object({ masque: z.boolean() }).strict().parse(req.body);
+      const avis = await storage.masquerAvisEmployeur(String(req.params.id), masque);
+      if (!avis) return res.status(404).json({ message: "Avis introuvable" });
+      const admin = req.adminUser;
+      await storage.createActivityLog({
+        action: "settings_change",
+        userId: admin?.id ?? null,
+        userLabel: admin?.email ?? "admin",
+        ipAddress: req.ip ?? null,
+        status: "success",
+        details: `Avis ${String(req.params.id)} ${masque ? "masqué" : "rétabli"} (employeur ${avis.employeurId})`,
+      });
+      res.json({ id: String(req.params.id), masque });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Données invalides", errors: error.errors });
+      console.error("Admin review moderation error:", error);
+      res.status(500).json({ message: "Erreur lors de la modération de l'avis" });
+    }
+  });
+
   app.get("/api/admin/companies", requireAdmin, async (_req, res) => {
     try {
       const companies = await storage.getAllCompanies();
@@ -922,6 +947,7 @@ export async function registerRoutes(
           : { isActive: false });
         if (validatedBody.status === "approved" && updatedJob) {
           notifyMatchingCandidatesForJob(updatedJob);
+          notifierAbonnesEmployeur(updatedJob);
         }
         // Tell the poster the outcome — the submission screen promises a
         // reply, and the queue resolution is otherwise silent for them.
@@ -1757,6 +1783,7 @@ export async function registerRoutes(
       });
 
       res.status(201).json(job);
+      notifierAbonnesEmployeur(job);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Données invalides", errors: error.errors });
@@ -2184,6 +2211,119 @@ export async function registerRoutes(
     }
   });
 
+  // Profil public d'un employeur (pages /agencies/:id et /companies/:id) :
+  // identité, vérification, offres actives, résumé des avis, et pour
+  // l'utilisateur connecté s'il suit l'employeur et peut donner un avis.
+  app.get("/api/employeurs/:id", async (req, res) => {
+    try {
+      const id = String(req.params.id);
+      const ligne = await storage.getProfilEmployeurPublic(id);
+      if (!ligne) return res.status(404).json({ message: "Employeur introuvable" });
+      const candidatId = req.session.userType === "candidate" ? req.session.userId : undefined;
+      const [avis, suiviParMoi, aPostule] = await Promise.all([
+        storage.getAvisEmployeur(id),
+        candidatId ? storage.estSuiviPar(id, candidatId) : false,
+        candidatId ? storage.aPostuleChezEmployeur(id, candidatId) : false,
+      ]);
+      res.json(profilDepuisLigne(ligne, { avis: resumerAvis(avis.map((a) => a.note)), suiviParMoi, peutDonnerAvis: aPostule }));
+    } catch (error) {
+      console.error("Error fetching employer profile:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération du profil" });
+    }
+  });
+
+  // Suivre un employeur : candidats seulement.
+  const exigerCandidat = (req: Request, res: Response): string | null => {
+    if (!req.session.userId) { res.status(401).json({ message: "Connectez-vous pour suivre un employeur" }); return null; }
+    if (req.session.userType !== "candidate") { res.status(403).json({ message: "Réservé aux candidats" }); return null; }
+    return req.session.userId;
+  };
+  const employeurExiste = async (id: string, res: Response) => {
+    if (await storage.getProfilEmployeurPublic(id)) return true;
+    res.status(404).json({ message: "Employeur introuvable" });
+    return false;
+  };
+
+  app.get("/api/employeurs/:id/suivi", async (req, res) => {
+    const candidatId = exigerCandidat(req, res);
+    if (!candidatId) return;
+    try {
+      res.json({ suivi: await storage.estSuiviPar(String(req.params.id), candidatId) });
+    } catch (error) {
+      console.error("Error reading follow:", error);
+      res.status(500).json({ message: "Erreur lors de la lecture du suivi" });
+    }
+  });
+
+  for (const methode of ["post", "delete"] as const) {
+    app[methode]("/api/employeurs/:id/suivi", async (req, res) => {
+      const candidatId = exigerCandidat(req, res);
+      if (!candidatId) return;
+      try {
+        const id = String(req.params.id);
+        if (!(await employeurExiste(id, res))) return;
+        if (methode === "post") await storage.suivreEmployeur(id, candidatId);
+        else await storage.nePlusSuivreEmployeur(id, candidatId);
+        res.json({ suivi: methode === "post" });
+      } catch (error) {
+        console.error("Error updating follow:", error);
+        res.status(500).json({ message: "Erreur lors de l'enregistrement du suivi" });
+      }
+    });
+  }
+
+  // Avis de candidats : liste publique (sans auteur), résumé, et l'avis du
+  // candidat connecté marqué pour qu'il puisse le modifier.
+  app.get("/api/employeurs/:id/avis", async (req, res) => {
+    try {
+      const id = String(req.params.id);
+      if (!(await employeurExiste(id, res))) return;
+      const lignes = await storage.getAvisEmployeur(id);
+      const moi = req.session.userType === "candidate" ? req.session.userId : undefined;
+      const avis: AvisPublic[] = lignes.map((a) => ({
+        id: a.id, note: a.note, commentaire: a.commentaire, publieLe: new Date(a.publieLe).toISOString(), estLeMien: !!moi && a.candidatId === moi,
+      }));
+      res.json({ resume: resumerAvis(lignes.map((a) => a.note)), avis });
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ message: "Erreur lors de la récupération des avis" });
+    }
+  });
+
+  // Donner ou modifier son avis : candidat ayant postulé à une offre de
+  // l'employeur ; un seul avis par employeur.
+  app.put("/api/employeurs/:id/avis", async (req, res) => {
+    const candidatId = exigerCandidat(req, res);
+    if (!candidatId) return;
+    try {
+      const id = String(req.params.id);
+      if (!(await employeurExiste(id, res))) return;
+      if (!(await storage.aPostuleChezEmployeur(id, candidatId))) {
+        return res.status(403).json({ message: "Seuls les candidats ayant postulé à une offre de cet employeur peuvent donner un avis." });
+      }
+      const { note, commentaire } = avisSchema.parse(req.body);
+      await storage.enregistrerAvisEmployeur(id, candidatId, note, commentaire ?? null);
+      res.json({ ok: true });
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Avis invalide : une note de 1 à 5 est requise.", errors: error.errors });
+      console.error("Error saving review:", error);
+      res.status(500).json({ message: "Erreur lors de l'enregistrement de l'avis" });
+    }
+  });
+
+  app.delete("/api/employeurs/:id/avis", async (req, res) => {
+    const candidatId = exigerCandidat(req, res);
+    if (!candidatId) return;
+    try {
+      const supprime = await storage.supprimerAvisEmployeur(String(req.params.id), candidatId);
+      if (!supprime) return res.status(404).json({ message: "Aucun avis à retirer" });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      res.status(500).json({ message: "Erreur lors du retrait de l'avis" });
+    }
+  });
+
   // Page Offres (/jobs) : recherche, facettes et pagination côté serveur.
   // Paramètres : q, lieu, contrat, secteur[], ville[], exp[],
   // publiee_depuis_jours, tri, page, taille (voir shared/recherche-offres.ts).
@@ -2224,6 +2364,28 @@ export async function registerRoutes(
       res.status(500).json({ message: "Erreur lors de la récupération de l'offre" });
     }
   });
+
+  // Prévient les candidats qui suivent l'employeur (l'agence si agencyId,
+  // sinon l'entreprise) qu'il vient de publier une offre. Sans effet sur la
+  // publication en cas d'échec.
+  async function notifierAbonnesEmployeur(job: { id: string; title: string; agencyId: string | null; companyId: string }) {
+    const employeurId = job.agencyId ?? job.companyId;
+    try {
+      const [abonnes, profil] = await Promise.all([storage.getAbonnesEmployeur(employeurId), storage.getProfilEmployeurPublic(employeurId)]);
+      const nom = profil?.nom?.trim() || "Un employeur que vous suivez";
+      for (const userId of abonnes) {
+        await storage.createNotification({
+          userId,
+          type: "employer_job",
+          title: `Nouvelle offre de ${nom}`,
+          message: `${job.title.trim()} : consultez l'offre et postulez.`,
+          actionUrl: `/jobs/${job.id}`,
+        });
+      }
+    } catch (error) {
+      console.error(`[suivi] Abonnés non prévenus pour l'offre ${job.id} :`, error);
+    }
+  }
 
   // Notifies candidates who are a strong match for a newly-active job.
   // Uses the V0 rule-based scorer (shared/matching.ts) rather than the
@@ -2306,6 +2468,7 @@ export async function registerRoutes(
 
       if (job.isActive) {
         notifyMatchingCandidatesForJob(job);
+        notifierAbonnesEmployeur(job);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2366,6 +2529,7 @@ export async function registerRoutes(
       // job published straight from POST /api/jobs.
       if (updatedJob?.isActive && !job.isActive) {
         notifyMatchingCandidatesForJob(updatedJob);
+        notifierAbonnesEmployeur(updatedJob);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {

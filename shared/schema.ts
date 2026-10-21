@@ -1077,8 +1077,36 @@ export const siteVisits = pgTable("site_visits", {
   countryIdx: index("site_visits_country_idx").on(table.country),
 }));
 
-export const notificationTypes = ["job_match", "application_update", "system"] as const;
+// employer_job : nouvelle offre d'un employeur que le candidat suit.
+export const notificationTypes = ["job_match", "application_update", "system", "employer_job"] as const;
 export type NotificationType = typeof notificationTypes[number];
+
+// Profil employeur (migration 0043) : un candidat suit un employeur.
+export const employerFollows = pgTable("employer_follows", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  candidateId: varchar("candidate_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  employerId: varchar("employer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  unique: unique("employer_follows_unique").on(table.candidateId, table.employerId),
+  employerIdx: index("employer_follows_employer_idx").on(table.employerId),
+}));
+
+// Avis d'un candidat sur un employeur (migration 0043) : un par candidat et
+// par employeur, après avoir postulé. masque : retiré par la modération.
+export const employerReviews = pgTable("employer_reviews", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employerId: varchar("employer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  candidateId: varchar("candidate_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  note: integer("note").notNull(),
+  commentaire: text("commentaire"),
+  masque: boolean("masque").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  unique: unique("employer_reviews_unique").on(table.candidateId, table.employerId),
+  employerIdx: index("employer_reviews_employer_idx").on(table.employerId),
+}));
 
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

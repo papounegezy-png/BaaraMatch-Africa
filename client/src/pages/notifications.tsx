@@ -43,6 +43,12 @@ const notificationTypeConfig: Record<Notification["type"], { icon: typeof Bell; 
     color: "text-muted-foreground",
     bgColor: "bg-muted",
   },
+  // Nouvelle offre d'un employeur suivi.
+  employer_job: {
+    icon: Briefcase,
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+  },
 };
 
 function formatRelativeTime(dateString: string) {

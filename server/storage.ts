@@ -78,6 +78,8 @@ import {
   companyModules,
   companyOperationalStates,
   jobPostings,
+  employerFollows,
+  employerReviews,
   applications,
   skills,
   candidateSkills,
@@ -104,6 +106,7 @@ import {
 import { db } from "./db";
 import type { LigneOffre } from "@shared/offre";
 import type { LigneEmployeur } from "@shared/employeur";
+import type { LigneProfilEmployeur } from "@shared/profil-employeur";
 import { eq, and, or, isNotNull, isNull, desc, gte, lte, lt, sql, getTableColumns, inArray } from "drizzle-orm";
 
 export type DashboardKpis = {
@@ -167,6 +170,16 @@ export interface IStorage {
   getAllJobPostings(): Promise<(JobPosting & { organizationName: string | null })[]>;
   getOffresPubliques(): Promise<LigneOffre[]>;
   getEmployeursPublics(): Promise<LigneEmployeur[]>;
+  getProfilEmployeurPublic(id: string): Promise<LigneProfilEmployeur | undefined>;
+  estSuiviPar(employeurId: string, candidatId: string): Promise<boolean>;
+  suivreEmployeur(employeurId: string, candidatId: string): Promise<void>;
+  nePlusSuivreEmployeur(employeurId: string, candidatId: string): Promise<void>;
+  getAbonnesEmployeur(employeurId: string): Promise<string[]>;
+  aPostuleChezEmployeur(employeurId: string, candidatId: string): Promise<boolean>;
+  getAvisEmployeur(employeurId: string): Promise<{ id: string; candidatId: string; note: number; commentaire: string | null; publieLe: Date }[]>;
+  enregistrerAvisEmployeur(employeurId: string, candidatId: string, note: number, commentaire: string | null): Promise<void>;
+  supprimerAvisEmployeur(employeurId: string, candidatId: string): Promise<boolean>;
+  masquerAvisEmployeur(avisId: string, masque: boolean): Promise<{ employeurId: string } | undefined>;
   setEmployeurVerifie(userId: string, type: "agency" | "company", verifiePar: string | null): Promise<boolean>;
   getJobPostingsByCompany(companyId: string): Promise<JobPosting[]>;
   getJobPostingsByAgency(agencyId: string): Promise<JobPosting[]>;
@@ -700,6 +713,97 @@ export class DatabaseStorage implements IStorage {
       where u.user_type in ('agency', 'company')
     `);
     return rows as unknown as LigneEmployeur[];
+  }
+
+  // Profil public d'un employeur (GET /api/employeurs/:id), avec son nombre
+  // d'offres actives. undefined si ce n'est ni une agence ni une entreprise.
+  async getProfilEmployeurPublic(id: string): Promise<LigneProfilEmployeur | undefined> {
+    const { rows } = await db.execute(sql`
+      select u.id,
+             u.user_type as type,
+             coalesce(nullif(trim(a.agency_name), ''), nullif(trim(c.company_name), ''), u.full_name) as nom,
+             coalesce(c.logo_url, u.avatar_url) as "logoUrl",
+             c.cover_image_url as "banniereUrl",
+             u.city as ville,
+             u.country as pays,
+             coalesce(a.verified_at, c.verified_at) as "verifieLe",
+             coalesce(a.description, c.description) as description,
+             coalesce(a.founded_year, c.founded_year) as "anneeCreation",
+             coalesce(a.secteur, c.secteur) as secteur,
+             c.industry,
+             coalesce(a.website, c.website) as "siteWeb",
+             u.email,
+             u.phone as telephone,
+             u.is_prospect as prospect,
+             (select count(*)::int from job_postings j where j.is_active and coalesce(j.agency_id, j.company_id) = u.id) as offres
+      from users u
+      left join agency_profiles a on u.user_type = 'agency' and a.user_id = u.id
+      left join company_profiles c on u.user_type = 'company' and c.user_id = u.id
+      where u.id = ${id} and u.user_type in ('agency', 'company')
+    `);
+    return rows[0] as unknown as LigneProfilEmployeur | undefined;
+  }
+
+  async estSuiviPar(employeurId: string, candidatId: string): Promise<boolean> {
+    const lignes = await db.select({ id: employerFollows.id }).from(employerFollows)
+      .where(and(eq(employerFollows.employerId, employeurId), eq(employerFollows.candidateId, candidatId)));
+    return lignes.length > 0;
+  }
+
+  async suivreEmployeur(employeurId: string, candidatId: string): Promise<void> {
+    await db.insert(employerFollows).values({ employerId: employeurId, candidateId: candidatId }).onConflictDoNothing();
+  }
+
+  async nePlusSuivreEmployeur(employeurId: string, candidatId: string): Promise<void> {
+    await db.delete(employerFollows).where(and(eq(employerFollows.employerId, employeurId), eq(employerFollows.candidateId, candidatId)));
+  }
+
+  async getAbonnesEmployeur(employeurId: string): Promise<string[]> {
+    const lignes = await db.select({ id: employerFollows.candidateId }).from(employerFollows).where(eq(employerFollows.employerId, employeurId));
+    return lignes.map((l) => l.id);
+  }
+
+  // A postulé à au moins une offre de cet employeur (l'agence si agencyId,
+  // sinon l'entreprise), quel que soit le sort de la candidature.
+  async aPostuleChezEmployeur(employeurId: string, candidatId: string): Promise<boolean> {
+    const { rows } = await db.execute(sql`
+      select 1 from applications ap join job_postings j on j.id = ap.job_id
+      where ap.candidate_id = ${candidatId} and coalesce(j.agency_id, j.company_id) = ${employeurId}
+      limit 1
+    `);
+    return rows.length > 0;
+  }
+
+  // Avis publiés (non masqués), les plus récents d'abord.
+  async getAvisEmployeur(employeurId: string) {
+    return db.select({
+      id: employerReviews.id,
+      candidatId: employerReviews.candidateId,
+      note: employerReviews.note,
+      commentaire: employerReviews.commentaire,
+      publieLe: sql<Date>`coalesce(${employerReviews.updatedAt}, ${employerReviews.createdAt})`,
+    }).from(employerReviews)
+      .where(and(eq(employerReviews.employerId, employeurId), eq(employerReviews.masque, false)))
+      .orderBy(desc(employerReviews.updatedAt));
+  }
+
+  // Un avis par candidat et par employeur : le nouveau remplace l'ancien.
+  // Un avis masqué par la modération le reste après modification.
+  async enregistrerAvisEmployeur(employeurId: string, candidatId: string, note: number, commentaire: string | null): Promise<void> {
+    await db.insert(employerReviews).values({ employerId: employeurId, candidateId: candidatId, note, commentaire })
+      .onConflictDoUpdate({ target: [employerReviews.candidateId, employerReviews.employerId], set: { note, commentaire, updatedAt: new Date() } });
+  }
+
+  async supprimerAvisEmployeur(employeurId: string, candidatId: string): Promise<boolean> {
+    const lignes = await db.delete(employerReviews)
+      .where(and(eq(employerReviews.employerId, employeurId), eq(employerReviews.candidateId, candidatId)))
+      .returning({ id: employerReviews.id });
+    return lignes.length > 0;
+  }
+
+  async masquerAvisEmployeur(avisId: string, masque: boolean) {
+    const [ligne] = await db.update(employerReviews).set({ masque, updatedAt: new Date() }).where(eq(employerReviews.id, avisId)).returning({ employeurId: employerReviews.employerId });
+    return ligne;
   }
 
   // Vérification d'un employeur par l'équipe BaaraMatch. verifiePar null :

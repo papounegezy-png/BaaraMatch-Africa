@@ -1,22 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
-import { profilAgence, profilEntreprise, type AgenceApi, type EntrepriseApi, type ProfilEmployeur, type TypeEmployeur } from "@/types/profil-employeur";
+import type { ProfilEmployeur, TypeEmployeur } from "@/types/profil-employeur";
+
+export const cleProfil = (id: string) => ["/api/employeurs", id];
+
+class Introuvable extends Error {}
 
 /**
- * Profil d'un employeur, lu dans la liste de son type (mêmes requêtes et même
- * cache que les anciennes pages). `introuvable` : la liste est chargée mais
- * l'employeur n'y est pas.
+ * Profil d'un employeur (GET /api/employeurs/:id). `introuvable` : aucun
+ * employeur à cet identifiant, ou pas du type de l'adresse (une agence sous
+ * /companies/:id).
  */
 export function useProfilEmployeur(type: TypeEmployeur, id: string) {
-  const requete = useQuery<(AgenceApi | EntrepriseApi)[]>({ queryKey: [type === "agence" ? "/api/agencies" : "/api/companies"] });
-  const brut = requete.data?.find((e) => e.id === id);
-  const profil: ProfilEmployeur | undefined = brut
-    ? type === "agence" ? profilAgence(brut as AgenceApi) : profilEntreprise(brut as EntrepriseApi)
-    : undefined;
+  const requete = useQuery<ProfilEmployeur>({
+    queryKey: cleProfil(id),
+    queryFn: async () => {
+      const r = await fetch(`/api/employeurs/${encodeURIComponent(id)}`, { credentials: "include" });
+      if (r.status === 404) throw new Introuvable();
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    },
+    retry: false,
+  });
+  const introuvable = requete.error instanceof Introuvable || (!!requete.data && requete.data.type !== type);
   return {
-    profil,
+    profil: introuvable ? undefined : requete.data,
     chargement: requete.isLoading,
-    erreur: requete.isError,
-    introuvable: !!requete.data && !brut,
+    erreur: requete.isError && !introuvable && !requete.isFetching,
+    introuvable,
     reessayer: () => requete.refetch(),
   };
 }

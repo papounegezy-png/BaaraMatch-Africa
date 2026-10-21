@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Link } from "wouter";
 import { ChevronRight, ExternalLink, Globe, Mail, Phone } from "lucide-react";
 import { CarteOffre } from "@/components/offres/carte-offre";
@@ -11,6 +11,7 @@ import type { Offre } from "@shared/offre";
 import type { ProfilEmployeur } from "@/types/profil-employeur";
 import { idOnglet, idPanneau, type Onglet } from "./onglets-profil";
 import { ErreurBloc, SquelettesLignes } from "./etats-profil";
+import { ContenuAvis } from "./avis-profil";
 
 // Offres d'un panneau : chargées, en cours (undefined) ou en erreur.
 type EtatOffres = { offres: Offre[] | undefined; erreur: boolean; onReessayer: () => void };
@@ -221,14 +222,11 @@ export function PanneauAPropos({ profil }: { profil: ProfilEmployeur }) {
   );
 }
 
-/** Avis : contenu au prompt 6 (fonctionnalité à créer). */
-export function PanneauAvis() {
+/** Avis de candidats (voir avis-profil.tsx). */
+export function PanneauAvis(props: ComponentProps<typeof ContenuAvis>) {
   return (
     <Panneau onglet="avis">
-      <div className="rounded-[20px] border-[1.5px] border-baara-trait bg-white px-[26px] py-6 dark:border-white/10 dark:bg-white/[0.04]" data-testid="avis-vide">
-        <p className="font-texte text-[15px] font-bold text-baara-marine dark:text-white">Pas encore d'avis</p>
-        <p className={`mt-1 ${texteVide}`}>Les avis de candidats apparaîtront ici.</p>
-      </div>
+      <ContenuAvis {...props} />
     </Panneau>
   );
 }

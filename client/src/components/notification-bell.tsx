@@ -15,6 +15,7 @@ const typeIcon: Record<Notification["type"], typeof Bell> = {
   job_match: Briefcase,
   application_update: CheckCircle2,
   system: Bell,
+  employer_job: Briefcase,
 };
 
 function formatRelativeTime(dateString: string) {

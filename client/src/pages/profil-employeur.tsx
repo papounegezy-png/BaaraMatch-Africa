@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
@@ -55,7 +55,14 @@ export default function ProfilEmployeurPage() {
   // Suivre : réservé aux candidats ; un visiteur est invité à se connecter.
   // Une entreprise, une agence ou un administrateur ne voit pas le bouton.
   const peutSuivre = !user || user.userType === "candidate";
-  const suivi = useSuiviEmployeur(id, !!user && user.userType === "candidate");
+  const suivi = useSuiviEmployeur(id, profil?.suiviParMoi ?? false);
+
+  // Consultation comptée pour la statistique admin « Top organisations
+  // visitées » (le propriétaire qui regarde sa page n'est pas compté).
+  useEffect(() => {
+    if (!profil) return;
+    fetch(`/api/${profil.type === "agence" ? "agencies" : "companies"}/${encodeURIComponent(profil.id)}/view`, { method: "POST", credentials: "include" }).catch(() => {});
+  }, [profil?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const { savedJobIds, peutEnregistrer, surEnregistrer } = useEnregistrerOffre();
 
   // Ouvre un onglet et y amène la vue (bouton d'offres, « Lire la suite »).
@@ -112,7 +119,9 @@ export default function ProfilEmployeurPage() {
               />
             )}
             {onglet === "a-propos" && <PanneauAPropos profil={profil} />}
-            {onglet === "avis" && <PanneauAvis />}
+            {onglet === "avis" && (
+              <PanneauAvis employeurId={profil.id} connecte={!!user} candidat={user?.userType === "candidate"} peutDonnerAvis={profil.peutDonnerAvis} />
+            )}
           </CarteProfilEmployeur>
         )}
       </div>
