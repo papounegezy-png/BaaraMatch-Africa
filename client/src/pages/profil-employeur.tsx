@@ -7,6 +7,7 @@ import { CarteProfilEmployeur } from "@/components/profil-employeur/carte-profil
 import { BoutonOffres, BoutonSuivre, InvitationCompte } from "@/components/profil-employeur/actions-profil";
 import { BarreOnglets, idOnglet, useOngletProfil, type Onglet } from "@/components/profil-employeur/onglets-profil";
 import { PanneauAPropos, PanneauApercu, PanneauAvis, PanneauOffres } from "@/components/profil-employeur/panneaux-profil";
+import { EmployeurIntrouvable, ErreurProfil, SqueletteProfil } from "@/components/profil-employeur/etats-profil";
 import { useProfilEmployeur } from "@/hooks/use-profil-employeur";
 import { useSuiviEmployeur } from "@/hooks/use-suivi-employeur";
 import { useEnregistrerOffre } from "@/hooks/use-enregistrer-offre";
@@ -34,7 +35,7 @@ export default function ProfilEmployeurPage() {
   const agence = location.startsWith("/agencies/");
   const { id = "" } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { profil } = useProfilEmployeur(agence ? "agence" : "entreprise", id);
+  const { profil, chargement, erreur, introuvable, reessayer } = useProfilEmployeur(agence ? "agence" : "entreprise", id);
   const [onglet, choisirOnglet] = useOngletProfil();
   const [page, setPage] = useState(1);
 
@@ -78,6 +79,9 @@ export default function ProfilEmployeurPage() {
         <div className="pb-3.5 pt-7">
           <LienRetour />
         </div>
+        {chargement && <SqueletteProfil />}
+        {erreur && <ErreurProfil onReessayer={reessayer} />}
+        {introuvable && <EmployeurIntrouvable />}
         {profil && (
           <CarteProfilEmployeur
             profil={profil}
@@ -91,11 +95,13 @@ export default function ProfilEmployeurPage() {
               <BarreOnglets actif={onglet} onChoisir={choisirOnglet} nombreOffres={total ?? 0} />
             </div>
             {onglet === "apercu" && (
-              <PanneauApercu profil={profil} offres={apercu.data?.offres} total={total} suivi={suivi.suivi} onVoirOffres={() => ouvrir("offres")} onLirePlus={() => ouvrir("a-propos")} />
+              <PanneauApercu profil={profil} offres={apercu.data?.offres} erreur={apercu.isError && !apercu.isFetching} onReessayer={() => apercu.refetch()} total={total} suivi={suivi.suivi} onVoirOffres={() => ouvrir("offres")} onLirePlus={() => ouvrir("a-propos")} />
             )}
             {onglet === "offres" && (
               <PanneauOffres
                 offres={liste.data?.offres}
+                erreur={liste.isError && !liste.isFetching}
+                onReessayer={() => liste.refetch()}
                 page={liste.data?.page ?? page}
                 nbPages={liste.data?.nbPages ?? 1}
                 onPage={changerDePage}

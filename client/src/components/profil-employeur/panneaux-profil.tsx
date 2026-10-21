@@ -10,6 +10,11 @@ import { formatJobTitle } from "@/lib/format-job-title";
 import type { Offre } from "@shared/offre";
 import type { ProfilEmployeur } from "@/types/profil-employeur";
 import { idOnglet, idPanneau, type Onglet } from "./onglets-profil";
+import { ErreurBloc, SquelettesLignes } from "./etats-profil";
+
+// Offres d'un panneau : chargées, en cours (undefined) ou en erreur.
+type EtatOffres = { offres: Offre[] | undefined; erreur: boolean; onReessayer: () => void };
+const TEXTE_ERREUR_OFFRES = "Les offres n'ont pas pu être chargées.";
 
 const lienTexte = "rounded-sm font-texte text-[15px] font-semibold text-baara-bleu underline underline-offset-4 hover:text-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu dark:text-baara-moyen";
 
@@ -81,9 +86,8 @@ export function AucuneOffreProfil({ suivi, avecLien = false }: { suivi: boolean;
 
 const DESCRIPTION_VIDE = "Cet employeur n'a pas encore ajouté de description.";
 
-export function PanneauApercu({ profil, offres, total, suivi, onVoirOffres, onLirePlus }: {
+export function PanneauApercu({ profil, offres, erreur, onReessayer, total, suivi, onVoirOffres, onLirePlus }: EtatOffres & {
   profil: ProfilEmployeur;
-  offres: Offre[] | undefined;
   total: number | undefined;
   suivi: boolean;
   onVoirOffres: () => void;
@@ -106,7 +110,11 @@ export function PanneauApercu({ profil, offres, total, suivi, onVoirOffres, onLi
             )}
           </Bloc>
           <Bloc titre="Offres actives" testId="bloc-offres-actives">
-            {offres === undefined ? null : offres.length === 0 ? (
+            {erreur ? (
+              <ErreurBloc texte={TEXTE_ERREUR_OFFRES} onReessayer={onReessayer} />
+            ) : offres === undefined ? (
+              <SquelettesLignes />
+            ) : offres.length === 0 ? (
               <AucuneOffreProfil suivi={suivi} />
             ) : (
               <>
@@ -142,8 +150,7 @@ export function PanneauApercu({ profil, offres, total, suivi, onVoirOffres, onLi
   );
 }
 
-export function PanneauOffres({ offres, page, nbPages, onPage, suivi, enregistrees, peutEnregistrer, onEnregistrer }: {
-  offres: Offre[] | undefined;
+export function PanneauOffres({ offres, erreur, onReessayer, page, nbPages, onPage, suivi, enregistrees, peutEnregistrer, onEnregistrer }: EtatOffres & {
   page: number;
   nbPages: number;
   onPage: (p: number) => void;
@@ -154,9 +161,9 @@ export function PanneauOffres({ offres, page, nbPages, onPage, suivi, enregistre
 }) {
   return (
     <Panneau onglet="offres">
-      {offres === undefined ? null : offres.length === 0 ? (
+      {erreur || offres === undefined || offres.length === 0 ? (
         <div className="rounded-[20px] border-[1.5px] border-baara-trait bg-white px-[26px] py-6 dark:border-white/10 dark:bg-white/[0.04]">
-          <AucuneOffreProfil suivi={suivi} avecLien />
+          {erreur ? <ErreurBloc texte={TEXTE_ERREUR_OFFRES} onReessayer={onReessayer} /> : offres === undefined ? <SquelettesLignes nombre={4} /> : <AucuneOffreProfil suivi={suivi} avecLien />}
         </div>
       ) : (
         <>

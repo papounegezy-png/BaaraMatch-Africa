@@ -18,13 +18,13 @@ export function EtatVide({ titre, texte, onReinitialiser, testId }: { titre: str
   );
 }
 
-export function EtatErreur({ titre, onReessayer, testId }: { titre: string; onReessayer: () => void; testId: string }) {
+const TEXTE_ERREUR_LISTE = "Vérifiez votre connexion puis réessayez. Votre recherche et vos filtres sont conservés.";
+
+export function EtatErreur({ titre, texte = TEXTE_ERREUR_LISTE, onReessayer, testId }: { titre: string; texte?: string; onReessayer: () => void; testId: string }) {
   return (
     <div role="alert" className="rounded-2xl border-[1.5px] border-baara-trait px-6 py-10 text-center dark:border-white/15" data-testid={testId}>
       <h3 className="font-titre text-xl font-bold text-baara-marine dark:text-white">{titre}</h3>
-      <p className="mx-auto mt-2 max-w-md text-pretty font-texte text-baara-texte dark:text-slate-300">
-        Vérifiez votre connexion puis réessayez. Votre recherche et vos filtres sont conservés.
-      </p>
+      <p className="mx-auto mt-2 max-w-md text-pretty font-texte text-baara-texte dark:text-slate-300">{texte}</p>
       <button type="button" onClick={onReessayer} className={`mt-6 ${boutonPlein}`}>Réessayer</button>
     </div>
   );
