@@ -29,6 +29,8 @@ import {
   BarChart3,
   Ticket,
   MessageCircle,
+  MessageSquareQuote,
+  CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -68,7 +70,21 @@ const supervisionMenuItems = [
     url: "/admin/moderation",
     icon: Flag,
   },
+  // Avis de candidats sur les profils employeur : tous les niveaux.
+  {
+    title: "Avis de candidats",
+    url: "/admin/avis",
+    icon: MessageSquareQuote,
+  },
 ];
+
+// Demandes de démo de la page Services : même droit que les organisations
+// tiers (organisations:gerer).
+const demandesDemoMenuItem = {
+  title: "Demandes de démo",
+  url: "/admin/demandes-demo",
+  icon: CalendarCheck,
+};
 
 const statisticsMenuItems = [
   {
@@ -152,7 +168,7 @@ export function AdminSidebar() {
     ? [...supervisionMenuItems, whatsappPendingMenuItem]
     : supervisionMenuItems;
   const visibleSupervisionItems = canManageThirdParty
-    ? [...supervisionItemsWithWhatsApp, thirdPartyMenuItem, invitationCodesMenuItem]
+    ? [...supervisionItemsWithWhatsApp, demandesDemoMenuItem, thirdPartyMenuItem, invitationCodesMenuItem]
     : supervisionItemsWithWhatsApp;
   const visibleConfigItems = canManageAdminAccounts
     ? [adminAccountsMenuItem, ...configMenuItems]

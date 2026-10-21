@@ -1133,6 +1133,9 @@ export const demoRequests = pgTable("demo_requests", {
   profileType: text("profile_type"),
   message: text("message"),
   createdAt: timestamp("created_at").defaultNow(),
+  // Traitée par l'équipe (console admin, migration 0044) ; null : à traiter.
+  treatedAt: timestamp("treated_at"),
+  treatedBy: varchar("treated_by"),
 }, (table) => ({
   emailIdx: index("demo_requests_email_idx").on(table.email),
   createdAtIdx: index("demo_requests_created_at_idx").on(table.createdAt),
@@ -1177,7 +1180,7 @@ export const insertSalaryPaymentSchema = createInsertSchema(salaryPayments).omit
 export const insertAgencyPlacementSchema = createInsertSchema(agencyPlacements).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertMatchingResultSchema = createInsertSchema(matchingResults).omit({ id: true, createdAt: true });
 // Validation des demandes : demandeDemoSchema (shared/demande-demo.ts).
-export const insertDemoRequestSchema = createInsertSchema(demoRequests).omit({ id: true, createdAt: true });
+export const insertDemoRequestSchema = createInsertSchema(demoRequests).omit({ id: true, createdAt: true, treatedAt: true, treatedBy: true });
 
 // Super admin creating another admin account (levels: adminLevels above).
 export const adminAccountCreateSchema = z.object({

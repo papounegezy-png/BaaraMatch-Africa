@@ -70,6 +70,8 @@ import { LoadingState } from "@/components/loading-state";
 import { KpiCard } from "@/components/kpi-card";
 import { InvitationCodesPage } from "@/components/invitation-codes-page";
 import { WhatsAppPendingPage } from "@/components/whatsapp-pending-page";
+import { DemandesDemoPage } from "@/components/demandes-demo-page";
+import { ModerationAvisPage } from "@/components/moderation-avis-page";
 import { TopListCard } from "@/components/top-list-card";
 import { DashboardTrendChart } from "@/components/dashboard-trend-chart";
 import { VisitorAnalyticsCard } from "@/components/visitor-analytics-card";
@@ -3138,6 +3140,17 @@ export default function AdminDashboardPage() {
         return <ComingSoonPage title="Accès restreint" description="Les coordonnées des candidats sont réservées aux niveaux Admin et Super Admin." />;
       }
       return <WhatsAppPendingPage />;
+    }
+
+    if (location.startsWith("/admin/avis")) {
+      return <ModerationAvisPage />;
+    }
+
+    if (location.startsWith("/admin/demandes-demo")) {
+      if (!canManageThirdParty) {
+        return <ComingSoonPage title="Accès restreint" description="Les demandes de démo sont réservées aux niveaux Admin et Super Admin." />;
+      }
+      return <DemandesDemoPage />;
     }
 
     if (location.startsWith("/admin/invitation-codes")) {

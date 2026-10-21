@@ -807,6 +807,49 @@ export async function registerRoutes(
     }
   });
 
+  // Console admin : avis de candidats à modérer (masqués compris).
+  app.get("/api/admin/avis", requireAdmin, async (_req, res) => {
+    try {
+      res.json(await storage.getAvisAdmin());
+    } catch (error) {
+      console.error("Admin reviews error:", error);
+      res.status(500).json({ message: "Erreur lors du chargement des avis" });
+    }
+  });
+
+  // Console admin : demandes de démo reçues depuis la page Services.
+  app.get("/api/admin/demo-requests", requireAdmin, requireAdminPermission("organisations:gerer"), async (_req, res) => {
+    try {
+      res.json(await storage.getDemandesDemo());
+    } catch (error) {
+      console.error("Admin demo requests error:", error);
+      res.status(500).json({ message: "Erreur lors du chargement des demandes de démo" });
+    }
+  });
+
+  // Marquer une demande comme traitée (ou la rouvrir), journalisé.
+  app.patch("/api/admin/demo-requests/:id", requireAdmin, requireAdminPermission("organisations:gerer"), async (req, res) => {
+    try {
+      const { traitee } = z.object({ traitee: z.boolean() }).strict().parse(req.body);
+      const admin = req.adminUser;
+      const demande = await storage.traiterDemandeDemo(String(req.params.id), traitee ? (admin?.id ?? req.session.userId ?? "admin") : null);
+      if (!demande) return res.status(404).json({ message: "Demande introuvable" });
+      await storage.createActivityLog({
+        action: "settings_change",
+        userId: admin?.id ?? null,
+        userLabel: admin?.email ?? "admin",
+        ipAddress: req.ip ?? null,
+        status: "success",
+        details: `Demande de démo de ${demande.company} ${traitee ? "traitée" : "rouverte"}`,
+      });
+      res.json(demande);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Données invalides", errors: error.errors });
+      console.error("Admin demo request update error:", error);
+      res.status(500).json({ message: "Erreur lors de la mise à jour de la demande" });
+    }
+  });
+
   // Masquer ou rétablir un avis de candidat (modération), journalisé.
   app.patch("/api/admin/avis/:id", requireAdmin, async (req, res) => {
     try {

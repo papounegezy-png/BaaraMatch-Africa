@@ -180,6 +180,9 @@ export interface IStorage {
   enregistrerAvisEmployeur(employeurId: string, candidatId: string, note: number, commentaire: string | null): Promise<void>;
   supprimerAvisEmployeur(employeurId: string, candidatId: string): Promise<boolean>;
   masquerAvisEmployeur(avisId: string, masque: boolean): Promise<{ employeurId: string } | undefined>;
+  getAvisAdmin(): Promise<{ id: string; employeurId: string; employeurNom: string | null; employeurType: string; note: number; commentaire: string | null; masque: boolean; publieLe: Date }[]>;
+  getDemandesDemo(): Promise<DemoRequest[]>;
+  traiterDemandeDemo(id: string, adminId: string | null): Promise<DemoRequest | undefined>;
   setEmployeurVerifie(userId: string, type: "agency" | "company", verifiePar: string | null): Promise<boolean>;
   getJobPostingsByCompany(companyId: string): Promise<JobPosting[]>;
   getJobPostingsByAgency(agencyId: string): Promise<JobPosting[]>;
@@ -803,6 +806,36 @@ export class DatabaseStorage implements IStorage {
 
   async masquerAvisEmployeur(avisId: string, masque: boolean) {
     const [ligne] = await db.update(employerReviews).set({ masque, updatedAt: new Date() }).where(eq(employerReviews.id, avisId)).returning({ employeurId: employerReviews.employerId });
+    return ligne;
+  }
+
+  // Console admin : tous les avis, masqués compris, avec l'employeur (sans
+  // l'auteur : la modération porte sur le contenu).
+  async getAvisAdmin() {
+    const { rows } = await db.execute(sql`
+      select r.id, r.employer_id as "employeurId",
+             coalesce(nullif(trim(a.agency_name), ''), nullif(trim(c.company_name), ''), u.full_name) as "employeurNom",
+             u.user_type as "employeurType", r.note, r.commentaire, r.masque,
+             coalesce(r.updated_at, r.created_at) as "publieLe"
+      from employer_reviews r
+      join users u on u.id = r.employer_id
+      left join agency_profiles a on u.user_type = 'agency' and a.user_id = u.id
+      left join company_profiles c on u.user_type = 'company' and c.user_id = u.id
+      order by r.masque asc, coalesce(r.updated_at, r.created_at) desc
+    `);
+    return rows as unknown as { id: string; employeurId: string; employeurNom: string | null; employeurType: string; note: number; commentaire: string | null; masque: boolean; publieLe: Date }[];
+  }
+
+  // Demandes de démo (page Services), les plus récentes d'abord.
+  async getDemandesDemo(): Promise<DemoRequest[]> {
+    return db.select().from(demoRequests).orderBy(desc(demoRequests.createdAt));
+  }
+
+  // adminId null : la demande redevient « à traiter ».
+  async traiterDemandeDemo(id: string, adminId: string | null): Promise<DemoRequest | undefined> {
+    const [ligne] = await db.update(demoRequests)
+      .set({ treatedAt: adminId ? new Date() : null, treatedBy: adminId })
+      .where(eq(demoRequests.id, id)).returning();
     return ligne;
   }
 
