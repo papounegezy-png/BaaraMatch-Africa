@@ -32,7 +32,7 @@ const ProfilePage = lazy(() => import("@/pages/profile"));
 // Page Offres refondue (pages/offres.tsx) ; l'ancienne pages/jobs.tsx sera
 // supprimée à la passe finale.
 const JobsPage = lazy(() => import("@/pages/offres"));
-const AgenciesPage = lazy(() => import("@/pages/employeurs"));
+const EmployeursPage = lazy(() => import("@/pages/employeurs"));
 // L'accueil aussi est chargé à part : son code est préchargé depuis le HTML
 // sur « / » (vite.config.ts), en parallèle du paquet principal.
 const HomePage = lazy(() => import("@/pages/home"));
@@ -130,7 +130,7 @@ function PublicRouter() {
         <Route path="/jobs" component={JobsPage} />
         <Route path="/jobs/:id" component={JobDetailPage} />
         <Route path="/saved-jobs" component={SavedJobsPage} />
-        <Route path="/agencies" component={AgenciesPage} />
+        <Route path="/agencies" component={EmployeursPage} />
         <Route path="/services" component={ServicesPage} />
         <Route path="/agencies/:id" component={AgencyProfilePage} />
         <Route path="/agencies/:id/jobs" component={AgencyJobsPage} />

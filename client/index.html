@@ -27,17 +27,23 @@
          une fois téléchargée. -->
     <link rel="preload" as="style" fetchpriority="low" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"></noscript>
-    <!-- Page Offres : la recherche part dès le HTML, en parallèle du
-         JavaScript (client/src/pages/offres.tsx la reprend si l'adresse
-         est la même). -->
+    <!-- Pages Offres et Employeurs : la recherche part dès le HTML, en
+         parallèle du JavaScript (pages/offres.tsx et pages/employeurs.tsx la
+         reprennent si l'adresse est la même). -->
     <script>
-      if (location.pathname === "/jobs" || location.pathname === "/candidate/jobs") {
-        var offres = { adresse: location.search };
-        offres.json = fetch("/api/offres" + location.search, { credentials: "include" })
-          .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
-        offres.json.then(function (d) { offres.donnees = d; }, function () {});
-        window.__offresPrechargees = offres;
-      }
+      (function () {
+        function precharger(cle, url) {
+          var p = { adresse: location.search };
+          p.json = fetch(url, { credentials: "include" })
+            .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
+          p.json.then(function (d) { p.donnees = d; }, function () {});
+          window[cle] = p;
+        }
+        var chemin = location.pathname;
+        if (chemin === "/jobs" || chemin === "/candidate/jobs") precharger("__offresPrechargees", "/api/offres" + location.search);
+        // 12 premiers employeurs (TAILLE_PAGE de lib/etat-employeurs.ts).
+        if (chemin === "/agencies") precharger("__employeursPrecharges", "/api/employeurs" + (location.search ? location.search + "&" : "?") + "taille=12");
+      })();
     </script>
   </head>
   <body>

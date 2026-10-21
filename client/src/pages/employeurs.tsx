@@ -12,7 +12,28 @@ import { adresseDepuisEtat, ETAT_VIDE, etatDepuisAdresse, TAILLE_PAGE, type Etat
 import type { Secteur } from "@shared/secteurs";
 import type { ReponseEmployeurs } from "@shared/recherche-employeurs";
 
+declare global {
+  // Recherche lancée par index.html ; donnees est renseigné à son arrivée.
+  interface Window { __employeursPrecharges?: { adresse: string; json: Promise<ReponseEmployeurs>; donnees?: ReponseEmployeurs } }
+}
+
+const prechargee = (adresse: string, taille: number) => {
+  const p = window.__employeursPrecharges;
+  return p && p.adresse === adresse && taille === TAILLE_PAGE ? p : undefined;
+};
+
 async function chargerEmployeurs(adresse: string, taille: number): Promise<ReponseEmployeurs> {
+  // Première recherche lancée par index.html, si elle porte sur la même
+  // adresse ; utilisée une seule fois.
+  const p = prechargee(adresse, taille);
+  window.__employeursPrecharges = undefined;
+  if (p) {
+    try {
+      return await p.json;
+    } catch {
+      // Nouvel essai ci-dessous.
+    }
+  }
   const parametres = new URLSearchParams(adresse);
   parametres.set("taille", String(taille));
   const reponse = await fetch(`/api/employeurs?${parametres}`, { credentials: "include" });
@@ -69,6 +90,9 @@ export default function EmployeursPage() {
   const { data, isLoading, isError, isFetching, isPlaceholderData, refetch } = useQuery({
     queryKey: ["/api/employeurs", adresse, nombreAffiches],
     queryFn: () => chargerEmployeurs(adresse, nombreAffiches),
+    // Déjà arrivée (préchargement d'index.html) : affichée dès le premier
+    // rendu, sans passer par les cartes fantômes.
+    initialData: () => prechargee(adresse, nombreAffiches)?.donnees,
     placeholderData: keepPreviousData,
   });
   const visibles = data?.employeurs ?? [];
