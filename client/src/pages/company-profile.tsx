@@ -67,7 +67,9 @@ function formatRelativeDate(dateString: string) {
   return `Publiée le ${date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`;
 }
 
-export default function CompanyProfilePage() {
+// integre : affichée dans ProfilEmployeur, qui fournit l'en-tête, le lien de
+// retour et le conteneur (refonte du profil employeur, prompts 1 à 3).
+export default function CompanyProfilePage({ integre = false }: { integre?: boolean } = {}) {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("overview");
   const { user } = useAuth();
@@ -102,8 +104,8 @@ export default function CompanyProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 space-y-4">
+      <div className={integre ? "" : "min-h-screen bg-background"}>
+        <div className={integre ? "space-y-4" : "container mx-auto px-4 py-8 space-y-4"}>
           <Skeleton className="h-8 w-40" />
           <Skeleton className="h-32 w-full rounded-xl" />
           <div className="flex gap-5">
@@ -117,14 +119,16 @@ export default function CompanyProfilePage() {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+      <div className={integre ? "" : "min-h-screen bg-background"}>
+        <div className={integre ? "" : "container mx-auto px-4 py-8"}>
+          {!integre && (
           <Link href="/jobs">
             <Button variant="ghost" className="mb-6 gap-2" data-testid="button-back-jobs">
               <ArrowLeft className="h-4 w-4" />
               Retour aux offres
             </Button>
           </Link>
+          )}
           <Card>
             <CardContent className="p-12 text-center">
               <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -144,14 +148,16 @@ export default function CompanyProfilePage() {
   const rating = company.profile?.rating;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <div className={integre ? "" : "min-h-screen bg-background"}>
+      <div className={integre ? "" : "container mx-auto px-4 py-8"}>
+        {!integre && (
         <Link href="/jobs">
           <Button variant="ghost" className="mb-6 gap-2" data-testid="button-back-jobs">
             <ArrowLeft className="h-4 w-4" />
             Retour aux offres
           </Button>
         </Link>
+        )}
 
         <div className="rounded-xl overflow-hidden border bg-card">
           {/* Bannière */}

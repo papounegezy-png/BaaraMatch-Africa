@@ -56,7 +56,9 @@ interface JobPosting {
   isActive: boolean;
 }
 
-export default function AgencyProfilePage() {
+// integre : affichée dans ProfilEmployeur, qui fournit l'en-tête, le lien de
+// retour et le conteneur (refonte du profil employeur, prompts 1 à 3).
+export default function AgencyProfilePage({ integre = false }: { integre?: boolean } = {}) {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("about");
 
@@ -99,8 +101,8 @@ export default function AgencyProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+      <div className={integre ? "" : "min-h-screen bg-background"}>
+        <div className={integre ? "" : "container mx-auto px-4 py-8"}>
           <Skeleton className="h-8 w-32 mb-6" />
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="w-full lg:w-80">
@@ -136,14 +138,16 @@ export default function AgencyProfilePage() {
 
   if (!agency) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+      <div className={integre ? "" : "min-h-screen bg-background"}>
+        <div className={integre ? "" : "container mx-auto px-4 py-8"}>
+          {!integre && (
           <Link href="/agencies">
             <Button variant="ghost" className="mb-6 gap-2" data-testid="button-back-agencies">
               <ArrowLeft className="h-4 w-4" />
               Retour aux agences
             </Button>
           </Link>
+          )}
           <Card>
             <CardContent className="p-12 text-center">
               <Building2 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -165,14 +169,16 @@ export default function AgencyProfilePage() {
   const agencyName = agency.profile?.agencyName || agency.fullName;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+    <div className={integre ? "" : "min-h-screen bg-background"}>
+      <div className={integre ? "" : "container mx-auto px-4 py-8"}>
+        {!integre && (
         <Link href="/agencies">
           <Button variant="ghost" className="mb-6 gap-2" data-testid="button-back-agencies">
             <ArrowLeft className="h-4 w-4" />
             Retour aux agences
           </Button>
         </Link>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="w-full lg:w-80 flex-shrink-0">

@@ -51,13 +51,15 @@ export function EnteteAccueil() {
   // Même règle que la Navbar : un candidat connecté n'a pas besoin des pages
   // destinées aux recruteurs. Le menu « Offres » n'a pas de sous-menu dans
   // le produit : c'est un lien simple (plus de chevron trompeur).
+  // `actif` : la page de la rubrique et ses sous-pages (une offre, un
+  // profil d'employeur, agence ou entreprise).
   const liens = [
-    { href: "/jobs", libelle: "Offres" },
+    { href: "/jobs", libelle: "Offres", rubriques: ["/jobs", "/candidate/jobs"] },
     ...(user?.userType === "candidate" ? [] : [
-      { href: "/agencies", libelle: "Employeurs" },
-      { href: "/services", libelle: "Services" },
+      { href: "/agencies", libelle: "Employeurs", rubriques: ["/agencies", "/companies"] },
+      { href: "/services", libelle: "Services", rubriques: ["/services"] },
     ]),
-  ];
+  ].map((lien) => ({ ...lien, actif: lien.rubriques.some((r) => location === r || location.startsWith(`${r}/`)) }));
 
   const fermerMenu = () => setMenuOuvert(false);
 
@@ -76,7 +78,7 @@ export function EnteteAccueil() {
 
         <nav aria-label="Navigation principale" className="hidden items-center gap-1 min-[900px]:flex">
           {liens.map((lien) => (
-            <Link key={lien.href} href={lien.href} className={lienNav} aria-current={location === lien.href ? "page" : undefined}>
+            <Link key={lien.href} href={lien.href} className={lienNav} aria-current={lien.actif ? "page" : undefined}>
               {lien.libelle}
             </Link>
           ))}
@@ -134,7 +136,7 @@ export function EnteteAccueil() {
           <ul className="grid gap-1">
             {liens.map((lien) => (
               <li key={lien.href}>
-                <Link href={lien.href} className={lienMenuMobile} onClick={fermerMenu} aria-current={location === lien.href ? "page" : undefined}>
+                <Link href={lien.href} className={lienMenuMobile} onClick={fermerMenu} aria-current={lien.actif ? "page" : undefined}>
                   {lien.libelle}
                 </Link>
               </li>

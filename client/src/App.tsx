@@ -11,6 +11,7 @@ import type { UserType } from "@shared/schema";
 import { Navbar } from "@/components/navbar";
 import { PiedAccueil } from "@/components/home/pied-accueil";
 import { useDefilementAncre } from "@/hooks/use-defilement-ancre";
+import { useSuiviPagePrecedente } from "@/lib/page-precedente";
 import { LoadingState } from "@/components/loading-state";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 
@@ -38,9 +39,8 @@ const EmployeursPage = lazy(() => import("@/pages/employeurs"));
 const HomePage = lazy(() => import("@/pages/home"));
 const ServicesPage = lazy(() => import("@/pages/services"));
 const AgencyDashboardPage = lazy(() => import("@/pages/agency-dashboard"));
-const AgencyProfilePage = lazy(() => import("@/pages/agency-profile"));
+const ProfilEmployeurPage = lazy(() => import("@/pages/profil-employeur"));
 const AgencyJobsPage = lazy(() => import("@/pages/agency-jobs"));
-const CompanyProfilePage = lazy(() => import("@/pages/company-profile"));
 const CompanyJobsPage = lazy(() => import("@/pages/company-jobs"));
 const CompanyDashboardPage = lazy(() => import("./pages/company-dashboard"));
 const AdminDashboardPage = lazy(() => import("@/pages/admin-dashboard"));
@@ -86,6 +86,11 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
 // en haut puis d'être repoussé (décalage de mise en page).
 // Pages qui affichent leur propre en-tête (EnteteAccueil) au lieu de la Navbar.
 const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs", "/agencies"];
+// …et les profils d'employeur (/agencies/:id, /companies/:id).
+const aSonEntete = (location: string) => {
+  const morceaux = location.split("/");
+  return PAGES_AVEC_ENTETE.includes(location) || (morceaux.length === 3 && (morceaux[1] === "agencies" || morceaux[1] === "companies") && morceaux[2] !== "");
+};
 
 // Pendant le chargement d'une page qui a son propre en-tête, celui-ci
 // s'affiche déjà (il est dans le paquet principal) : premier affichage
@@ -106,8 +111,8 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {!PAGES_AVEC_ENTETE.includes(location) && <Navbar user={user} onLogout={logout} />}
-      <main className="flex-1"><Suspense fallback={<ChargementPage avecEntete={PAGES_AVEC_ENTETE.includes(location)} />}>{children}</Suspense></main>
+      {!aSonEntete(location) && <Navbar user={user} onLogout={logout} />}
+      <main className="flex-1"><Suspense fallback={<ChargementPage avecEntete={aSonEntete(location)} />}>{children}</Suspense></main>
       <PiedAccueil />
     </div>
   );
@@ -132,9 +137,9 @@ function PublicRouter() {
         <Route path="/saved-jobs" component={SavedJobsPage} />
         <Route path="/agencies" component={EmployeursPage} />
         <Route path="/services" component={ServicesPage} />
-        <Route path="/agencies/:id" component={AgencyProfilePage} />
+        <Route path="/agencies/:id" component={ProfilEmployeurPage} />
         <Route path="/agencies/:id/jobs" component={AgencyJobsPage} />
-        <Route path="/companies/:id" component={CompanyProfilePage} />
+        <Route path="/companies/:id" component={ProfilEmployeurPage} />
         <Route path="/companies/:id/jobs" component={CompanyJobsPage} />
         <Route path="/notifications" component={NotificationsPage} />
         <Route path="/privacy" component={LegalPlaceholderPage} />
@@ -263,6 +268,7 @@ function CompanyRouter() {
 function AppRouter() {
   const [location] = useLocation();
   useVisitTracker();
+  useSuiviPagePrecedente();
   useRouteTitle(location);
 
   if (location.startsWith("/admin")) {
