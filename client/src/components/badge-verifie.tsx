@@ -4,9 +4,9 @@
  * nom. Vert baara.verifie (#15803D, ≈ 5:1 sur blanc), réservé à ce badge.
  * À n'afficher que pour un employeur réellement vérifié (verified_at).
  * `marge` : 6 px à gauche après un nom en ligne ; inutile dans un conteneur
- * flex qui espace déjà ses éléments.
+ * flex qui espace déjà ses éléments. `taille` : 26 px sur le profil.
  */
-export function BadgeVerifie({ marge = true }: { marge?: boolean }) {
+export function BadgeVerifie({ marge = true, taille = 21 }: { marge?: boolean; taille?: number }) {
   return (
     <span
       role="img"
@@ -15,7 +15,7 @@ export function BadgeVerifie({ marge = true }: { marge?: boolean }) {
       className={`inline-block shrink-0 align-[-3px] ${marge ? "ml-1.5" : ""}`}
       data-testid="badge-verifie"
     >
-      <svg viewBox="0 0 24 24" width={21} height={21} aria-hidden="true" className="block">
+      <svg viewBox="0 0 24 24" width={taille} height={taille} aria-hidden="true" className="block">
         <path
           className="fill-baara-verifie"
           d="M12 1.5l2.3 1.9 3-.3 1.2 2.8 2.8 1.2-.3 3L22.9 12l-1.9 2.3.3 3-2.8 1.2-1.2 2.8-3-.3L12 22.5l-2.3-1.9-3 .3-1.2-2.8-2.8-1.2.3-3L1.1 12l1.9-2.3-.3-3 2.8-1.2 1.2-2.8 3 .3L12 1.5Z"

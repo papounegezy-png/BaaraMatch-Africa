@@ -160,6 +160,8 @@ export default function CompanyProfilePage({ integre = false }: { integre?: bool
         )}
 
         <div className="rounded-xl overflow-hidden border bg-card">
+          {/* Remplacé par CarteProfilEmployeur dans ProfilEmployeur. */}
+          {!integre && (<>
           {/* Bannière */}
           <div
             className="relative h-[130px] bg-primary-dark bg-cover bg-center overflow-hidden"
@@ -249,6 +251,7 @@ export default function CompanyProfilePage({ integre = false }: { integre?: bool
             )}
           </div>
 
+          </>)}
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="bg-transparent border-t border-b w-full justify-start rounded-none h-auto p-0 px-6">

@@ -1,6 +1,8 @@
-import { useLocation } from "wouter";
+import { useLocation, useParams } from "wouter";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { LienRetour } from "@/components/profil-employeur/lien-retour";
+import { CarteProfilEmployeur } from "@/components/profil-employeur/carte-profil";
+import { useProfilEmployeur } from "@/hooks/use-profil-employeur";
 
 // Contenu provisoire : les anciennes pages, sans leur en-tête ni leur
 // retour, en attendant la carte profil et les onglets (prompts 2 à 5).
@@ -15,6 +17,8 @@ import ProfilEntreprise from "@/pages/company-profile";
 export default function ProfilEmployeurPage() {
   const [location] = useLocation();
   const agence = location.startsWith("/agencies/");
+  const { id = "" } = useParams<{ id: string }>();
+  const { profil } = useProfilEmployeur(agence ? "agence" : "entreprise", id);
   return (
     <div className="min-h-screen bg-baara-papier dark:bg-baara-profond">
       <EnteteAccueil />
@@ -22,7 +26,8 @@ export default function ProfilEmployeurPage() {
         <div className="pb-3.5 pt-7">
           <LienRetour />
         </div>
-        {agence ? <ProfilAgence integre /> : <ProfilEntreprise integre />}
+        {profil && <CarteProfilEmployeur profil={profil} />}
+        <div className="mt-6">{agence ? <ProfilAgence integre /> : <ProfilEntreprise integre />}</div>
       </div>
     </div>
   );

@@ -181,6 +181,8 @@ export default function AgencyProfilePage({ integre = false }: { integre?: boole
         )}
 
         <div className="flex flex-col lg:flex-row gap-8">
+          {/* Remplacé par CarteProfilEmployeur dans ProfilEmployeur. */}
+          {!integre && (<>
           <div className="w-full lg:w-80 flex-shrink-0">
             <Card className="sticky top-4">
               <CardContent className="p-6">
@@ -313,6 +315,7 @@ export default function AgencyProfilePage({ integre = false }: { integre?: boole
             </Card>
           </div>
 
+          </>)}
           <div className="flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="mb-6 bg-transparent border-b w-full justify-start rounded-none h-auto p-0">
