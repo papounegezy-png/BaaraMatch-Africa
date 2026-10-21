@@ -121,6 +121,7 @@ export default function OffresPage() {
   return (
     <div className="min-h-screen bg-baara-papier pb-20 dark:bg-baara-profond lg:pb-0">
       <EnteteAccueil />
+      <main id="contenu" tabIndex={-1} className="focus:outline-none">
       <BandeauOffres>
         <RechercheOffres
           recherche={etat.recherche}
@@ -186,6 +187,7 @@ export default function OffresPage() {
           )}
         </div>
       </div>
+      </main>
       {user && <MobileBottomNav userType={user.userType} />}
     </div>
   );

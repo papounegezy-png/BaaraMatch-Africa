@@ -170,7 +170,9 @@ function formatRelativeDate(date: Date | string | null): string {
   return `Il y a ${Math.floor(diffDays / 30)} mois`;
 }
 
-export default function DashboardPage() {
+// integre : affichée dans EspaceCandidatPage, qui fournit l'en-tête, le
+// titre et la barre mobile (refonte de l'espace candidat, prompts 1 à 6).
+export default function DashboardPage({ integre = false }: { integre?: boolean } = {}) {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -305,6 +307,31 @@ export default function DashboardPage() {
   const handlePickSlot = (applicationId: string, jobTitle?: string) => {
     setSlotPickerTarget({ applicationId, jobTitle });
   };
+
+  if (integre) {
+    return (
+      <>
+        <DesktopDashboard
+          user={user}
+          stats={stats}
+          jobs={jobs}
+          applications={applications}
+          profile={profile}
+          profileCompletion={profileCompletion}
+          onPickSlot={handlePickSlot}
+          integre
+        />
+        {user.userType === "candidate" && (
+          <PickInterviewSlotDialog
+            applicationId={slotPickerTarget?.applicationId ?? null}
+            jobTitle={slotPickerTarget?.jobTitle}
+            open={!!slotPickerTarget}
+            onOpenChange={(open) => { if (!open) setSlotPickerTarget(null); }}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
@@ -458,6 +485,7 @@ interface DashboardProps {
   profile?: CandidateProfile;
   profileCompletion: number;
   onPickSlot?: (applicationId: string, jobTitle?: string) => void;
+  integre?: boolean;
 }
 
 function MobileDashboard({ user, stats, jobs, applications, profile, profileCompletion, onPickSlot }: DashboardProps) {
@@ -778,7 +806,7 @@ function MobileDashboard({ user, stats, jobs, applications, profile, profileComp
   );
 }
 
-function DesktopDashboard({ user, stats, jobs, applications, profile, profileCompletion, onPickSlot }: DashboardProps) {
+function DesktopDashboard({ user, stats, jobs, applications, profile, profileCompletion, onPickSlot, integre = false }: DashboardProps) {
   const { savedJobIds, toggleSave, isPending: isSavePending } = useSavedJobs();
   const getInitials = (name: string) => {
     return name
@@ -817,8 +845,8 @@ function DesktopDashboard({ user, stats, jobs, applications, profile, profileCom
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
+    <div className={integre ? "" : "min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100"}>
+      <div className={integre ? "py-8" : "container mx-auto px-4 py-8"}>
       <div className="flex flex-col lg:flex-row gap-8">
         <aside className="lg:w-80 space-y-6">
           <Card className="rounded-2xl border-border/70">

@@ -10,10 +10,12 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       <EnteteAccueil />
+      <main id="contenu" tabIndex={-1} className="focus:outline-none">
       <BandeauAccroche />
       <OffresRecentes />
       <SectionEmployeurs />
       <EntreprisesQuiRecrutent />
+      </main>
     </div>
   );
 }

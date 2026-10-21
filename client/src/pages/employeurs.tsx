@@ -121,6 +121,7 @@ export default function EmployeursPage() {
   return (
     <div className="min-h-screen bg-baara-papier pb-20 dark:bg-baara-profond lg:pb-0">
       <EnteteAccueil />
+      <main id="contenu" tabIndex={-1} className="focus:outline-none">
       <BandeauEmployeurs>
         <RechercheEmployeurs
           recherche={etat.recherche}
@@ -182,6 +183,7 @@ export default function EmployeursPage() {
           )}
         </div>
       </div>
+      </main>
       {user && <MobileBottomNav userType={user.userType} />}
     </div>
   );

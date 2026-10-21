@@ -46,6 +46,7 @@ const prechargements = (): Plugin => ({
         "/jobs": fichiersDe("offres"),
         "/candidate/jobs": fichiersDe("offres"),
         "/agencies": fichiersDe("employeurs"),
+        "/espace-personnel": fichiersDe("espace-candidat"),
       };
       // Profils d'employeur : /agencies/:id et /companies/:id.
       const profil = fichiersDe("profil-employeur");

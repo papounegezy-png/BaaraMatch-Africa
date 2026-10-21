@@ -31,12 +31,15 @@ function formatRelativeTime(dateString: string) {
 interface NotificationBellProps {
   iconClassName?: string;
   buttonClassName?: string;
+  // « entete » : bouton rond de 48 px bordé, point rouge de 12 px (en-tête
+  // des pages publiques et de l'espace candidat).
+  variante?: "entete";
 }
 
 // Real notification bell (unread badge + dropdown preview) — shared by the
 // public Navbar and the Company/Agency dashboard layouts, which previously
 // each rendered a plain decorative Bell icon with no data behind it.
-export function NotificationBell({ iconClassName = "h-4 w-4", buttonClassName }: NotificationBellProps) {
+export function NotificationBell({ iconClassName = "h-4 w-4", buttonClassName, variante }: NotificationBellProps) {
   const queryClient = useQueryClient();
 
   const { data: notifications = [] } = useQuery<Notification[]>({
@@ -57,11 +60,22 @@ export function NotificationBell({ iconClassName = "h-4 w-4", buttonClassName }:
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className={`relative ${buttonClassName ?? ""}`} data-testid="button-notifications">
-          <Bell className={iconClassName} />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={unread.length > 0 ? `Notifications, ${unread.length} nouvelle${unread.length > 1 ? "s" : ""}` : "Notifications"}
+          className={variante === "entete"
+            ? `relative h-12 w-12 rounded-full border border-baara-trait text-baara-marine hover:bg-baara-clair focus-visible:ring-2 focus-visible:ring-baara-bleu dark:border-white/15 dark:text-white dark:hover:bg-white/10 ${buttonClassName ?? ""}`
+            : `relative ${buttonClassName ?? ""}`}
+          data-testid="button-notifications"
+        >
+          <Bell className={variante === "entete" ? "h-5 w-5" : iconClassName} aria-hidden="true" />
           {unread.length > 0 && (
             <span
-              className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"
+              aria-hidden="true"
+              className={variante === "entete"
+                ? "absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-white bg-baara-urgent dark:border-baara-profond"
+                : "absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"}
               data-testid="badge-unread-notifications"
             />
           )}

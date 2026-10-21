@@ -65,6 +65,16 @@ export function EnteteAccueil() {
   const fermerMenu = () => setMenuOuvert(false);
 
   return (
+    <>
+    {/* Lien d'évitement : premier élément focusable, visible au focus, vers
+        le contenu de la page (<main id="contenu">). */}
+    <a
+      href="#contenu"
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-[calc(env(safe-area-inset-top,0px)+12px)] focus:z-[60] focus:rounded-xl focus:bg-baara-marine focus:px-5 focus:py-3 focus:font-texte focus:font-semibold focus:text-white focus:outline-none focus:ring-2 focus:ring-baara-bleu focus:ring-offset-2"
+      data-testid="lien-evitement"
+    >
+      Aller au contenu
+    </a>
     <header className="sticky top-[env(safe-area-inset-top,0px)] z-50 border-b border-baara-trait bg-baara-papier/95 backdrop-blur supports-[backdrop-filter]:bg-baara-papier/85 dark:border-white/10 dark:bg-baara-profond/95">
       <div className="container mx-auto flex h-[76px] items-center justify-between gap-4 px-4">
         <Link
@@ -86,17 +96,19 @@ export function EnteteAccueil() {
         </nav>
 
         <div className="hidden items-center gap-2 min-[900px]:flex">
-          {user && <ClocheNotifications />}
+          {user && <ClocheNotifications variante="entete" />}
           <ThemeToggle className="h-11 w-11" />
           {user ? (
             <>
-              <Link href={espacePersonnel} className={lienNav} data-testid="link-accueil-espace">Mon espace</Link>
-              <button
-                type="button"
-                onClick={logout}
-                className="h-11 rounded-lg border border-baara-marine/30 px-4 font-texte text-sm font-semibold text-baara-marine hover:bg-baara-clair dark:border-white/30 dark:text-white dark:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu"
-                data-testid="button-accueil-deconnexion"
+              <Link
+                href={espacePersonnel}
+                aria-current={location === espacePersonnel ? "page" : undefined}
+                className="inline-flex h-11 items-center rounded-lg bg-baara-marine px-5 font-texte text-sm font-semibold text-white hover:bg-baara-profond focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:bg-white dark:text-baara-marine dark:hover:bg-baara-clair"
+                data-testid="link-accueil-espace"
               >
+                Mon espace
+              </Link>
+              <button type="button" onClick={logout} className={lienNav} data-testid="button-accueil-deconnexion">
                 Déconnexion
               </button>
             </>
@@ -115,7 +127,7 @@ export function EnteteAccueil() {
         </div>
 
         <div className="flex items-center gap-1 min-[900px]:hidden">
-          {user && <ClocheNotifications />}
+          {user && <ClocheNotifications variante="entete" />}
           <ThemeToggle className="h-11 w-11" />
           <button
             ref={boutonMenuRef}
@@ -147,7 +159,14 @@ export function EnteteAccueil() {
         <div className="mt-2 grid gap-2 border-t border-baara-trait pt-3 dark:border-white/10">
           {user ? (
             <>
-              <Link href={espacePersonnel} className={lienMenuMobile} onClick={fermerMenu}>Mon espace</Link>
+              <Link
+                href={espacePersonnel}
+                onClick={fermerMenu}
+                aria-current={location === espacePersonnel ? "page" : undefined}
+                className={`${lienMenuMobile} ${location === espacePersonnel ? "border-l-4 border-baara-or bg-baara-clair font-bold dark:bg-white/10" : ""}`}
+              >
+                Mon espace
+              </Link>
               <button
                 type="button"
                 onClick={() => { fermerMenu(); logout(); }}
@@ -171,5 +190,6 @@ export function EnteteAccueil() {
         </div>
       </div>
     </header>
+    </>
   );
 }

@@ -82,6 +82,7 @@ export default function ProfilEmployeurPage() {
   return (
     <div className="min-h-screen bg-baara-papier dark:bg-baara-profond">
       <EnteteAccueil />
+      <main id="contenu" tabIndex={-1} className="focus:outline-none">
       <div className="mx-auto w-full max-w-[1180px] px-6 pb-16 max-[519px]:px-4">
         <div className="pb-3.5 pt-7">
           <LienRetour />
@@ -125,6 +126,7 @@ export default function ProfilEmployeurPage() {
           </CarteProfilEmployeur>
         )}
       </div>
+      </main>
     </div>
   );
 }

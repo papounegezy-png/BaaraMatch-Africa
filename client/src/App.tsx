@@ -29,6 +29,7 @@ const RegisterOrganizationPage = lazy(() => import("@/pages/register-organizatio
 const OrganizationClaimPage = lazy(() => import("@/pages/organization-claim"));
 const SatisfactionSurveyPage = lazy(() => import("@/pages/satisfaction-survey"));
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
+const EspaceCandidatPage = lazy(() => import("@/pages/espace-candidat"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 // Page Offres refondue (pages/offres.tsx) ; l'ancienne pages/jobs.tsx sera
 // supprimée à la passe finale.
@@ -85,7 +86,7 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
 // Hauteur d'un écran : le pied de page reste hors de vue au lieu d'apparaître
 // en haut puis d'être repoussé (décalage de mise en page).
 // Pages qui affichent leur propre en-tête (EnteteAccueil) au lieu de la Navbar.
-const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs", "/agencies"];
+const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs", "/agencies", "/espace-personnel"];
 // …et les profils d'employeur (/agencies/:id, /companies/:id).
 const aSonEntete = (location: string) => {
   const morceaux = location.split("/");
@@ -99,7 +100,13 @@ function ChargementPage({ avecEntete = false }: { avecEntete?: boolean }) {
   return (
     <>
       {avecEntete && <EnteteAccueil />}
-      <LoadingState label="Chargement de la page" variant="block" rows={3} className="container mx-auto min-h-screen px-4 py-10" />
+      {avecEntete ? (
+        <main id="contenu" tabIndex={-1} className="focus:outline-none">
+          <LoadingState label="Chargement de la page" variant="block" rows={3} className="container mx-auto min-h-screen px-4 py-10" />
+        </main>
+      ) : (
+        <LoadingState label="Chargement de la page" variant="block" rows={3} className="container mx-auto min-h-screen px-4 py-10" />
+      )}
     </>
   );
 }
@@ -112,7 +119,14 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
       {!aSonEntete(location) && <Navbar user={user} onLogout={logout} />}
-      <main className="flex-1"><Suspense fallback={<ChargementPage avecEntete={aSonEntete(location)} />}>{children}</Suspense></main>
+      {/* Les pages à en-tête propre (EnteteAccueil) placent elles-mêmes leur
+          contenu dans <main id="contenu">, après l'en-tête et le lien
+          d'évitement ; les autres sont enveloppées ici. */}
+      {aSonEntete(location) ? (
+        <div className="flex flex-1 flex-col"><Suspense fallback={<ChargementPage avecEntete />}>{children}</Suspense></div>
+      ) : (
+        <main id="contenu" className="flex-1"><Suspense fallback={<ChargementPage />}>{children}</Suspense></main>
+      )}
       <PiedAccueil />
     </div>
   );
@@ -128,7 +142,7 @@ function PublicRouter() {
         <Route path="/register/organisation" component={RegisterOrganizationPage} />
         <Route path="/claim/:token" component={OrganizationClaimPage} />
         <Route path="/satisfaction/:token" component={SatisfactionSurveyPage} />
-        <Route path="/espace-personnel" component={DashboardPage} />
+        <Route path="/espace-personnel" component={EspaceCandidatPage} />
         <Route path="/statistics" component={StatisticsPage} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/profile/view" component={ProfilePage} />

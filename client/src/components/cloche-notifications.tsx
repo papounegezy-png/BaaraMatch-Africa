@@ -7,7 +7,7 @@ const NotificationBell = lazy(() => import("@/components/notification-bell").the
 
 export function ClocheNotifications(props: ComponentProps<typeof NotificationBell>) {
   return (
-    <Suspense fallback={<span className="inline-block h-9 w-9" aria-hidden="true" />}>
+    <Suspense fallback={<span className={props.variante === "entete" ? "inline-block h-12 w-12" : "inline-block h-9 w-9"} aria-hidden="true" />}>
       <NotificationBell {...props} />
     </Suspense>
   );

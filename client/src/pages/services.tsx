@@ -21,6 +21,7 @@ export default function ServicesPage() {
   return (
     <div className="min-h-screen bg-baara-papier dark:bg-baara-profond">
       <EnteteAccueil />
+      <main id="contenu" tabIndex={-1} className="focus:outline-none">
       <BandeauServices />
       <SelecteurProfil profil={profil} onChoisir={choisirProfil} />
       {/* Ancres des profils, juste avant le panneau, décalées sous l'en-tête et
@@ -32,6 +33,7 @@ export default function ServicesPage() {
       <OffreLancement />
       <Faq />
       <DemandeDemo />
+      </main>
     </div>
   );
 }
