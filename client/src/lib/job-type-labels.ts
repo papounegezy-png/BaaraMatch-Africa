@@ -1,6 +1,6 @@
 // Canonical job-type label map — consolidates what used to be several
 // separate, inconsistent copies (job-card.tsx, missions-management.tsx,
-// company-profile.tsx, company-jobs.tsx, agency-jobs.tsx each had their own,
+// company-jobs.tsx, agency-jobs.tsx (and the old profile pages) each had their own,
 // disagreeing on labels for the same raw value). Covers both the current
 // OfferForm vocabulary (cdi/cdd/...) and legacy values still present on job
 // postings created before OfferForm existed.

@@ -47,11 +47,13 @@ const prechargements = (): Plugin => ({
         "/candidate/jobs": fichiersDe("offres"),
         "/agencies": fichiersDe("employeurs"),
       };
+      // Profils d'employeur : /agencies/:id et /companies/:id.
+      const profil = fichiersDe("profil-employeur");
       return [
         ...polices,
         {
           tag: "script",
-          children: `(${JSON.stringify(parAdresse)}[location.pathname] || []).forEach(function (h) { var l = document.createElement("link"); l.rel = "modulepreload"; l.href = h; document.head.appendChild(l); });`,
+          children: `(function (p) { var m = p.split("/"); var f = ${JSON.stringify(parAdresse)}[p] || (m.length === 3 && (m[1] === "agencies" || m[1] === "companies") && m[2] ? ${JSON.stringify(profil)} : []); f.forEach(function (h) { var l = document.createElement("link"); l.rel = "modulepreload"; l.href = h; document.head.appendChild(l); }); })(location.pathname);`,
           injectTo: "head" as const,
         },
       ];

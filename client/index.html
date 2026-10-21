@@ -43,6 +43,11 @@
         if (chemin === "/jobs" || chemin === "/candidate/jobs") precharger("__offresPrechargees", "/api/offres" + location.search);
         // 12 premiers employeurs (TAILLE_PAGE de lib/etat-employeurs.ts).
         if (chemin === "/agencies") precharger("__employeursPrecharges", "/api/employeurs" + (location.search ? location.search + "&" : "?") + "taille=12");
+        // Profil d'un employeur (/agencies/:id, /companies/:id).
+        var morceaux = chemin.split("/");
+        if (morceaux.length === 3 && (morceaux[1] === "agencies" || morceaux[1] === "companies") && morceaux[2]) {
+          precharger("__profilPrecharge", "/api/employeurs/" + morceaux[2]);
+        }
       })();
     </script>
   </head>
