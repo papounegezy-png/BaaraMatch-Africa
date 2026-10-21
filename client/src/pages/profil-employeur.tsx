@@ -1,20 +1,28 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { LienRetour } from "@/components/profil-employeur/lien-retour";
 import { CarteProfilEmployeur } from "@/components/profil-employeur/carte-profil";
 import { BoutonOffres, BoutonSuivre, InvitationCompte } from "@/components/profil-employeur/actions-profil";
+import { BarreOnglets, idOnglet, useOngletProfil, type Onglet } from "@/components/profil-employeur/onglets-profil";
+import { PanneauAPropos, PanneauApercu, PanneauAvis, PanneauOffres } from "@/components/profil-employeur/panneaux-profil";
 import { useProfilEmployeur } from "@/hooks/use-profil-employeur";
 import { useSuiviEmployeur } from "@/hooks/use-suivi-employeur";
+import { useEnregistrerOffre } from "@/hooks/use-enregistrer-offre";
 import { useAuth } from "@/lib/auth";
 import type { ReponseOffres } from "@shared/recherche-offres";
 
-// Contenu provisoire : les anciennes pages, sans leur en-tête ni leur
-// retour, en attendant la carte profil et les onglets (prompts 2 à 5).
-import ProfilAgence from "@/pages/agency-profile";
-import ProfilEntreprise from "@/pages/company-profile";
+// Offres de l'employeur : 3 dans l'aperçu (et le total), 10 par page dans
+// l'onglet Offres (GET /api/offres filtré par employeur).
+const TAILLE_APERCU = 3;
+const TAILLE_ONGLET = 10;
 
-const ID_ONGLETS = "onglets-profil";
+async function chargerOffres(adresse: string): Promise<ReponseOffres> {
+  const r = await fetch(adresse, { credentials: "include" });
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json();
+}
 
 /**
  * Profil public d'un employeur, aux adresses /agencies/:id (agence) et
@@ -27,29 +35,40 @@ export default function ProfilEmployeurPage() {
   const { id = "" } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { profil } = useProfilEmployeur(agence ? "agence" : "entreprise", id);
+  const [onglet, choisirOnglet] = useOngletProfil();
+  const [page, setPage] = useState(1);
 
-  // Offres actives de l'employeur : seulement le total (GET /api/offres).
   const filtre = `${agence ? "agencyId" : "companyId"}=${encodeURIComponent(id)}`;
-  const offres = useQuery<ReponseOffres>({
-    queryKey: [`/api/offres?${filtre}&taille=1`],
-    queryFn: async () => {
-      const r = await fetch(`/api/offres?${filtre}&taille=1`, { credentials: "include" });
-      if (!r.ok) throw new Error(String(r.status));
-      return r.json();
-    },
+  const apercu = useQuery<ReponseOffres>({
+    queryKey: [`/api/offres?${filtre}&taille=${TAILLE_APERCU}`],
+    queryFn: () => chargerOffres(`/api/offres?${filtre}&taille=${TAILLE_APERCU}`),
+  });
+  const total = apercu.data?.total;
+  const liste = useQuery<ReponseOffres>({
+    queryKey: [`/api/offres?${filtre}&taille=${TAILLE_ONGLET}&page=${page}`],
+    queryFn: () => chargerOffres(`/api/offres?${filtre}&taille=${TAILLE_ONGLET}&page=${page}`),
+    enabled: onglet === "offres",
+    placeholderData: keepPreviousData,
   });
 
   // Suivre : réservé aux candidats ; un visiteur est invité à se connecter.
   // Une entreprise, une agence ou un administrateur ne voit pas le bouton.
   const peutSuivre = !user || user.userType === "candidate";
   const suivi = useSuiviEmployeur(id, !!user && user.userType === "candidate");
+  const { savedJobIds, peutEnregistrer, surEnregistrer } = useEnregistrerOffre();
 
-  // Onglet Offres : il vit dans l'adresse (?onglet=offres, prompt 4).
-  const voirOffres = () => {
-    const parametres = new URLSearchParams(window.location.search);
-    parametres.set("onglet", "offres");
-    window.history.replaceState(window.history.state, "", `${window.location.pathname}?${parametres}`);
-    document.getElementById(ID_ONGLETS)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  // Ouvre un onglet et y amène la vue (bouton d'offres, « Lire la suite »).
+  const ouvrir = (o: Onglet) => {
+    choisirOnglet(o);
+    requestAnimationFrame(() => {
+      const bouton = document.getElementById(idOnglet(o));
+      bouton?.focus({ preventScroll: true });
+      bouton?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    });
+  };
+  const changerDePage = (p: number) => {
+    setPage(p);
+    ouvrir("offres");
   };
 
   return (
@@ -64,13 +83,32 @@ export default function ProfilEmployeurPage() {
             profil={profil}
             actions={<>
               {peutSuivre && <BoutonSuivre connecte={!!user} suivi={suivi.suivi} enCours={suivi.enCours} onBasculer={suivi.basculer} />}
-              {offres.data && <BoutonOffres nombre={offres.data.total} onVoir={voirOffres} />}
+              {total !== undefined && <BoutonOffres nombre={total} onVoir={() => ouvrir("offres")} />}
             </>}
           >
             {!user && <InvitationCompte nom={profil.nom} />}
+            <div className="scroll-mt-28">
+              <BarreOnglets actif={onglet} onChoisir={choisirOnglet} nombreOffres={total ?? 0} />
+            </div>
+            {onglet === "apercu" && (
+              <PanneauApercu profil={profil} offres={apercu.data?.offres} total={total} suivi={suivi.suivi} onVoirOffres={() => ouvrir("offres")} onLirePlus={() => ouvrir("a-propos")} />
+            )}
+            {onglet === "offres" && (
+              <PanneauOffres
+                offres={liste.data?.offres}
+                page={liste.data?.page ?? page}
+                nbPages={liste.data?.nbPages ?? 1}
+                onPage={changerDePage}
+                suivi={suivi.suivi}
+                enregistrees={savedJobIds}
+                peutEnregistrer={peutEnregistrer}
+                onEnregistrer={surEnregistrer}
+              />
+            )}
+            {onglet === "a-propos" && <PanneauAPropos profil={profil} />}
+            {onglet === "avis" && <PanneauAvis />}
           </CarteProfilEmployeur>
         )}
-        <div id={ID_ONGLETS} className="mt-6 scroll-mt-28">{agence ? <ProfilAgence integre /> : <ProfilEntreprise integre />}</div>
       </div>
     </div>
   );

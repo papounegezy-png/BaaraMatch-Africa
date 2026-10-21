@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "wouter";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { BandeauOffres } from "@/components/offres/bandeau-offres";
@@ -7,7 +6,7 @@ import { RechercheOffres } from "@/components/offres/recherche-offres";
 import { BarreContrat } from "@/components/offres/barre-contrat";
 import { CarteOffre } from "@/components/offres/carte-offre";
 import { AucuneOffre, EnTeteResultats, ErreurOffres, PaginationOffres, SquelettesOffres } from "@/components/offres/resultats-offres";
-import { useSavedJobs } from "@/hooks/use-saved-jobs";
+import { useEnregistrerOffre } from "@/hooks/use-enregistrer-offre";
 import { FiltresOffres, nombreFiltresActifs, type SelectionFiltres } from "@/components/offres/filtres-offres";
 import { usePanneauFiltres } from "@/components/listes/filtres-liste";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
@@ -50,8 +49,6 @@ export default function OffresPage() {
   const { user } = useAuth();
   const [etat, setEtat] = useState<EtatOffres>(() => etatDepuisAdresse(window.location.search));
   const historique = useRef<"push" | "replace">("replace");
-  const [, setLocation] = useLocation();
-  const { savedJobIds, toggleSave } = useSavedJobs();
 
   /** Change l'état ; tout changement autre que la page revient à la page 1. */
   const modifier = useCallback((changement: Partial<EtatOffres>, mode: "push" | "replace" = "push") => {
@@ -73,22 +70,8 @@ export default function OffresPage() {
     return () => window.removeEventListener("popstate", surRetour);
   }, []);
 
-  // Enregistrer : réservé aux candidats (/api/saved-jobs). Un visiteur est
-  // envoyé à la connexion puis ramené ici, filtres compris ; une entreprise
-  // ou une agence ne voit pas le bouton.
-  const peutEnregistrer = !user || user.userType === "candidate";
-  const enregistrer = (id: string) => {
-    if (!user) {
-      setLocation(`/login?retour=${encodeURIComponent(window.location.pathname + window.location.search)}`);
-      return;
-    }
-    toggleSave(id);
-  };
-  // Même fonction d'un rendu à l'autre : les cartes (memo) ne se
-  // redessinent que si leur offre ou leur état « enregistrée » change.
-  const refEnregistrer = useRef(enregistrer);
-  refEnregistrer.current = enregistrer;
-  const surEnregistrer = useCallback((id: string) => refEnregistrer.current(id), []);
+  // Enregistrer : réservé aux candidats (voir useEnregistrerOffre).
+  const { savedJobIds, peutEnregistrer, surEnregistrer } = useEnregistrerOffre();
   const selection: SelectionFiltres = {
     secteurs: etat.secteurs, villes: etat.villes, experiences: etat.experiences, publieeDepuisJours: etat.publieeDepuisJours,
   };
