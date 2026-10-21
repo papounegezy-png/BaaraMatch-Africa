@@ -97,24 +97,16 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     }))
     .filter((entry) => entry.name || entry.issuer || entry.obtainedDate);
 
-  // If no structured certifications but legacy text exists, add as fallback
-  if (certificationEntries.length === 0 && typeof profile?.certifications === "string" && profile.certifications.trim()) {
+  // Anciennes données, hors du type actuel : certifications enregistrées
+  // en texte libre, ou champ « certification » au singulier.
+  const ancien = profile as unknown as { certifications?: unknown; certification?: unknown } | null | undefined;
+  const texteAncien = [ancien?.certifications, ancien?.certification]
+    .find((v): v is string => typeof v === "string" && v.trim() !== "");
+  if (certificationEntries.length === 0 && texteAncien) {
     certificationEntries = [
       {
         id: `${Math.random().toString(16).slice(2, 8)}`,
-        name: profile.certifications.trim(),
-        issuer: "",
-        obtainedDate: "",
-      },
-    ];
-  }
-
-  // If still empty, check for legacy field 'certification' (singular)
-  if (certificationEntries.length === 0 && typeof profile?.certification === "string" && profile.certification.trim()) {
-    certificationEntries = [
-      {
-        id: `${Math.random().toString(16).slice(2, 8)}`,
-        name: profile.certification.trim(),
+        name: texteAncien.trim(),
         issuer: "",
         obtainedDate: "",
       },

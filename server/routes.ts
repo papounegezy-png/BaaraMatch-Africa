@@ -2648,7 +2648,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Non autorisé" });
       }
 
-      const candidateId = req.params.id;
+      const candidateId = String(req.params.id);
       const candidate = await storage.getUser(candidateId);
 
       if (!candidate || candidate.userType !== "candidate") {
