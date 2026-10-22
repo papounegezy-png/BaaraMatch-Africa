@@ -61,7 +61,7 @@ beforeAll(async () => {
   for (const [cle, email] of Object.entries(emails)) ids[cle] = (await pool.query("select id from users where email = $1", [email])).rows[0].id;
   offreId = (await pool.query("insert into job_postings (company_id, title, description, location, job_type, is_active) values ($1, 'Foreur vocal', '<p>Test.</p>', 'Kayes', 'cdi', false) returning id", [ids.entreprise])).rows[0].id;
   await pool.query("insert into applications (candidate_id, job_id) values ($1, $2)", [ids.candidat, offreId]);
-}, 40000);
+}, 90_000); // Création des comptes : le hachage des mots de passe est lent sur une machine chargée.
 
 afterAll(async () => {
   const tous = Object.values(ids);

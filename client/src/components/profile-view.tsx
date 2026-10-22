@@ -10,6 +10,7 @@ import { BlocAPropos, BlocCv, BlocInfosPersonnelles } from "@/components/profil/
 import { BlocCertifications, BlocExperiences, BlocFormations } from "@/components/profil/chronologies";
 import { libelleAnneesExperience, libelleDisponibilite, libellePretentions } from "@/utils/profil";
 import { BlocCompetences, BlocCvVocal, ColonneSuivi } from "@/components/profil/suivi-profil";
+import type { CvVocal } from "@/components/cv-vocal/gestion-cv-vocal";
 import { calculateProfileCompletion, nextProfileStep } from "@/lib/completion-profil";
 
 type EditorSection = "personal" | "professional" | "cv" | "education" | "certifications" | "experiences" | "preferences";
@@ -276,6 +277,8 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             onModifier={() => openEditorSection("cv")}
           />
 
+          <BlocCvVocal cvVocal={(profile as (CandidateProfile & { cvVocal?: CvVocal }) | null | undefined)?.cvVocal} />
+
           <BlocExperiences
             experiences={sortedExperienceEntries}
             plusieursEnCours={hasMultipleCurrent}
@@ -290,8 +293,6 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
           <BlocCertifications certifications={sortedCertificationEntries} onModifier={() => openEditorSection("certifications")} />
 
           <BlocCompetences competences={profile?.skills ?? []} onModifier={() => openEditorSection("professional")} />
-
-          {profile?.voiceCvUrl ? <BlocCvVocal /> : null}
 
           {/* Sur ordinateur, ce bouton est dans le titre de la page. */}
           <button

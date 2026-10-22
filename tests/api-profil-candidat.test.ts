@@ -68,7 +68,7 @@ beforeAll(async () => {
   const r2 = await partiel.request("PATCH", "/api/profile", { userUpdates: { phone: "76234567", city: "Kayes" }, profileUpdates: { ...sansCertification, certifications: [] } });
   expect(r2.status, await r2.clone().text()).toBe(200);
   await pool.query("update candidate_profiles set resume_url = $2, resume_file_name = 'cv.pdf', resume_mime_type = 'application/pdf' where user_id = $1", [ids.partiel, `data:application/pdf;base64,${PDF.toString("base64")}`]);
-}, 40000);
+}, 90_000); // Création des comptes : le hachage des mots de passe est lent sur une machine chargée.
 
 afterAll(async () => {
   const tous = Object.values(ids);

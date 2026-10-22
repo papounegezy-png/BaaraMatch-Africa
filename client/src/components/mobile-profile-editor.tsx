@@ -40,19 +40,17 @@ import {
   X,
   Save,
   Calendar,
-  Play,
-  Pause,
   Trash2,
   Upload,
   FileText,
   Download,
   Eye,
-  StopCircle,
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { SKILLS_LIST_SORTED } from "@/lib/skills-list";
+import { GestionCvVocal, type CvVocal } from "@/components/cv-vocal/gestion-cv-vocal";
 import type {
   User,
   CandidateProfile,
@@ -352,10 +350,6 @@ export function MobileProfileEditor({ user, profile, onSave, initialSection }: M
 
   const [skills, setSkills] = useState<string[]>(profile?.skills || []);
   const [newSkill, setNewSkill] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [hasVoiceCV, setHasVoiceCV] = useState(!!profile?.voiceCvUrl);
-  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [cvFileName, setCvFileName] = useState<string | null>(profile?.resumeFileName || null);
   const [cvMimeType, setCvMimeType] = useState<string | null>(profile?.resumeMimeType || null);
   const [cvFileUrl, setCvFileUrl] = useState<string | null>(profile?.resumeUrl || null);
@@ -364,13 +358,6 @@ export function MobileProfileEditor({ user, profile, onSave, initialSection }: M
   const [educationEntries, setEducationEntries] = useState<CandidateEducationEntry[]>(profile?.educationEntries || []);
   const [certifications, setCertifications] = useState<CandidateCertificationEntry[]>(profile?.certifications || []);
   const [experiences, setExperiences] = useState<CandidateExperienceEntry[]>(profile?.experiences || []);
-  const recordingInterval = useRef<NodeJS.Timeout | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const recordingStartTimeRef = useRef<number>(0);
-  const [voiceCvBlob, setVoiceCvBlob] = useState<Blob | null>(null);
-  const [voiceCvUrl, setVoiceCvUrl] = useState<string | null>(profile?.voiceCvUrl || null);
 
   const saveProfileMutation = useMutation({
     mutationFn: async (data: { userUpdates: Record<string, unknown>; profileUpdates: Record<string, unknown> }) => {
@@ -387,28 +374,6 @@ export function MobileProfileEditor({ user, profile, onSave, initialSection }: M
     },
   });
 
-  useEffect(() => {
-    if (isRecording) {
-      recordingInterval.current = setInterval(() => {
-        setRecordingTime((prev) => {
-          if (prev >= 60) {
-            handleStopRecording();
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      if (recordingInterval.current) {
-        clearInterval(recordingInterval.current);
-      }
-    }
-    return () => {
-      if (recordingInterval.current) {
-        clearInterval(recordingInterval.current);
-      }
-    };
-  }, [isRecording]);
 
   useEffect(() => {
     if (!initialSection) return;
@@ -473,122 +438,6 @@ export function MobileProfileEditor({ user, profile, onSave, initialSection }: M
 
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter((s) => s !== skillToRemove));
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const handleStartRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      recordingStartTimeRef.current = Date.now();
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        stream.getTracks().forEach(track => track.stop());
-        
-        const elapsedSeconds = Math.floor((Date.now() - recordingStartTimeRef.current) / 1000);
-        
-        if (elapsedSeconds >= 5) {
-          setVoiceCvBlob(audioBlob);
-          const blobUrl = URL.createObjectURL(audioBlob);
-          setVoiceCvUrl(blobUrl);
-          setHasVoiceCV(true);
-          toast({
-            title: "CV Vocal enregistré !",
-            description: `Durée: ${formatTime(elapsedSeconds)}`,
-          });
-        } else {
-          setRecordingTime(0);
-          toast({
-            title: "Enregistrement trop court",
-            description: "Votre présentation doit durer au moins 5 secondes.",
-            variant: "destructive",
-          });
-        }
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      toast({
-        title: "Enregistrement démarré",
-        description: "Présentez-vous en quelques phrases (max 1 min)...",
-      });
-    } catch (error) {
-      toast({
-        title: "Accès au microphone refusé",
-        description: "Veuillez autoriser l'accès au microphone dans les paramètres de votre navigateur.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const handlePlayVoiceCV = () => {
-    if (isPlayingVoice && audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setIsPlayingVoice(false);
-      return;
-    }
-    
-    const audioSource = voiceCvUrl || profile?.voiceCvUrl;
-    if (!audioSource) return;
-    
-    const audio = new Audio(audioSource);
-    audioRef.current = audio;
-    
-    audio.onended = () => {
-      setIsPlayingVoice(false);
-    };
-    
-    audio.onerror = () => {
-      setIsPlayingVoice(false);
-      toast({
-        title: "Erreur de lecture",
-        description: "Impossible de lire le CV vocal.",
-        variant: "destructive",
-      });
-    };
-    
-    audio.play().catch(() => {
-      setIsPlayingVoice(false);
-    });
-    setIsPlayingVoice(true);
-  };
-
-  const handleDeleteVoiceCV = () => {
-    setHasVoiceCV(false);
-    setVoiceCvBlob(null);
-    setVoiceCvUrl(null);
-    setRecordingTime(0);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    toast({
-      title: "CV Vocal supprimé",
-      description: "Vous pouvez en enregistrer un nouveau.",
-    });
   };
 
   const handleCVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -784,13 +633,6 @@ export function MobileProfileEditor({ user, profile, onSave, initialSection }: M
     }
   };
 
-  const uploadVoiceCv = async (blob: Blob) => {
-    const audioBase64 = await blobToBase64(blob);
-    await apiRequest("POST", "/api/voice-cv/upload", {
-      audioBase64,
-      mimeType: blob.type || "audio/webm",
-    });
-  };
 
   const onSubmit = async (data: ProfileFormData) => {
         // Contrôle: une seule expérience peut être "En cours"
@@ -866,18 +708,10 @@ export function MobileProfileEditor({ user, profile, onSave, initialSection }: M
         profileUpdates.resumeMimeType = null;
       }
 
-      if (voiceCvBlob) {
-        await uploadVoiceCv(voiceCvBlob);
-        queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
-      } else if (!hasVoiceCV && profile?.voiceCvUrl) {
-        profileUpdates.voiceCvUrl = null;
-        profileUpdates.voiceCvTranscript = null;
-      }
 
       await saveProfileMutation.mutateAsync({ userUpdates, profileUpdates });
       setCvUpdated(false);
       setPendingCvFile(null);
-      setVoiceCvBlob(null);
     } catch (error) {
       const friendlyError = getFriendlySaveErrorMessage(error as Error);
       toast({
@@ -950,119 +784,16 @@ export function MobileProfileEditor({ user, profile, onSave, initialSection }: M
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-2 bg-gradient-to-r from-accent/10 to-accent/5">
+      {/* CV vocal : enregistré tout de suite, indépendamment du formulaire. */}
+      <Card>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
-              <Mic className="h-4 w-4 text-white" />
-            </div>
-            CV Vocal WhatsApp
+            <Mic className="h-4 w-4" aria-hidden="true" />
+            CV vocal
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <p className="text-sm text-muted-foreground">
-            Enregistrez une courte présentation audio (style message vocal) pour vous démarquer.
-          </p>
-
-          {!hasVoiceCV && !isRecording && (
-            <div className="flex flex-col items-center py-6 space-y-4">
-              <Button
-                onClick={handleStartRecording}
-                className="rounded-full bg-accent hover:bg-accent/90 shadow-lg"
-                size="lg"
-                data-testid="button-start-recording"
-              >
-                <Mic className="h-6 w-6 mr-2" />
-                Enregistrer
-              </Button>
-              <p className="text-sm text-muted-foreground">Appuyez pour enregistrer</p>
-            </div>
-          )}
-
-          {isRecording && (
-            <div className="flex flex-col items-center py-6 space-y-4">
-              <Button
-                onClick={handleStopRecording}
-                variant="destructive"
-                size="lg"
-                className="rounded-full shadow-lg"
-                data-testid="button-stop-recording"
-              >
-                <StopCircle className="h-6 w-6 mr-2" />
-                Arrêter
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="flex gap-0.5">
-                  {[...Array(12)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-1 bg-red-500 rounded-full animate-pulse"
-                      style={{
-                        height: `${8 + Math.random() * 16}px`,
-                        animationDelay: `${i * 0.1}s`,
-                      }}
-                    />
-                  ))}
-                </div>
-                <span className="font-mono text-lg font-semibold text-destructive">
-                  {formatTime(recordingTime)}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">Enregistrement en cours...</p>
-            </div>
-          )}
-
-          {hasVoiceCV && !isRecording && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-accent/10 border border-accent/20">
-                <Button
-                  onClick={handlePlayVoiceCV}
-                  size="icon"
-                  className="rounded-full bg-accent hover:bg-accent/90 shrink-0"
-                  data-testid="button-play-voice"
-                  disabled={!voiceCvUrl && !profile?.voiceCvUrl}
-                >
-                  {isPlayingVoice ? (
-                    <Pause className="h-5 w-5" />
-                  ) : (
-                    <Play className="h-5 w-5 ml-0.5" />
-                  )}
-                </Button>
-                <div className="flex-1">
-                  <div className="flex gap-0.5 items-center h-8">
-                    {[...Array(30)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-accent/60 rounded-full"
-                        style={{ height: `${4 + Math.random() * 20}px` }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatTime(recordingTime || 45)} • CV vocal enregistré
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDeleteVoiceCV}
-                  className="text-destructive"
-                  data-testid="button-delete-voice"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={handleStartRecording}
-                data-testid="button-rerecord"
-              >
-                <Mic className="h-4 w-4" />
-                Réenregistrer
-              </Button>
-            </div>
-          )}
+        <CardContent>
+          <GestionCvVocal cvVocal={(profile as (CandidateProfile & { cvVocal?: CvVocal }) | undefined)?.cvVocal} />
         </CardContent>
       </Card>
 

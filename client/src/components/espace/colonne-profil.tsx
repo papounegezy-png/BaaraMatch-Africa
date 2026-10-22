@@ -1,6 +1,8 @@
 import { Link } from "wouter";
-import { Bookmark, CheckCircle2, ChevronRight, Eye, MapPin, Pencil, Search, type LucideIcon } from "lucide-react";
+import { Bookmark, CheckCircle2, ChevronRight, Eye, MapPin, Mic, Pencil, Search, type LucideIcon } from "lucide-react";
 import { calculateProfileCompletion, nextProfileStep } from "@/lib/completion-profil";
+import { LecteurVocal } from "@/components/cv-vocal/lecteur-vocal";
+import type { CvVocal } from "@/components/cv-vocal/gestion-cv-vocal";
 import type { CandidateProfile, User } from "@shared/schema";
 
 const pastille =
@@ -36,6 +38,8 @@ export function ColonneProfil({
       ) : (
         <CarteProfil utilisateur={utilisateur} profil={profil ?? undefined} />
       )}
+
+      {!chargement && utilisateur && <CarteCvVocal cvVocal={(profil as (CandidateProfile & { cvVocal?: CvVocal }) | null | undefined)?.cvVocal} />}
 
       <section aria-labelledby="titre-actions-rapides" className="mt-10 border-t-2 border-baara-marine pt-5 dark:border-white">
         <h2 id="titre-actions-rapides" className="font-titre text-[22px] font-bold text-baara-marine dark:text-white">
@@ -125,6 +129,42 @@ function CarteProfil({ utilisateur, profil }: { utilisateur: User; profil?: Cand
         </Link>
       </div>
     </div>
+  );
+}
+
+/** CV vocal : écouter (joint aux candidatures), ou l'enregistrer depuis Mon profil. */
+function CarteCvVocal({ cvVocal }: { cvVocal: CvVocal }) {
+  return (
+    <section aria-labelledby="titre-cv-vocal-espace" className="mt-10 border-t-2 border-baara-marine pt-5 dark:border-white" data-testid="carte-cv-vocal">
+      <h2 id="titre-cv-vocal-espace" className="font-titre text-[22px] font-bold text-baara-marine dark:text-white">
+        CV vocal
+      </h2>
+      <div className="mt-4 rounded-[20px] border-[1.5px] border-baara-trait bg-white p-5 dark:border-white/20 dark:bg-white/5">
+        {cvVocal ? (
+          <>
+            <LecteurVocal url={cvVocal.url} dureeSecondes={cvVocal.dureeSecondes} libelle="votre CV vocal" compact />
+            <p className="mt-2 font-texte text-[14.5px] text-baara-texte dark:text-slate-300">Joint à vos candidatures.</p>
+            <Link href="/profile/view#cv-vocal" className="mt-1 inline-flex min-h-11 items-center gap-1.5 font-texte text-[15px] font-bold text-baara-bleu underline underline-offset-4 hover:text-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:text-white">
+              Réenregistrer
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="font-texte text-[15.5px] text-baara-texte dark:text-slate-300">
+              Présentez-vous de vive voix : les recruteurs l'écouteront avec vos candidatures.
+            </p>
+            <Link
+              href="/profile/view#cv-vocal"
+              className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border-[1.5px] border-baara-marine bg-white px-5 font-texte text-[15px] font-semibold text-baara-marine hover:bg-baara-clair focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:border-white dark:bg-transparent dark:text-white dark:hover:bg-white/10"
+              data-testid="lien-enregistrer-vocal"
+            >
+              <Mic className="h-4 w-4" aria-hidden="true" />
+              Enregistrer mon CV vocal
+            </Link>
+          </>
+        )}
+      </div>
+    </section>
   );
 }
 

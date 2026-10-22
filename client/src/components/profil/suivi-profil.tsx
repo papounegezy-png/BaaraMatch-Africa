@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react";
-import { Briefcase, CalendarCheck, CheckCircle2, FileText, Lightbulb, Mic, Pencil, Sparkles, TrendingUp, type LucideIcon } from "lucide-react";
+import { Briefcase, CalendarCheck, FileText, Lightbulb, Mic, Pencil, Sparkles, TrendingUp, type LucideIcon } from "lucide-react";
 import { BlocProfil, TexteVide } from "@/components/profil/bloc-profil";
+import { GestionCvVocal, type CvVocal } from "@/components/cv-vocal/gestion-cv-vocal";
 import { accorderNombre, libelleDateLongue } from "@/utils/profil";
 
 const boutonContour =
@@ -25,13 +26,10 @@ export function BlocCompetences({ competences, onModifier }: { competences: stri
   );
 }
 
-export function BlocCvVocal() {
+export function BlocCvVocal({ cvVocal }: { cvVocal: CvVocal }) {
   return (
     <BlocProfil id="cv-vocal" titre="CV vocal" Icone={Mic}>
-      <p className="flex items-center gap-2 font-texte text-[16px] font-semibold text-baara-marine dark:text-white">
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-baara-bleu dark:text-baara-moyen" aria-hidden="true" />
-        CV vocal enregistré
-      </p>
+      <GestionCvVocal cvVocal={cvVocal} />
     </BlocProfil>
   );
 }

@@ -40,3 +40,9 @@ export function libelleDureeAudio(secondes: number | null | undefined): string |
   if (s < 60) return `${s} s`;
   return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;
 }
+
+/** « de » élidé devant une voyelle ou un h muet : « d'Aminata », « de Moussa ». */
+export function deNom(nom: string | null | undefined): string {
+  const n = (nom ?? "").trim() || "ce candidat";
+  return /^[aeiouyhàâäéèêëîïôöûüœ]/i.test(n) ? `d'${n}` : `de ${n}`;
+}
