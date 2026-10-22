@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Eye, Pencil } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
-import { MobileProfileEditor } from "@/components/mobile-profile-editor";
 import { ProfileView } from "@/components/profile-view";
 import { Skeleton } from "@/components/ui/skeleton";
+import { reprendrePrechargement } from "@/lib/prechargement-api";
+
+// L'éditeur (formulaire complet, CV vocal) n'est chargé qu'à l'ouverture du
+// mode modification : la consultation du profil n'en a pas besoin.
+const MobileProfileEditor = lazy(() => import("@/components/mobile-profile-editor").then((m) => ({ default: m.MobileProfileEditor })));
 import type { User, CandidateProfile } from "@shared/schema";
 
 const EDITOR_SECTIONS = [
@@ -37,6 +41,7 @@ const boutonContour =
  * même page : la vue et l'éditeur se remplacent sur place.
  */
 export default function ProfilePage() {
+  useState(reprendrePrechargement);
   const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
   const [isEditing, setIsEditing] = useState(false);
@@ -123,12 +128,14 @@ export default function ProfilePage() {
 
               <div className="mt-8">
                 {isEditing ? (
-                  <MobileProfileEditor
-                    user={profileData?.user || user}
-                    profile={profileData?.profile || undefined}
-                    initialSection={targetSection}
-                    onSave={() => setIsEditing(false)}
-                  />
+                  <Suspense fallback={<Skeleton className="h-96 w-full rounded-3xl" aria-label="Chargement du formulaire" />}>
+                    <MobileProfileEditor
+                      user={profileData?.user || user}
+                      profile={profileData?.profile || undefined}
+                      initialSection={targetSection}
+                      onSave={() => setIsEditing(false)}
+                    />
+                  </Suspense>
                 ) : (
                   <ProfileView user={profileData?.user || user} onEdit={() => setIsEditing(true)} />
                 )}

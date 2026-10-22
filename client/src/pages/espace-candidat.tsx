@@ -16,26 +16,8 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
 import type { Application, CandidateProfile, User } from "@shared/schema";
-import { queryClient } from "@/lib/queryClient";
-
-declare global {
-  interface Window { __espacePrecharge?: Record<string, Promise<unknown>> }
-}
-
-// Requêtes lancées dès index.html : elles alimentent le cache avant le
-// premier rendu (une seule fois ; un échec, une session expirée par
-// exemple, laisse la page refaire sa requête normalement).
-function reprendrePrechargement() {
-  const prechargees = window.__espacePrecharge;
-  window.__espacePrecharge = undefined;
-  if (!prechargees) return;
-  // prefetchQuery : la requête est « en cours » pour React Query, la page
-  // l'attend au lieu d'en relancer une.
-  for (const [url, promesse] of Object.entries(prechargees)) {
-    if (queryClient.getQueryState([url])) continue;
-    void queryClient.prefetchQuery({ queryKey: [url], queryFn: () => promesse });
-  }
-}
+// Requêtes lancées dès index.html : voir lib/prechargement-api.ts.
+import { reprendrePrechargement } from "@/lib/prechargement-api";
 
 type Candidature = Application & { jobTitle?: string; location?: string; organizationName?: string | null };
 

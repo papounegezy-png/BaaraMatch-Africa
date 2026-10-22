@@ -32,7 +32,6 @@ import {
 import {
   Camera,
   Mic,
-  MicOff,
   Phone,
   MapPin,
   Briefcase,
@@ -41,8 +40,6 @@ import {
   X,
   Save,
   Calendar,
-  ChevronRight,
-  CheckCircle2,
   Play,
   Pause,
   Trash2,

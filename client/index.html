@@ -54,16 +54,22 @@
         if (morceaux.length === 3 && (morceaux[1] === "agencies" || morceaux[1] === "companies") && morceaux[2]) {
           precharger("__profilPrecharge", "/api/employeurs/" + morceaux[2]);
         }
-        // Espace candidat : ses quatre requêtes (pages/espace-candidat.tsx
-        // les reprend). taille=50 : TAILLE_MAX de shared/recherche-offres.ts.
-        if (chemin === "/espace-personnel") {
-          var espace = {};
-          ["/api/applications", "/api/profile", "/api/offres?taille=50", "/api/saved-jobs"].forEach(function (url) {
-            espace[url] = fetch(url, { credentials: "include" })
+        // Pages connectées : leurs requêtes partent avec le JavaScript
+        // (lib/prechargement-api.ts les reprend). taille=50 : TAILLE_MAX de
+        // shared/recherche-offres.ts.
+        var requetes = {
+          "/espace-personnel": ["/api/applications", "/api/profile", "/api/offres?taille=50", "/api/saved-jobs"],
+          "/profile/view": ["/api/profile"],
+          "/profile": ["/api/profile"]
+        }[chemin];
+        if (requetes) {
+          var lancees = {};
+          requetes.forEach(function (url) {
+            lancees[url] = fetch(url, { credentials: "include" })
               .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
-            espace[url].catch(function () {});
+            lancees[url].catch(function () {});
           });
-          window.__espacePrecharge = espace;
+          window.__requetesPrechargees = lancees;
         }
       })();
     </script>
