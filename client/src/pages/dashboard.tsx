@@ -1018,10 +1018,13 @@ function DesktopDashboard({ user, stats, jobs, applications, profile, profileCom
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-4 p-3 rounded-xl border border-border/70 bg-card">
-                    <h3 className="text-sm font-medium mb-2">Prochaines actions</h3>
-                    <NextActionsList actions={getNextActions(applications, profileCompletion)} onPickSlot={onPickSlot} />
-                  </div>
+                  {/* Dans l'espace candidat, remplacé par « À faire maintenant ». */}
+                  {!integre && (
+                    <div className="mb-4 p-3 rounded-xl border border-border/70 bg-card">
+                      <h3 className="text-sm font-medium mb-2">Prochaines actions</h3>
+                      <NextActionsList actions={getNextActions(applications, profileCompletion)} onPickSlot={onPickSlot} />
+                    </div>
+                  )}
                   <div className="space-y-3">
                     {applications.length === 0 ? (
                       <div className="text-center py-4 space-y-3">

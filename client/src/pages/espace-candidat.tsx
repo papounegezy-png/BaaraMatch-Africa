@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
+import { AFaireMaintenant } from "@/components/espace/a-faire-maintenant";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
@@ -64,6 +65,7 @@ export default function EspaceCandidatPage() {
               Rechercher des offres
             </Link>
           </div>
+          <AFaireMaintenant candidatures={liste} />
           <AncienTableauDeBord integre />
         </div>
       </main>

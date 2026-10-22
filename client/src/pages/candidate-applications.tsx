@@ -13,15 +13,28 @@ import { apiRequest } from "@/lib/queryClient";
 import { CandidatureCard, type CandidatureCardData } from "@/components/candidature-card";
 import { PickInterviewSlotDialog } from "@/components/pick-interview-slot-dialog";
 
-type TabKey = "all" | "active" | "accepted" | "closed";
+type TabKey = "all" | "active" | "entretiens" | "offres" | "accepted" | "closed";
 
 const activeStatuses = ["pending", "reviewing", "shortlisted", "interview_proposed", "interview", "offered"];
+const interviewStatuses = ["interview_proposed", "interview"];
+const offerStatuses = ["offered"];
 const acceptedStatuses = ["hired"];
 const closedStatuses = ["rejected", "withdrawn"];
+
+// ?filtre=entretiens|offres ouvre l'onglet correspondant (liens de l'espace
+// candidat) ; #candidature-{id} fait défiler jusqu'à la candidature.
+const FILTRES: Partial<Record<string, TabKey>> = { entretiens: "entretiens", offres: "offres" };
+
+function ongletInitial(): TabKey {
+  if (typeof window === "undefined") return "all";
+  return FILTRES[new URLSearchParams(window.location.search).get("filtre") ?? ""] ?? "all";
+}
 
 function matchesTab(status: string, tab: TabKey): boolean {
   if (tab === "all") return true;
   if (tab === "active") return activeStatuses.includes(status);
+  if (tab === "entretiens") return interviewStatuses.includes(status);
+  if (tab === "offres") return offerStatuses.includes(status);
   if (tab === "accepted") return acceptedStatuses.includes(status);
   return closedStatuses.includes(status);
 }
@@ -31,7 +44,8 @@ export default function CandidateApplicationsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<TabKey>("all");
+  const [activeTab, setActiveTab] = useState<TabKey>(ongletInitial);
+  const [enEvidence, setEnEvidence] = useState<string | null>(null);
   const [slotPickerTarget, setSlotPickerTarget] = useState<{ applicationId: string; jobTitle?: string } | null>(null);
 
   const {
@@ -61,6 +75,42 @@ export default function CandidateApplicationsPage() {
       });
     },
   });
+
+  // Arrivée sur #candidature-{id} : défilement, focus et mise en évidence,
+  // une fois la liste affichée.
+  const pret = !applicationsLoading && applications.length > 0;
+  useEffect(() => {
+    if (!pret) return;
+    const ancre = decodeURIComponent(window.location.hash.slice(1));
+    if (!ancre.startsWith("candidature-")) return;
+    const id = ancre.slice("candidature-".length);
+    const cible = applications.find((a) => a.id === id);
+    if (!cible) return;
+    if (!matchesTab(cible.status ?? "pending", activeTab)) {
+      setActiveTab("all");
+      return;
+    }
+    const element = document.getElementById(ancre);
+    if (!element) return;
+    const reduit = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollIntoView({ behavior: reduit ? "auto" : "smooth", block: "center" });
+    element.focus({ preventScroll: true });
+    setEnEvidence(id);
+    const minuterie = setTimeout(() => setEnEvidence(null), 3000);
+    return () => clearTimeout(minuterie);
+    // Une seule fois par arrivée : pas de dépendance sur activeTab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pret, activeTab === "all"]);
+
+  const changerOnglet = (onglet: TabKey) => {
+    setActiveTab(onglet);
+    const params = new URLSearchParams(window.location.search);
+    const filtre = Object.keys(FILTRES).find((k) => FILTRES[k] === onglet);
+    if (filtre) params.set("filtre", filtre);
+    else params.delete("filtre");
+    const recherche = params.toString();
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}${recherche ? `?${recherche}` : ""}`);
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -103,6 +153,8 @@ export default function CandidateApplicationsPage() {
   const counts = {
     all: applications.length,
     active: applications.filter((a) => matchesTab(a.status ?? "pending", "active")).length,
+    entretiens: applications.filter((a) => matchesTab(a.status ?? "pending", "entretiens")).length,
+    offres: applications.filter((a) => matchesTab(a.status ?? "pending", "offres")).length,
     accepted: applications.filter((a) => matchesTab(a.status ?? "pending", "accepted")).length,
     closed: applications.filter((a) => matchesTab(a.status ?? "pending", "closed")).length,
   };
@@ -167,7 +219,7 @@ export default function CandidateApplicationsPage() {
             </CardContent>
           </Card>
         ) : (
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
+          <Tabs value={activeTab} onValueChange={(value) => changerOnglet(value as TabKey)}>
             <div className="overflow-x-auto pb-1">
               <TabsList className="w-max min-w-full">
                 <TabsTrigger value="all" className="gap-1.5" data-testid="tab-all">
@@ -177,6 +229,14 @@ export default function CandidateApplicationsPage() {
                 <TabsTrigger value="active" className="gap-1.5" data-testid="tab-active">
                   En cours
                   <span className="text-xs text-muted-foreground" aria-live="polite">({counts.active})</span>
+                </TabsTrigger>
+                <TabsTrigger value="entretiens" className="gap-1.5" data-testid="tab-entretiens">
+                  Entretiens
+                  {counts.entretiens > 0 && <span className="text-xs text-muted-foreground" aria-live="polite">({counts.entretiens})</span>}
+                </TabsTrigger>
+                <TabsTrigger value="offres" className="gap-1.5" data-testid="tab-offres">
+                  Offres reçues
+                  {counts.offres > 0 && <span className="text-xs text-muted-foreground" aria-live="polite">({counts.offres})</span>}
                 </TabsTrigger>
                 <TabsTrigger value="accepted" className="gap-1.5" data-testid="tab-accepted">
                   Acceptées
@@ -194,13 +254,19 @@ export default function CandidateApplicationsPage() {
                 <p className="text-sm text-muted-foreground text-center py-10">Aucune candidature dans cette catégorie.</p>
               ) : (
                 filteredApplications.map((application) => (
-                  <CandidatureCard
+                  <div
                     key={application.id}
-                    application={application}
-                    onPickSlot={() => setSlotPickerTarget({ applicationId: application.id, jobTitle: application.jobTitle })}
-                    onWithdraw={(id) => withdrawMutation.mutate(id)}
-                    isWithdrawing={withdrawMutation.isPending && withdrawMutation.variables === application.id}
-                  />
+                    id={`candidature-${application.id}`}
+                    tabIndex={-1}
+                    className={`scroll-mt-24 rounded-xl transition-shadow focus:outline-none motion-reduce:transition-none ${enEvidence === application.id ? "ring-2 ring-baara-bleu ring-offset-2" : ""}`}
+                  >
+                    <CandidatureCard
+                      application={application}
+                      onPickSlot={() => setSlotPickerTarget({ applicationId: application.id, jobTitle: application.jobTitle })}
+                      onWithdraw={(id) => withdrawMutation.mutate(id)}
+                      isWithdrawing={withdrawMutation.isPending && withdrawMutation.variables === application.id}
+                    />
+                  </div>
                 ))
               )}
             </div>
