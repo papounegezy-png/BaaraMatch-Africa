@@ -189,3 +189,9 @@ export function libelleContrat(valeur: string | null | undefined): string | unde
   if (!v) return undefined;
   return v.toLowerCase() === "interim" ? "Intérim" : v;
 }
+
+/** « 1 expérience ajoutée », « 2 expériences ajoutées » ; 0 → null. */
+export function accorderNombre(n: number, singulier: string, pluriel: string): string | null {
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return `${n} ${n > 1 ? pluriel : singulier}`;
+}

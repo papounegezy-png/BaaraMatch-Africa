@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  accorderNombre,
   libelleAnneesExperience,
   libelleContrat,
   libelleDateLongue,
@@ -88,5 +89,13 @@ describe("autres libellés", () => {
     expect(libelleContrat("Interim")).toBe("Intérim");
     expect(libelleContrat("CDI")).toBe("CDI");
     expect(libelleContrat("  ")).toBeUndefined();
+  });
+});
+
+describe("accorderNombre", () => {
+  it("accorde au singulier et au pluriel, rien pour zéro", () => {
+    expect(accorderNombre(0, "expérience ajoutée", "expériences ajoutées")).toBeNull();
+    expect(accorderNombre(1, "expérience ajoutée", "expériences ajoutées")).toBe("1 expérience ajoutée");
+    expect(accorderNombre(2, "expérience ajoutée", "expériences ajoutées")).toBe("2 expériences ajoutées");
   });
 });

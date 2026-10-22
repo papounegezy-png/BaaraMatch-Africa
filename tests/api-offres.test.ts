@@ -118,7 +118,9 @@ describe("GET /api/offres", () => {
     expect(facettes.contrats).toEqual({ toutes: 3, CDI: 1, CDD: 1, Freelance: 1 });
     // Toutes les villes de la base restent proposées ; seules celles du test sont comptées.
     const villes = facettes.villes.filter((v: { valeur: string }) => ["bamako", "kayes"].includes(v.valeur));
-    expect(villes.map((v: { libelle: string; nombre: number }) => `${v.libelle}:${v.nombre}`)).toEqual(["Bamako:1", "Kayès:0"]);
+    // Clé et nombre, pas le libellé : il prend la graphie la plus fréquente de
+    // toute la base, que d'autres tests (« Kayes » sans accent) font varier.
+    expect(villes.map((v: { valeur: string; nombre: number }) => `${v.valeur}:${v.nombre}`)).toEqual(["bamako:1", "kayes:0"]);
     expect(facettes.secteurs).toHaveLength(32);
   });
 });

@@ -1,18 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Calendar,
-  CheckCircle2,
-  Edit,
-  Lightbulb,
-  Mic,
-  Sparkles,
-} from "lucide-react";
+import { Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { User as AppUser, CandidateProfile } from "@shared/schema";
@@ -20,6 +9,10 @@ import { CarteIdentite } from "@/components/profil/carte-identite";
 import { BlocAPropos, BlocCv, BlocInfosPersonnelles } from "@/components/profil/blocs-informations";
 import { BlocCertifications, BlocExperiences, BlocFormations } from "@/components/profil/chronologies";
 import { libelleAnneesExperience, libelleDisponibilite, libelleSalaire, lirePretentions } from "@/utils/profil";
+import { BlocCompetences, BlocCvVocal, ColonneSuivi } from "@/components/profil/suivi-profil";
+import { calculateProfileCompletion, nextProfileStep } from "@/lib/completion-profil";
+
+type EditorSection = "personal" | "professional" | "cv" | "education" | "certifications" | "experiences" | "preferences";
 
 interface ProfileViewProps {
   user: AppUser;
@@ -235,44 +228,13 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     document.body.removeChild(link);
   };
 
-  const completionChecks = [
-    !!currentUser.fullName,
-    !!currentUser.phone,
-    !!currentUser.city,
-    !!profile?.title,
-    !!profile?.bio,
-    !!profile?.experience,
-    educationEntries.length > 0 || !!profile?.education,
-    certificationEntries.length > 0,
-    !!profile?.resumeUrl,
-    !!profile?.skills?.length,
-  ];
-
-  const profileCompletion = Math.round((completionChecks.filter(Boolean).length / completionChecks.length) * 100);
+  // Même calcul que l'espace candidat (lib/completion-profil.ts).
+  const profileCompletion = calculateProfileCompletion(currentUser, profile ?? undefined);
   const experienceCount = sortedExperienceEntries.length > 0 ? sortedExperienceEntries.length : profile?.experience ? 1 : 0;
   const educationCount = educationEntries.length > 0 ? educationEntries.length : profile?.education ? 1 : 0;
   const certificationCount = certificationEntries.length;
 
-  const suggestions = useMemo(() => {
-    const items: string[] = [];
-    if (!profile?.title) items.push("Ajoutez un titre de poste cible.");
-    if (!profile?.bio) items.push("Ajoutez une breve presentation professionnelle.");
-    if (!educationEntries.length && !profile?.education) items.push("Renseignez au moins une formation.");
-    if (!certificationEntries.length) items.push("Ajoutez vos certifications pour renforcer le profil.");
-    if (!profile?.resumeUrl) items.push("Importez votre CV PDF pour etre visible des recruteurs.");
-    if (!profile?.skills?.length) items.push("Ajoutez des competences cles.");
-    return items;
-  }, [profile, educationEntries.length, certificationEntries.length]);
-
-  const activity = [
-    profile?.updatedAt ? `Profil mis a jour le ${new Date(profile.updatedAt).toLocaleDateString("fr-FR")}` : "Profil jamais mis a jour",
-    profile?.resumeUrl ? "CV disponible" : "CV non ajoute",
-    experienceEntries.length > 0 ? `${experienceEntries.length} experience(s) ajoutee(s)` : "Aucune experience detaillee",
-  ];
-
-  const openEditorSection = (
-    section: "personal" | "professional" | "cv" | "education" | "certifications" | "experiences" | "preferences",
-  ) => {
+  const openEditorSection = (section: EditorSection) => {
     setLocation(`/profile?section=${section}`);
     onEdit();
   };
@@ -341,111 +303,30 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
 
           <BlocCertifications certifications={sortedCertificationEntries} onModifier={() => openEditorSection("certifications")} />
 
-          {profile?.skills && profile.skills.length > 0 ? (
-            <Card className="rounded-2xl border-border/70 shadow-sm">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Competences
-                  </CardTitle>
-                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEditorSection("professional")}>
-                    <Edit className="h-3.5 w-3.5" />
-                    Modifier
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {profile.skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" data-testid={`badge-skill-${skill}`}>
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+          <BlocCompetences competences={profile?.skills ?? []} onModifier={() => openEditorSection("professional")} />
 
-          {profile?.voiceCvUrl ? (
-            <Card className="rounded-2xl border-border/70 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Mic className="h-4 w-4" />
-                  CV Vocal
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/10">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span className="text-sm">CV vocal enregistre</span>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+          {profile?.voiceCvUrl ? <BlocCvVocal /> : null}
 
           {/* Sur ordinateur, ce bouton est dans le titre de la page. */}
-          <Button size="lg" className="w-full gap-2 min-[900px]:hidden" onClick={onEdit} data-testid="button-edit-profile">
-            <Edit className="h-4 w-4" />
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-baara-bleu px-6 font-texte text-[16px] font-semibold text-white hover:bg-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 min-[900px]:hidden"
+            data-testid="button-edit-profile"
+          >
+            <Pencil className="h-5 w-5" aria-hidden="true" />
             Modifier mon profil
-          </Button>
+          </button>
         </div>
 
-        <aside aria-label="Suivi du profil" className="min-w-0 space-y-5 [flex:1_1_320px]">
-          <Card className="border-border/70 shadow-sm xl:sticky xl:top-6">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Progression du profil</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Niveau actuel</span>
-                <span className="font-medium">{profileCompletion}%</span>
-              </div>
-              <Progress value={profileCompletion} className="h-2" />
-              <p className="text-xs text-muted-foreground">Objectif recommande: 90%+ pour augmenter la visibilite du profil.</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Lightbulb className="h-4 w-4" />
-                Suggestions UX
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {suggestions.length > 0 ? (
-                suggestions.map((item, index) => (
-                  <div key={index} className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-sm">
-                    {item}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Excellent profil. Continuez a le maintenir a jour.</p>
-              )}
-              <Button variant="outline" className="w-full gap-2" onClick={() => openEditorSection("preferences")}>
-                <Edit className="h-4 w-4" />
-                Completer mon profil
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Activite
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {activity.map((item, index) => (
-                <div key={index} className="rounded-lg border border-border/70 px-3 py-2 text-sm">
-                  {item}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </aside>
+        <ColonneSuivi
+          completion={profileCompletion}
+          miseAJour={profile?.updatedAt}
+          cvDisponible={!!profile?.resumeUrl}
+          nbExperiences={experienceEntries.length}
+          onCompleter={() => openEditorSection(nextProfileStep(currentUser, profile ?? undefined)?.section as EditorSection ?? "personal")}
+          onMettreAJour={onEdit}
+        />
       </div>
     </div>
   );
