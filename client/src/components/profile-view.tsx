@@ -12,21 +12,17 @@ import {
   Calendar,
   CheckCircle2,
   DollarSign,
-  Download,
   Edit,
-  Eye,
-  FileText,
   GraduationCap,
   Lightbulb,
   Mic,
-  Phone,
   Sparkles,
-  User,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { User as AppUser, CandidateProfile } from "@shared/schema";
 import { CarteIdentite } from "@/components/profil/carte-identite";
+import { BlocAPropos, BlocCv, BlocInfosPersonnelles } from "@/components/profil/blocs-informations";
 
 interface ProfileViewProps {
   user: AppUser;
@@ -201,9 +197,25 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     reader.readAsDataURL(file);
   };
 
-  const handleViewResume = () => {
+  const handleViewResume = async () => {
     if (!profile?.resumeUrl) return;
-    window.open(profile.resumeUrl, "_blank", "noopener,noreferrer");
+    // Un CV enregistré en data: (base64) ne s'ouvre pas tel quel dans un
+    // nouvel onglet (Chrome le bloque) : il passe par un lien blob:.
+    if (!profile.resumeUrl.startsWith("data:")) {
+      window.open(profile.resumeUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const onglet = window.open("", "_blank");
+    try {
+      const fichier = await (await fetch(profile.resumeUrl)).blob();
+      const lien = URL.createObjectURL(fichier);
+      if (onglet) onglet.location.href = lien;
+      else window.open(lien, "_blank");
+      setTimeout(() => URL.revokeObjectURL(lien), 60_000);
+    } catch {
+      onglet?.close();
+      toast({ title: "Impossible d'ouvrir le CV", description: "Téléchargez-le pour le consulter.", variant: "destructive" });
+    }
   };
 
   const handleDownloadResume = () => {
@@ -298,102 +310,24 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             onModifier={() => openEditorSection("personal")}
           />
 
-          <Card className="rounded-2xl border-border/70 shadow-sm">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Infos personnelles
-                </CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEditorSection("personal")}>
-                  <Edit className="h-3.5 w-3.5" />
-                  Modifier
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-border/70 p-3">
-                <p className="text-xs text-muted-foreground">Nom complet</p>
-                <p className="font-medium">{currentUser.fullName || "-"}</p>
-              </div>
-              <div className="rounded-xl border border-border/70 p-3">
-                <p className="text-xs text-muted-foreground">Telephone</p>
-                <p className="font-medium flex items-center gap-2">
-                  <Phone className="h-3 w-3" />
-                  {currentUser.phone || "-"}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border/70 p-3">
-                <p className="text-xs text-muted-foreground">Ville</p>
-                <p className="font-medium">{currentUser.city || "-"}</p>
-              </div>
-              <div className="rounded-xl border border-border/70 p-3">
-                <p className="text-xs text-muted-foreground">WhatsApp</p>
-                <p className="font-medium">{profile?.whatsappNumber || "-"}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <BlocInfosPersonnelles
+            nom={currentUser.fullName}
+            telephone={currentUser.phone}
+            ville={currentUser.city}
+            whatsapp={profile?.whatsappNumber}
+            onModifier={() => openEditorSection("personal")}
+          />
 
-          {profile?.bio ? (
-            <Card className="rounded-2xl border-border/70 shadow-sm">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle className="text-base">A propos</CardTitle>
-                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEditorSection("professional")}>
-                    <Edit className="h-3.5 w-3.5" />
-                    Modifier
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground" data-testid="text-bio">{profile.bio}</p>
-              </CardContent>
-            </Card>
-          ) : null}
+          <BlocAPropos presentation={profile?.bio} onModifier={() => openEditorSection("professional")} />
 
-          <Card className="rounded-2xl border-border/70 shadow-sm">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  CV du candidat
-                </CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEditorSection("cv")}>
-                  <Edit className="h-3.5 w-3.5" />
-                  Modifier
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {profile?.resumeUrl ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/25">
-                    <FileText className="h-5 w-5 text-primary shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate" data-testid="text-resume-file-name">
-                        {profile.resumeFileName || "CV PDF"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{profile.resumeMimeType || "Document"}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="button" className="flex-1 gap-2" onClick={handleViewResume} data-testid="button-view-resume">
-                      <Eye className="h-4 w-4" />
-                      Ouvrir le CV
-                    </Button>
-                    <Button type="button" variant="outline" className="flex-1 gap-2 border-border/70" onClick={handleDownloadResume} data-testid="button-download-resume">
-                      <Download className="h-4 w-4" />
-                      Telecharger
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-muted-foreground/40 p-4 text-sm text-muted-foreground">
-                  Aucun CV importe pour le moment.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <BlocCv
+            nomFichier={profile?.resumeFileName}
+            typeMime={profile?.resumeMimeType}
+            disponible={!!profile?.resumeUrl}
+            onOuvrir={handleViewResume}
+            onTelecharger={handleDownloadResume}
+            onModifier={() => openEditorSection("cv")}
+          />
 
           <Card id="experiences" className="scroll-mt-24 rounded-2xl border-border/70 shadow-sm">
             <CardHeader className="pb-2">
