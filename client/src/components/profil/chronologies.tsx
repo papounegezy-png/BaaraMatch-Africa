@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Award, Banknote, Briefcase, Building2, CalendarClock, GraduationCap, Info, Plus, type LucideIcon } from "lucide-react";
 import { BlocProfil, TexteVide } from "@/components/profil/bloc-profil";
-import { libelleContrat, libelleDateLongue, libellePeriode } from "@/utils/profil";
+import { libelleContrat, libelleObtention, libellePeriode, niveauDistinct } from "@/utils/profil";
 
 export type ExperienceProfil = {
   id: string;
@@ -136,8 +136,7 @@ export function BlocFormations({ formations, onModifier }: { formations: Formati
           elements={formations}
           rendu={(f) => {
             const diplome = f.degree || f.level || "Formation";
-            // « Niveau : … » seulement s'il apporte autre chose que le diplôme.
-            const niveau = f.level && f.level.trim().toLowerCase() !== diplome.trim().toLowerCase() ? f.level : null;
+            const niveau = niveauDistinct(f.level, diplome);
             const periode = libellePeriode(f.startYear, f.endYear);
             return (
               <article className={carte}>
@@ -162,13 +161,11 @@ export function BlocCertifications({ certifications, onModifier }: { certificati
       {certifications.length > 0 ? (
         <ul className="space-y-3" data-testid="liste-certifications">
           {certifications.map((c) => {
-            const jour = /^\d{4}-\d{2}-\d{2}/.test(c.obtainedDate.trim());
-            const date = libelleDateLongue(c.obtainedDate);
             return (
               <li key={c.id} className={carte}>
                 <h3 className={titreElement} data-testid={`text-certification-name-${c.id}`}>{c.name || "Certification"}</h3>
                 <p className="mt-1 font-texte text-[16px] font-medium text-baara-texte [overflow-wrap:anywhere] dark:text-slate-300">{c.issuer || "Organisme non renseigné"}</p>
-                <p className={`mt-1 ${ligneTexte}`}>{date ? `Obtenue ${jour ? "le" : "en"} ${date}` : "Date non renseignée"}</p>
+                <p className={`mt-1 ${ligneTexte}`}>{libelleObtention(c.obtainedDate)}</p>
               </li>
             );
           })}

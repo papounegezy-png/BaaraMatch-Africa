@@ -195,3 +195,37 @@ export function accorderNombre(n: number, singulier: string, pluriel: string): s
   if (!Number.isFinite(n) || n <= 0) return null;
   return `${n} ${n > 1 ? pluriel : singulier}`;
 }
+
+/** Mot accordé seul : 0 ou 1 → singulier, au-delà → pluriel. */
+export function motAccorde(n: number, singulier: string, pluriel: string): string {
+  return n > 1 ? pluriel : singulier;
+}
+
+/** Initiales d'un nom (deux au plus) : « Aminata Diallo » → « AD ». */
+export function initiales(nom: string | null | undefined): string {
+  return (nom ?? "").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0]!.toLocaleUpperCase("fr")).join("") || "?";
+}
+
+/**
+ * Date d'une certification : « Obtenue le 2 mars 2021 », « Obtenue en
+ * avril 2024 » (sans le jour), « Date non renseignée ».
+ */
+export function libelleObtention(valeur: string | null | undefined): string {
+  const v = (valeur ?? "").trim();
+  const date = libelleDateLongue(v);
+  if (!date) return "Date non renseignée";
+  return `Obtenue ${/^\d{4}-\d{2}-\d{2}/.test(v) ? "le" : "en"} ${date}`;
+}
+
+/** Niveau d'une formation, seulement s'il apporte autre chose que le diplôme. */
+export function niveauDistinct(niveau: string | null | undefined, diplome: string | null | undefined): string | undefined {
+  const n = (niveau ?? "").trim();
+  if (!n) return undefined;
+  return n.toLocaleLowerCase("fr") === (diplome ?? "").trim().toLocaleLowerCase("fr") ? undefined : n;
+}
+
+/** Prétentions enregistrées par l'éditeur (« 600-800 ») → texte affiché ; inconnu → undefined. */
+export function libellePretentions(valeur: string | null | undefined): string | undefined {
+  const p = lirePretentions(valeur);
+  return p ? libelleSalaire(p.min, p.max) : undefined;
+}

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   accorderNombre,
+  initiales,
+  libelleObtention,
+  libellePretentions,
+  motAccorde,
+  niveauDistinct,
   libelleAnneesExperience,
   libelleContrat,
   libelleDateLongue,
@@ -97,5 +102,36 @@ describe("accorderNombre", () => {
     expect(accorderNombre(0, "expérience ajoutée", "expériences ajoutées")).toBeNull();
     expect(accorderNombre(1, "expérience ajoutée", "expériences ajoutées")).toBe("1 expérience ajoutée");
     expect(accorderNombre(2, "expérience ajoutée", "expériences ajoutées")).toBe("2 expériences ajoutées");
+  });
+});
+
+describe("petits libellés", () => {
+  it("accorde un mot seul", () => {
+    expect([0, 1, 2].map((n) => motAccorde(n, "Expérience", "Expériences"))).toEqual(["Expérience", "Expérience", "Expériences"]);
+  });
+  it("tire les initiales", () => {
+    expect(initiales("Aminata Diallo")).toBe("AD");
+    expect(initiales("  oumar  ")).toBe("O");
+    expect(initiales("Aïssata Bâ Traoré")).toBe("AB");
+    expect(initiales("")).toBe("?");
+    expect(initiales(null)).toBe("?");
+  });
+  it("écrit la date d'obtention", () => {
+    expect(libelleObtention("2021-03-02")).toBe("Obtenue le 2 mars 2021");
+    expect(libelleObtention("2024-04")).toBe("Obtenue en avril 2024");
+    expect(libelleObtention("2019")).toBe("Obtenue en 2019");
+    expect(libelleObtention("")).toBe("Date non renseignée");
+    expect(libelleObtention(undefined)).toBe("Date non renseignée");
+  });
+  it("n'affiche pas deux fois le même diplôme", () => {
+    expect(niveauDistinct("Doctorat", "Doctorat")).toBeUndefined();
+    expect(niveauDistinct("doctorat ", "Doctorat")).toBeUndefined();
+    expect(niveauDistinct("Bac+5 (Master)", "Master réseaux")).toBe("Bac+5 (Master)");
+    expect(niveauDistinct("", "Master")).toBeUndefined();
+  });
+  it("lit les prétentions de l'éditeur", () => {
+    expect(libellePretentions("600-800")).toBe(`600${NB}000 – 800${NB}000 FCFA / mois`);
+    expect(libellePretentions("1M+")).toBe(`À partir de 1${NB}000${NB}000 FCFA / mois`);
+    expect(libellePretentions(null)).toBeUndefined();
   });
 });

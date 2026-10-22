@@ -8,7 +8,7 @@ import type { User as AppUser, CandidateProfile } from "@shared/schema";
 import { CarteIdentite } from "@/components/profil/carte-identite";
 import { BlocAPropos, BlocCv, BlocInfosPersonnelles } from "@/components/profil/blocs-informations";
 import { BlocCertifications, BlocExperiences, BlocFormations } from "@/components/profil/chronologies";
-import { libelleAnneesExperience, libelleDisponibilite, libelleSalaire, lirePretentions } from "@/utils/profil";
+import { libelleAnneesExperience, libelleDisponibilite, libellePretentions } from "@/utils/profil";
 import { BlocCompetences, BlocCvVocal, ColonneSuivi } from "@/components/profil/suivi-profil";
 import { calculateProfileCompletion, nextProfileStep } from "@/lib/completion-profil";
 
@@ -140,14 +140,14 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
       toast({
-        title: "Photo mise a jour",
-        description: "Votre photo de profil a ete enregistree.",
+        title: "Photo mise à jour",
+        description: "Votre photo de profil a été enregistrée.",
       });
     },
     onError: () => {
       toast({
         title: "Erreur",
-        description: "Impossible de telecharger la photo.",
+        description: "La photo n'a pas pu être envoyée. Réessayez.",
         variant: "destructive",
       });
     },
@@ -173,7 +173,7 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     if (!file.type.startsWith("image/")) {
       toast({
         title: "Format invalide",
-        description: "Veuillez selectionner une image.",
+        description: "Choisissez une image (JPEG, PNG ou WebP).",
         variant: "destructive",
       });
       return;
@@ -294,7 +294,7 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             experiences={sortedExperienceEntries}
             plusieursEnCours={hasMultipleCurrent}
             anneesExperience={libelleAnneesExperience(profile?.experience)}
-            pretentions={(() => { const p = lirePretentions(profile?.salaryExpectation); return p ? libelleSalaire(p.min, p.max) : undefined; })()}
+            pretentions={libellePretentions(profile?.salaryExpectation)}
             disponibilite={libelleDisponibilite(profile?.availableFrom)}
             onModifier={() => openEditorSection("experiences")}
           />

@@ -1,13 +1,10 @@
 import { BadgeCheck, Camera, CheckCircle2, Loader2, MapPin, Pencil } from "lucide-react";
+import { initiales, motAccorde } from "@/utils/profil";
 
 // libelle : au pluriel ; singulier : pour 0 et 1 (« 1 Expérience »).
 export type TuileProfil = { ancre: string; libelle: string; singulier: string; nombre: number };
 
 const pastille = "inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 font-texte text-[14.5px] font-bold";
-
-function initiales(nom: string): string {
-  return nom.trim().split(/\s+/).slice(0, 2).map((m) => m[0]?.toUpperCase() ?? "").join("") || "?";
-}
 
 /**
  * Carte d'identité de « Mon profil » : avatar (et changement de photo),
@@ -118,7 +115,7 @@ export function CarteIdentite({
               data-testid={`tuile-${t.ancre}`}
             >
               <span className="font-titre text-[26px] font-extrabold leading-none text-baara-marine tabular-nums dark:text-white">{t.nombre}</span>
-              <span className="mt-1.5 font-texte text-[15px] text-baara-texte [overflow-wrap:anywhere] dark:text-slate-300">{t.nombre > 1 ? t.libelle : t.singulier}</span>
+              <span className="mt-1.5 font-texte text-[15px] text-baara-texte [overflow-wrap:anywhere] dark:text-slate-300">{motAccorde(t.nombre, t.singulier, t.libelle)}</span>
             </a>
           </li>
         ))}
