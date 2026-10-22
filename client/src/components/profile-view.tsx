@@ -197,32 +197,18 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     reader.readAsDataURL(file);
   };
 
-  const handleViewResume = async () => {
+  // Le CV se lit par GET /api/profile/cv (l'API ne renvoie plus le fichier
+  // en base64) : affiché dans un onglet, ou téléchargé avec son nom.
+  const handleViewResume = () => {
     if (!profile?.resumeUrl) return;
-    // Un CV enregistré en data: (base64) ne s'ouvre pas tel quel dans un
-    // nouvel onglet (Chrome le bloque) : il passe par un lien blob:.
-    if (!profile.resumeUrl.startsWith("data:")) {
-      window.open(profile.resumeUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-    const onglet = window.open("", "_blank");
-    try {
-      const fichier = await (await fetch(profile.resumeUrl)).blob();
-      const lien = URL.createObjectURL(fichier);
-      if (onglet) onglet.location.href = lien;
-      else window.open(lien, "_blank");
-      setTimeout(() => URL.revokeObjectURL(lien), 60_000);
-    } catch {
-      onglet?.close();
-      toast({ title: "Impossible d'ouvrir le CV", description: "Téléchargez-le pour le consulter.", variant: "destructive" });
-    }
+    window.open(profile.resumeUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleDownloadResume = () => {
     if (!profile?.resumeUrl) return;
     const link = document.createElement("a");
-    link.href = profile.resumeUrl;
-    link.download = profile.resumeFileName || "cv-candidat";
+    link.href = profile.resumeUrl.startsWith("/api/profile/cv") ? "/api/profile/cv?telechargement=1" : profile.resumeUrl;
+    link.download = profile.resumeFileName || "cv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

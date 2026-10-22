@@ -1,3 +1,5 @@
+import { lirePretentions } from "@shared/profil-candidat";
+
 // « Mon profil » : conversions des données pour l'affichage. Aucune valeur
 // brute (type MIME, numéro collé) n'arrive telle quelle à l'écran.
 
@@ -57,6 +59,9 @@ export function libelleTypeFichier(typeMime?: string | null, nomFichier?: string
   }
   return "Fichier";
 }
+
+// Lecture des prétentions de l'éditeur : partagée avec le serveur.
+export { lirePretentions };
 
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
@@ -127,31 +132,6 @@ export function libelleDisponibilite(valeur: string | null | undefined): string 
   if (DISPONIBILITES[v]) return DISPONIBILITES[v];
   const date = /^\d{4}-\d{2}-\d{2}/.test(v) ? libelleDateLongue(v) : null;
   return date ? `Disponible à partir du ${date}` : undefined;
-}
-
-/**
- * Prétentions enregistrées par l'éditeur, en milliers de francs (libellés
- * « 600K - 800K FCFA ») : « 600-800 » → 600 000 à 800 000 ; « 800-1M » ;
- * « 1M+ » → à partir de 1 000 000. Inconnu → undefined.
- */
-export function lirePretentions(valeur: string | null | undefined): { min?: number; max?: number } | undefined {
-  const montant = (texte: string) => {
-    const m = texte.trim().match(/^(\d+(?:[.,]\d+)?)\s*(k|m)?$/i);
-    if (!m) return undefined;
-    const n = Number(m[1].replace(",", "."));
-    const unite = m[2]?.toLowerCase();
-    // Sans unité, l'éditeur compte en milliers.
-    return Math.round(n * (unite === "m" ? 1_000_000 : 1_000));
-  };
-  const v = (valeur ?? "").trim();
-  if (!v) return undefined;
-  const plus = v.match(/^(.+)\+$/);
-  if (plus) { const min = montant(plus[1]); return min ? { min } : undefined; }
-  const [a, b] = v.split("-");
-  const min = montant(a ?? "");
-  const max = b !== undefined ? montant(b) : undefined;
-  if (min === undefined || (b !== undefined && max === undefined)) return undefined;
-  return max !== undefined ? { min, max } : { min, max: min };
 }
 
 // Espace insécable (U+00A0) entre les milliers : « 600 000 » ne se coupe pas.

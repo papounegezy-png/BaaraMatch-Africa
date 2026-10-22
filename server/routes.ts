@@ -42,6 +42,9 @@ import { lireParametresEmployeurs, rechercherEmployeurs } from "@shared/recherch
 import { profilDepuisLigne } from "@shared/profil-employeur";
 import { avisSchema, resumerAvis, type AvisPublic } from "@shared/avis";
 import { offreDepuisLigne } from "@shared/offre";
+import { DISPONIBILITES, PRETENTIONS, nomFichierCv, pretentionsStructurees } from "@shared/profil-candidat";
+import { calculateProfileCompletion, etapesManquantes } from "@shared/completion-profil";
+import type { CandidateProfile as ProfilCandidatBrut, User as UtilisateurBrut } from "@shared/schema";
 import { INTERVALLE_RELANCE_JOURS, JOUR_MS, REPORT_RAPPEL_JOURS, SEUIL_RELANCE_JOURS, STATUTS_SANS_REPONSE, joursEcoules, libelleDuree } from "@shared/espace";
 import { lireParametresOffres, rechercherOffres } from "@shared/recherche-offres";
 import { salaryPeriods } from "@shared/schema";
@@ -168,6 +171,27 @@ const experienceEntrySchema = z.object({
   missionDescription: z.string(),
 });
 
+// Profil candidat tel que le candidat le reçoit (GET et PATCH
+// /api/profile) : le CV en base64 est remplacé par l'adresse de
+// GET /api/profile/cv ; s'y ajoutent la complétion calculée ici (même
+// calcul que le client, shared/completion-profil.ts) et les prétentions
+// structurées.
+function profilCandidatPourLui(utilisateur: UtilisateurBrut, profil: ProfilCandidatBrut | undefined | null) {
+  if (!profil) return null;
+  const etapes = etapesManquantes(utilisateur, profil);
+  return {
+    ...profil,
+    resumeUrl: profil.resumeUrl ? "/api/profile/cv" : null,
+    profileEmbedding: undefined,
+    pretentions: pretentionsStructurees(profil.salaryExpectation),
+    completion: {
+      pourcentage: calculateProfileCompletion(utilisateur, profil),
+      sectionsManquantes: Array.from(new Set(etapes.map((e) => e.section))),
+      etapesManquantes: etapes,
+    },
+  };
+}
+
 const candidateProfileSelfUpdateSchema = z.object({
   title: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),
@@ -175,9 +199,13 @@ const candidateProfileSelfUpdateSchema = z.object({
   experience: z.string().nullable().optional(),
   education: z.string().nullable().optional(),
   languages: z.array(z.string()).nullable().optional(),
-  availableFrom: z.string().nullable().optional(),
-  salaryExpectation: z.string().nullable().optional(),
-  resumeUrl: z.string().nullable().optional(),
+  // Valeurs de l'éditeur seulement (jamais du texte libre) ; une date
+  // AAAA-MM-JJ reste acceptée pour la disponibilité ; "" efface.
+  availableFrom: z.union([z.enum(DISPONIBILITES), z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]).nullable().optional(),
+  salaryExpectation: z.union([z.enum(PRETENTIONS), z.literal("")]).nullable().optional(),
+  // Effacement seulement : un CV s'envoie par /api/profile/resume-chunk et
+  // se lit par GET /api/profile/cv.
+  resumeUrl: z.null().optional(),
   resumeFileName: z.string().nullable().optional(),
   resumeMimeType: z.string().nullable().optional(),
   whatsappNumber: z.string().nullable().optional(),
@@ -2919,9 +2947,9 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Utilisateur non trouvé" });
       }
 
-      let profile = null;
+      let profile: unknown = null;
       if (user.userType === "candidate") {
-        profile = await storage.getCandidateProfile(user.id);
+        profile = profilCandidatPourLui(user, await storage.getCandidateProfile(user.id));
       } else if (user.userType === "agency") {
         profile = await storage.getAgencyProfile(user.id);
       } else if (user.userType === "company") {
@@ -2950,11 +2978,12 @@ export async function registerRoutes(
         await storage.updateUser(user.id, userUpdates);
       }
 
-      let profile = null;
+      let profile: unknown = null;
       if (rawProfileUpdates) {
         if (user.userType === "candidate") {
           const profileUpdates = candidateProfileSelfUpdateSchema.parse(rawProfileUpdates);
-          profile = await storage.updateCandidateProfile(user.id, profileUpdates);
+          const misAJour = await storage.updateCandidateProfile(user.id, profileUpdates);
+          profile = profilCandidatPourLui((await storage.getUser(user.id)) ?? user, misAJour);
         } else if (user.userType === "agency") {
           const profileUpdates = agencyProfileSelfUpdateSchema.parse(rawProfileUpdates);
           profile = await storage.updateAgencyProfile(user.id, profileUpdates);
@@ -2973,6 +3002,38 @@ export async function registerRoutes(
       }
       console.error("Error updating profile:", error);
       res.status(500).json({ message: "Erreur lors de la mise à jour du profil" });
+    }
+  });
+
+  // CV du candidat connecté : affiché dans le navigateur, ou téléchargé
+  // avec ?telechargement=1. Remplace l'adresse data: (base64) qui partait
+  // auparavant dans chaque réponse de /api/profile.
+  app.get("/api/profile/cv", requireRole("candidate"), async (req, res) => {
+    try {
+      const profil = await storage.getCandidateProfile(req.session.userId!);
+      const source = profil?.resumeUrl;
+      if (!source) return res.status(404).json({ message: "Aucun CV enregistré" });
+      const telechargement = req.query.telechargement === "1";
+      // Fichier déjà dans le stockage d'objets : sa propre route le sert.
+      if (!source.startsWith("data:")) {
+        if (!source.startsWith("/")) return res.status(404).json({ message: "CV introuvable" });
+        return res.redirect(302, source);
+      }
+      const m = source.match(/^data:([^;,]*)(;base64)?,([\s\S]*)$/);
+      if (!m) return res.status(500).json({ message: "CV illisible" });
+      const typeMime = profil.resumeMimeType || m[1] || "application/octet-stream";
+      const contenu = m[2] ? Buffer.from(m[3], "base64") : Buffer.from(decodeURIComponent(m[3]));
+      const nom = nomFichierCv(profil.resumeFileName, typeMime);
+      const nomAscii = nom.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7e]/g, "_");
+      res.setHeader("Content-Type", typeMime);
+      res.setHeader("Content-Length", String(contenu.length));
+      res.setHeader("Content-Disposition", `${telechargement ? "attachment" : "inline"}; filename="${nomAscii}"; filename*=UTF-8''${encodeURIComponent(nom)}`);
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.end(contenu);
+    } catch (error) {
+      console.error("Error serving resume:", error);
+      res.status(500).json({ message: "Erreur lors de la lecture du CV" });
     }
   });
 
