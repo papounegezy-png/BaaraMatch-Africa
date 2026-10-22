@@ -59,7 +59,7 @@ export function ColonneSuivi({
   nbExperiences: number;
   onCompleter: () => void;
   onMettreAJour: () => void;
-  /** Blocs affichés sous « Activité » (CV, CV vocal). */
+  /** Blocs affichés en tête de colonne, avant « Progression du profil » (CV, CV vocal). */
   children?: ReactNode;
 }) {
   const idNiveau = useId();
@@ -78,6 +78,8 @@ export function ColonneSuivi({
 
   return (
     <aside aria-label="Suivi du profil" className="min-w-0 space-y-5 [flex:1_1_320px]">
+      {children}
+
       <BlocProfil id="progression" titre="Progression du profil" Icone={TrendingUp} taille="lateral">
         <p className="flex items-baseline justify-between gap-3 font-texte text-[15.5px] text-baara-marine dark:text-white">
           <span id={idNiveau}>Niveau actuel</span>
@@ -113,8 +115,6 @@ export function ColonneSuivi({
           <ul className="space-y-3" data-testid="liste-activite">{activites}</ul>
         </BlocProfil>
       )}
-
-      {children}
     </aside>
   );
 }
