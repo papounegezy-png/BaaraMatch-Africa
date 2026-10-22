@@ -25,6 +25,7 @@ describe("calculerTaches", () => {
     expect(calculerTaches([c("a", { createdAt: ilYa(30) })], MAINTENANT)[0]).toMatchObject({ type: "relance", titre: "Relancer ou retirer une candidature", detail: "Poste a · sans réponse depuis 30 jours" });
     expect(calculerTaches([c("a", { createdAt: ilYa(179) })], MAINTENANT)[0]).toMatchObject({ type: "relance", detail: "Poste a · sans réponse depuis 5 mois" });
     expect(calculerTaches([c("a", { createdAt: ilYa(180) })], MAINTENANT)[0]).toMatchObject({ type: "attente-longue", titre: "Une candidature reste sans réponse", detail: "Poste a chez Employeur a · sans réponse depuis plus de 6 mois" });
+    expect(calculerTaches([c("a", { createdAt: ilYa(181) })], MAINTENANT)[0]).toMatchObject({ type: "attente-longue" });
   });
 
   it("compte depuis le dernier changement de statut", () => {
@@ -46,9 +47,9 @@ describe("calculerTaches", () => {
 
   it("ignore un entretien passé, un rappel repoussé et une relance récente", () => {
     expect(calculerTaches([c("a", { status: "interview", interviewDate: ilYa(1) })], MAINTENANT)).toEqual([]);
-    expect(calculerTaches([c("a", { createdAt: ilYa(200), rappelReporteJusquau: dansJ(10) })], MAINTENANT)).toEqual([]);
-    expect(calculerTaches([c("a", { createdAt: ilYa(45), derniereRelanceLe: ilYa(5) })], MAINTENANT)).toEqual([]);
-    expect(calculerTaches([c("a", { createdAt: ilYa(45), derniereRelanceLe: ilYa(31) })], MAINTENANT)).toHaveLength(1);
+    expect(calculerTaches([c("a", { createdAt: ilYa(200), reminderSnoozedUntil: dansJ(10) })], MAINTENANT)).toEqual([]);
+    expect(calculerTaches([c("a", { createdAt: ilYa(45), lastFollowUpAt: ilYa(5) })], MAINTENANT)).toEqual([]);
+    expect(calculerTaches([c("a", { createdAt: ilYa(45), lastFollowUpAt: ilYa(31) })], MAINTENANT)).toHaveLength(1);
   });
 
   it("n'invente rien : sans poste ou sans employeur, pas de tâche", () => {

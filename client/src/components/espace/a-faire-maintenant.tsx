@@ -22,9 +22,9 @@ const boutonPrincipal =
 const boutonSecondaire =
   "inline-flex min-h-11 items-center justify-center rounded-full border-[1.5px] border-baara-marine bg-white px-5 font-texte text-[15px] font-semibold text-baara-marine hover:bg-baara-clair focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 disabled:opacity-60 dark:border-white dark:bg-transparent dark:text-white dark:hover:bg-white/10";
 
-// Relancer et Attendre encore : routes ajoutées avec le backend de l'espace.
-// Tant qu'elles n'existent pas, le serveur renvoie la page HTML : on ne
-// l'interprète pas comme un succès.
+// Relancer et Attendre encore (POST /api/applications/:id/relance et
+// /rappel). Une réponse qui n'est pas du JSON (page HTML d'une route
+// absente) n'est pas prise pour un succès.
 async function envoyer(url: string, corps?: unknown): Promise<void> {
   const res = await fetch(url, {
     method: "POST",
@@ -180,7 +180,7 @@ export function AFaireMaintenant({ candidatures }: { candidatures: CandidatureTa
                     type="button"
                     className={boutonSecondaire}
                     disabled={enCours === tache.cle}
-                    onClick={() => agir(tache, `/api/applications/${tache.candidatureId}/rappel`, { jours: REPORT_RAPPEL_JOURS }, `Rappel repoussé de ${REPORT_RAPPEL_JOURS} jours`)}
+                    onClick={() => agir(tache, `/api/applications/${tache.candidatureId}/rappel`, undefined, `Rappel repoussé de ${REPORT_RAPPEL_JOURS} jours`)}
                   >
                     Attendre encore
                   </button>

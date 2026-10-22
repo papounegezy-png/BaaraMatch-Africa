@@ -21,6 +21,8 @@ export type Offre = {
   secteur?: Secteur;
   experienceMin?: number;
   experienceMax?: number;
+  // Compétences requises (correspondance de l'espace candidat).
+  competences?: string[];
   salaireMin?: number;
   salaireMax?: number;
   devise?: string;
@@ -99,6 +101,7 @@ export function offreDepuisLigne(job: LigneOffre): Offre {
     secteur: secteurDeCategorie(job.category) ?? undefined,
     experienceMin: nombre(job.experienceMin),
     experienceMax: nombre(job.experienceMax),
+    competences: job.requiredSkills?.filter((c) => c?.trim()).length ? job.requiredSkills.filter((c) => c?.trim()) : undefined,
     salaireMin: nombre(job.salaryMin),
     salaireMax: nombre(job.salaryMax),
     devise: job.salaryCurrency ?? undefined,

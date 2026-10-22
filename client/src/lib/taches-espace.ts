@@ -13,9 +13,9 @@ export type CandidatureTache = {
   createdAt?: Date | string | null;
   statusChangedAt?: Date | string | null;
   interviewDate?: Date | string | null;
-  // Champs du prompt 7 (absents d'ici là) : rappel repoussé, dernière relance.
-  rappelReporteJusquau?: Date | string | null;
-  derniereRelanceLe?: Date | string | null;
+  // « Attendre encore » et « Relancer » (migration 0045).
+  reminderSnoozedUntil?: Date | string | null;
+  lastFollowUpAt?: Date | string | null;
 };
 
 export type TypeTache = "creneau" | "entretien" | "relance" | "attente-longue";
@@ -68,7 +68,7 @@ export function calculerTaches(candidatures: CandidatureTache[], maintenant: Dat
   // relance récente : pas de tâche.
   const enAttente = candidatures
     .filter((x) => SANS_REPONSE.includes(x.status ?? "pending") && (x.statusChangedAt || x.createdAt))
-    .filter((x) => !(x.rappelReporteJusquau && heure(x.rappelReporteJusquau) > t))
+    .filter((x) => !(x.reminderSnoozedUntil && heure(x.reminderSnoozedUntil) > t))
     .map((c) => ({ c, jours: joursEcoules((c.statusChangedAt ?? c.createdAt)!, maintenant) }))
     .sort((a, b) => b.jours - a.jours);
   for (const { c, jours } of enAttente) {
@@ -78,7 +78,7 @@ export function calculerTaches(candidatures: CandidatureTache[], maintenant: Dat
       if (!c.organizationName) continue;
       ajouter({ cle: `attente-${c.id}`, type: "attente-longue", candidatureId: c.id, poste: p, titre: "Une candidature reste sans réponse", detail: `${p} chez ${c.organizationName} · sans réponse depuis ${libelleDuree(jours)}` });
     } else if (jours >= SEUIL_RELANCE_JOURS) {
-      if (c.derniereRelanceLe && t - heure(c.derniereRelanceLe) < INTERVALLE_RELANCE_JOURS * JOUR_MS) continue;
+      if (c.lastFollowUpAt && t - heure(c.lastFollowUpAt) < INTERVALLE_RELANCE_JOURS * JOUR_MS) continue;
       ajouter({ cle: `relance-${c.id}`, type: "relance", candidatureId: c.id, poste: p, titre: "Relancer ou retirer une candidature", detail: `${p} · sans réponse depuis ${libelleDuree(jours)}` });
     }
   }

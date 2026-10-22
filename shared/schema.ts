@@ -107,7 +107,8 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   phone: text("phone"),
   city: text("city"),
-  country: text("country").default("Sénégal"),
+  // Pas de valeur par défaut (migration 0045) : elle inventait « Sénégal ».
+  country: text("country"),
   avatarUrl: text("avatar_url"),
   isVerified: boolean("is_verified").default(false),
   isSuperAdmin: boolean("is_super_admin").default(false),
@@ -409,6 +410,10 @@ export const applications = pgTable("applications", {
   // Kanban board without having to parse statusHistory.
   statusChangedAt: timestamp("status_changed_at").defaultNow(),
   statusHistory: text("status_history").array(),
+  // Espace candidat (migration 0045) : « Attendre encore » repousse le
+  // rappel jusqu'à cette date ; « Relancer » note la dernière relance.
+  reminderSnoozedUntil: timestamp("reminder_snoozed_until"),
+  lastFollowUpAt: timestamp("last_follow_up_at"),
 }, (table) => ({
   candidateIdx: index("applications_candidate_idx").on(table.candidateId),
   jobIdx: index("applications_job_idx").on(table.jobId),

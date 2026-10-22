@@ -42,6 +42,7 @@ import { lireParametresEmployeurs, rechercherEmployeurs } from "@shared/recherch
 import { profilDepuisLigne } from "@shared/profil-employeur";
 import { avisSchema, resumerAvis, type AvisPublic } from "@shared/avis";
 import { offreDepuisLigne } from "@shared/offre";
+import { INTERVALLE_RELANCE_JOURS, JOUR_MS, REPORT_RAPPEL_JOURS, SEUIL_RELANCE_JOURS, STATUTS_SANS_REPONSE, joursEcoules, libelleDuree } from "@shared/espace";
 import { lireParametresOffres, rechercherOffres } from "@shared/recherche-offres";
 import { salaryPeriods } from "@shared/schema";
 import {
@@ -2649,7 +2650,8 @@ export async function registerRoutes(
         fullName: userData.fullName,
         phone: userData.phone,
         city: userData.city || null,
-        country: userData.country || "Sénégal",
+        // Aucun pays inventé (il valait « Sénégal » d'office).
+        country: userData.country || null,
         userType: "candidate",
       });
 
@@ -3173,7 +3175,12 @@ export async function registerRoutes(
 
       let applications;
       if (user.userType === "candidate") {
-        applications = await storage.getApplicationsByCandidateWithJobs(user.id);
+        // ?limite=N : les N plus récentes (1 à 100).
+        const limite = Number.parseInt(String(req.query.limite ?? ""), 10);
+        applications = await storage.getApplicationsByCandidateWithJobs(
+          user.id,
+          Number.isFinite(limite) && limite > 0 ? Math.min(limite, 100) : undefined,
+        );
       } else {
         return res.status(403).json({ message: "Non autorisé" });
       }
@@ -3440,6 +3447,62 @@ export async function registerRoutes(
       }
       console.error("Error updating application:", error);
       res.status(500).json({ message: "Erreur lors de la mise à jour de la candidature" });
+    }
+  });
+
+  // Espace candidat, « Relancer » : une notification à l'employeur, pour une
+  // candidature sans réponse depuis SEUIL_RELANCE_JOURS jours, au plus une
+  // fois tous les INTERVALLE_RELANCE_JOURS jours.
+  app.post("/api/applications/:id/relance", requireRole("candidate"), async (req, res) => {
+    try {
+      const application = await storage.getApplication(String(req.params.id));
+      if (!application) return res.status(404).json({ message: "Candidature non trouvée" });
+      if (application.candidateId !== req.session.userId) return res.status(403).json({ message: "Non autorisé à relancer cette candidature" });
+      if (!(STATUTS_SANS_REPONSE as readonly string[]).includes(application.status ?? "pending")) {
+        return res.status(400).json({ message: "L'employeur a déjà répondu à cette candidature." });
+      }
+      const depuis = application.statusChangedAt ?? application.createdAt;
+      const jours = depuis ? joursEcoules(depuis) : 0;
+      if (jours < SEUIL_RELANCE_JOURS) {
+        return res.status(400).json({ message: `Vous pourrez relancer ${SEUIL_RELANCE_JOURS} jours après votre candidature.` });
+      }
+      if (application.lastFollowUpAt && Date.now() - new Date(application.lastFollowUpAt).getTime() < INTERVALLE_RELANCE_JOURS * JOUR_MS) {
+        return res.status(429).json({ message: `Vous avez déjà relancé cet employeur. Nouvelle relance possible ${INTERVALLE_RELANCE_JOURS} jours après la précédente.` });
+      }
+      const job = await storage.getJobPosting(application.jobId);
+      const recipientId = job?.agencyId || job?.companyId;
+      if (!job || !recipientId) return res.status(404).json({ message: "Offre non trouvée" });
+      const candidate = await storage.getUser(application.candidateId);
+      await storage.createNotification({
+        userId: recipientId,
+        type: "application_update",
+        title: "Relance d'un candidat",
+        message: `${candidate?.fullName ?? "Un candidat"} relance sa candidature pour « ${job.title} », sans réponse depuis ${libelleDuree(jours)}.`,
+        actionUrl: job.agencyId ? "/agency/missions" : "/company/applications",
+      });
+      const misAJour = await storage.updateApplication(application.id, { lastFollowUpAt: new Date() });
+      res.json(misAJour);
+    } catch (error) {
+      console.error("Error following up application:", error);
+      res.status(500).json({ message: "Erreur lors de la relance de la candidature" });
+    }
+  });
+
+  // Espace candidat, « Attendre encore » : la tâche de cette candidature
+  // revient dans REPORT_RAPPEL_JOURS jours.
+  app.post("/api/applications/:id/rappel", requireRole("candidate"), async (req, res) => {
+    try {
+      const application = await storage.getApplication(String(req.params.id));
+      if (!application) return res.status(404).json({ message: "Candidature non trouvée" });
+      if (application.candidateId !== req.session.userId) return res.status(403).json({ message: "Non autorisé à modifier cette candidature" });
+      if (!(STATUTS_SANS_REPONSE as readonly string[]).includes(application.status ?? "pending")) {
+        return res.status(400).json({ message: "L'employeur a déjà répondu à cette candidature." });
+      }
+      const misAJour = await storage.updateApplication(application.id, { reminderSnoozedUntil: new Date(Date.now() + REPORT_RAPPEL_JOURS * JOUR_MS) });
+      res.json(misAJour);
+    } catch (error) {
+      console.error("Error snoozing application reminder:", error);
+      res.status(500).json({ message: "Erreur lors du report du rappel" });
     }
   });
 

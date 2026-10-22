@@ -199,9 +199,10 @@ export interface IStorage {
   
   getApplication(id: string): Promise<Application | undefined>;
   getApplicationsByCandidate(candidateId: string): Promise<Application[]>;
-  getApplicationsByCandidateWithJobs(candidateId: string): Promise<(Application & {
+  getApplicationsByCandidateWithJobs(candidateId: string, limite?: number): Promise<(Application & {
     jobTitle: string;
     organizationName: string | null;
+    employeurVerifie: boolean;
     location: string;
     jobType: string;
   })[]>;
@@ -1009,17 +1010,21 @@ export class DatabaseStorage implements IStorage {
   // Same rows as getApplicationsByCandidate, enriched with the offer's own
   // details (title/organization/location/type) via a single join instead of
   // making the caller fetch every job separately — powers "Mes candidatures".
-  async getApplicationsByCandidateWithJobs(candidateId: string): Promise<(Application & {
+  // La plus récente d'abord ; `limite` : les N dernières seulement.
+  async getApplicationsByCandidateWithJobs(candidateId: string, limite?: number): Promise<(Application & {
     jobTitle: string;
     organizationName: string | null;
+    employeurVerifie: boolean;
     location: string;
     jobType: string;
   })[]> {
-    return db
+    const requete = db
       .select({
         ...getTableColumns(applications),
         jobTitle: jobPostings.title,
         organizationName: sql<string | null>`coalesce(${agencyProfiles.agencyName}, ${companyProfiles.companyName})`,
+        // Même règle que les offres : la vérification de l'employeur qui publie.
+        employeurVerifie: sql<boolean>`(case when ${jobPostings.agencyId} is not null then ${agencyProfiles.verifiedAt} else ${companyProfiles.verifiedAt} end) is not null`,
         location: jobPostings.location,
         jobType: jobPostings.jobType,
       })
@@ -1028,7 +1033,8 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(agencyProfiles, eq(jobPostings.agencyId, agencyProfiles.userId))
       .leftJoin(companyProfiles, eq(jobPostings.companyId, companyProfiles.userId))
       .where(eq(applications.candidateId, candidateId))
-      .orderBy(desc(applications.createdAt));
+      .orderBy(desc(applications.createdAt), desc(applications.id));
+    return limite ? requete.limit(limite) : requete;
   }
 
   // Companies (unlike agencies, whose candidate search is unrestricted)
@@ -1117,8 +1123,14 @@ export class DatabaseStorage implements IStorage {
       .from(savedJobs)
       .where(and(eq(savedJobs.candidateId, candidateId), eq(savedJobs.jobId, jobId)));
     if (existing) return existing;
-    const [saved] = await db.insert(savedJobs).values({ candidateId, jobId }).returning();
-    return saved;
+    // Idempotent même sur deux demandes simultanées (contrainte unique).
+    const [saved] = await db.insert(savedJobs).values({ candidateId, jobId }).onConflictDoNothing().returning();
+    if (saved) return saved;
+    const [deja] = await db
+      .select()
+      .from(savedJobs)
+      .where(and(eq(savedJobs.candidateId, candidateId), eq(savedJobs.jobId, jobId)));
+    return deja;
   }
 
   async unsaveJob(candidateId: string, jobId: string): Promise<void> {

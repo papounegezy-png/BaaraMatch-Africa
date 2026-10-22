@@ -15,7 +15,7 @@ import type { Offre } from "@/types/offre";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
-import type { Application, CandidateProfile, JobPosting, User } from "@shared/schema";
+import type { Application, CandidateProfile, User } from "@shared/schema";
 
 type Candidature = Application & { jobTitle?: string; location?: string; organizationName?: string | null };
 
@@ -47,16 +47,14 @@ export default function EspaceCandidatPage() {
   const entretiens = liste.filter((a) => ENTRETIEN.includes(a.status ?? "")).length;
   const enAttente = liste.filter((a) => EN_ATTENTE.includes(a.status ?? "pending")).length;
   const offresRecues = liste.filter((a) => OFFRE_RECUE.includes(a.status ?? "")).length;
-  // Offres visibles (même total que la page Offres, /jobs). Les compétences
-  // requises, absentes de ce modèle, viennent de /api/jobs.
+  // Offres visibles (même total que la page Offres, /jobs), avec leurs
+  // compétences requises.
   const estCandidat = user?.userType === "candidate";
   const offres = useQuery<{ total: number; offres: Offre[] }>({ queryKey: [`/api/offres?taille=${TAILLE_MAX}`], enabled: estCandidat });
-  const annonces = useQuery<JobPosting[]>({ queryKey: ["/api/jobs"], enabled: estCandidat });
   const profil = useQuery<{ user: User; profile: CandidateProfile | null }>({ queryKey: ["/api/profile"], enabled: estCandidat });
   const { savedJobIds, toggleSave } = useSavedJobs();
   const recommandees = useMemo(() => {
     if (!offres.data || !profil.data) return [];
-    const competences = new Map((annonces.data ?? []).map((j) => [j.id, j.requiredSkills]));
     return recommander(
       {
         ville: profil.data.user.city,
@@ -64,10 +62,10 @@ export default function EspaceCandidatPage() {
         competences: profil.data.profile?.skills,
         experienceAnnees: profil.data.profile?.experienceYears,
       },
-      offres.data.offres.map((o) => ({ ...o, competencesRequises: competences.get(o.id) })),
+      offres.data.offres.map((o) => ({ ...o, competencesRequises: o.competences })),
       new Set(liste.map((a) => a.jobId)),
     );
-  }, [offres.data, annonces.data, profil.data, liste]);
+  }, [offres.data, profil.data, liste]);
 
   if (!user || user.userType !== "candidate") return null;
 
@@ -114,7 +112,7 @@ export default function EspaceCandidatPage() {
               />
               <OffresRecommandees
                 offres={recommandees}
-                chargement={offres.isLoading || profil.isLoading || annonces.isLoading}
+                chargement={offres.isLoading || profil.isLoading}
                 erreur={offres.isError || profil.isError}
                 onReessayer={() => { offres.refetch(); profil.refetch(); }}
                 enregistrees={savedJobIds}
