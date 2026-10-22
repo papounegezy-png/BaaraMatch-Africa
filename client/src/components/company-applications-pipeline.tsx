@@ -27,6 +27,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { exportApplicationsToExcel } from "@/lib/export-applications-excel";
 import { ArrowLeft, Users, FileDown, FileText, MapPin, Clock, Eye, Calendar, MessageSquare } from "lucide-react";
+import { LecteurVocal } from "@/components/cv-vocal/lecteur-vocal";
+import { deNom } from "@shared/cv-vocal";
 import { ProposeInterviewSlotsDialog } from "@/components/propose-interview-slots-dialog";
 import { SendMessageDialog } from "@/components/send-message-dialog";
 
@@ -58,6 +60,7 @@ type CompanyApplication = {
     title: string | null;
     resumeUrl: string | null;
     resumeFileName: string | null;
+    cvVocal?: { url: string; dureeSecondes: number | null } | null;
   } | null;
 };
 
@@ -333,16 +336,25 @@ export function CompanyApplicationsPipeline() {
                                 <span className="text-sm text-muted-foreground">Aucun CV</span>
                               )}
                             </TableCell>
-                            <TableCell>
-                              {app.voiceIntroUrl ? (
-                                <audio
-                                  controls
-                                  src={app.voiceIntroUrl}
-                                  className="h-8 w-40"
-                                  data-testid={`audio-voice-intro-${app.id}`}
-                                />
+                            <TableCell className="min-w-[260px]">
+                              {/* CV vocal actuel du candidat (écoute seulement) et, s'il y en a
+                                  un, le message vocal envoyé avec la candidature (WhatsApp). */}
+                              {app.candidate?.cvVocal || app.voiceIntroUrl ? (
+                                <div className="space-y-2">
+                                  {app.candidate?.cvVocal && (
+                                    <div data-testid={`cv-vocal-${app.id}`}>
+                                      <LecteurVocal url={app.candidate.cvVocal.url} dureeSecondes={app.candidate.cvVocal.dureeSecondes} libelle={`CV vocal ${deNom(app.candidate.name)}`} compact />
+                                    </div>
+                                  )}
+                                  {app.voiceIntroUrl && (
+                                    <div data-testid={`audio-voice-intro-${app.id}`}>
+                                      <p className="mb-1 text-xs text-muted-foreground">Message vocal de candidature</p>
+                                      <LecteurVocal url={app.voiceIntroUrl} libelle={`Message vocal ${deNom(app.candidate?.name)}`} compact />
+                                    </div>
+                                  )}
+                                </div>
                               ) : (
-                                <span className="text-sm text-muted-foreground">-</span>
+                                <span className="text-sm text-muted-foreground">Aucun</span>
                               )}
                             </TableCell>
                             <TableCell className="text-right">

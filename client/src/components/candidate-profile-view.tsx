@@ -16,13 +16,9 @@ import {
   Calendar,
   Globe,
   Mic,
-  Play,
-  Pause,
-  Download,
   Edit,
   MessageSquare,
   CalendarPlus,
-  Star,
   Clock,
   FileText,
   Award,
@@ -30,7 +26,8 @@ import {
   DollarSign,
   User as UserIcon,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { LecteurVocal } from "@/components/cv-vocal/lecteur-vocal";
+import { useState } from "react";
 import type { User, CandidateProfile } from "@shared/schema";
 
 interface CandidateProfileViewProps {
@@ -41,11 +38,7 @@ interface CandidateProfileViewProps {
 
 export function CandidateProfileView({ candidateId, backHref = "/agency/candidates", backLabel = "Retour aux candidats" }: CandidateProfileViewProps) {
   const [, setLocation] = useLocation();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data: candidate, isLoading, error } = useQuery<User & { profile?: CandidateProfile }>({
     queryKey: ['/api/candidates', candidateId],
@@ -70,35 +63,6 @@ export function CandidateProfileView({ candidateId, backHref = "/agency/candidat
       month: 'long',
       year: 'numeric'
     });
-  };
-
-  const toggleAudio = () => {
-    if (!audioRef.current) return;
-    
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setAudioProgress(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setAudioDuration(audioRef.current.duration);
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (isLoading) {
@@ -253,59 +217,15 @@ export function CandidateProfileView({ candidateId, backHref = "/agency/candidat
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Mic className="h-4 w-4 text-primary" />
-                  CV Vocal
+                  CV vocal
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <audio
-                  ref={audioRef}
-                  src={profile.voiceCvUrl}
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleLoadedMetadata}
-                  onEnded={() => setIsPlaying(false)}
-                  className="hidden"
+                <LecteurVocal
+                  url={profile.voiceCvUrl}
+                  dureeSecondes={(profile as { cvVocal?: { dureeSecondes: number | null } | null }).cvVocal?.dureeSecondes}
+                  libelle="CV vocal du candidat"
                 />
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full h-12 w-12"
-                      onClick={toggleAudio}
-                      data-testid="button-play-voice-cv"
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-5 w-5" />
-                      ) : (
-                        <Play className="h-5 w-5 ml-0.5" />
-                      )}
-                    </Button>
-                    <div className="flex-1">
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary transition-all duration-100"
-                          style={{ 
-                            width: audioDuration > 0 ? `${(audioProgress / audioDuration) * 100}%` : "0%" 
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between mt-1 text-xs text-muted-foreground">
-                        <span>{formatTime(audioProgress)}</span>
-                        <span>{formatTime(audioDuration)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => window.open(profile.voiceCvUrl!, '_blank')}
-                    data-testid="button-download-voice-cv"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger
-                  </Button>
-                </div>
               </CardContent>
             </Card>
           )}
