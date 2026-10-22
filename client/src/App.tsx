@@ -28,7 +28,6 @@ const RegisterPage = lazy(() => import("@/pages/register"));
 const RegisterOrganizationPage = lazy(() => import("@/pages/register-organization"));
 const OrganizationClaimPage = lazy(() => import("@/pages/organization-claim"));
 const SatisfactionSurveyPage = lazy(() => import("@/pages/satisfaction-survey"));
-const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const EspaceCandidatPage = lazy(() => import("@/pages/espace-candidat"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 // Page Offres refondue (pages/offres.tsx) ; l'ancienne pages/jobs.tsx sera

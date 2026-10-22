@@ -50,7 +50,7 @@ function getRedirectPathByUserType(rawUserType?: string) {
   if (userType === "admin") {
     return "/admin/dashboard";
   }
-  return "/dashboard";
+  return "/";
 }
 
 // Adresse de retour après connexion (?retour=/jobs?contrat=CDI…), posée par

@@ -2,7 +2,7 @@ import type { CandidateProfile, User } from "@shared/schema";
 
 // Complétion du profil candidat : 10 critères, et la première étape
 // manquante (même liste, pour que le lien et le pourcentage concordent).
-// Déplacé de pages/dashboard.tsx.
+// (Repris de l'ancien tableau de bord candidat.)
 
 // Utilitaire pour normaliser les champs potentiellement string/object/array
 export function parseArrayField<T>(value: unknown): T[] {

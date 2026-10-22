@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -16,6 +16,26 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
 import type { Application, CandidateProfile, User } from "@shared/schema";
+import { queryClient } from "@/lib/queryClient";
+
+declare global {
+  interface Window { __espacePrecharge?: Record<string, Promise<unknown>> }
+}
+
+// Requêtes lancées dès index.html : elles alimentent le cache avant le
+// premier rendu (une seule fois ; un échec, une session expirée par
+// exemple, laisse la page refaire sa requête normalement).
+function reprendrePrechargement() {
+  const prechargees = window.__espacePrecharge;
+  window.__espacePrecharge = undefined;
+  if (!prechargees) return;
+  // prefetchQuery : la requête est « en cours » pour React Query, la page
+  // l'attend au lieu d'en relancer une.
+  for (const [url, promesse] of Object.entries(prechargees)) {
+    if (queryClient.getQueryState([url])) continue;
+    void queryClient.prefetchQuery({ queryKey: [url], queryFn: () => promesse });
+  }
+}
 
 type Candidature = Application & { jobTitle?: string; location?: string; organizationName?: string | null };
 
@@ -31,6 +51,7 @@ const OFFRE_RECUE = ["offered", "hired"];
  * candidat ». Les autres types de compte ont leur propre tableau de bord.
  */
 export default function EspaceCandidatPage() {
+  useState(reprendrePrechargement);
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -67,6 +88,8 @@ export default function EspaceCandidatPage() {
     );
   }, [offres.data, profil.data, liste]);
 
+  const attente = candidatures.isLoading || profil.isLoading;
+
   if (!user || user.userType !== "candidate") return null;
 
   return (
@@ -92,6 +115,13 @@ export default function EspaceCandidatPage() {
               Rechercher des offres
             </Link>
           </div>
+          {/* Tant que candidatures et profil n'ont pas répondu, une seule
+              réserve de la hauteur de l'écran : les sections arrivent ensuite
+              d'un bloc, sans décaler ce qui est déjà affiché (CLS). */}
+          {attente ? (
+            <div className="mt-10 min-h-[100vh] animate-pulse rounded-[20px] bg-baara-clair/60 motion-reduce:animate-none dark:bg-white/5" aria-hidden="true" data-testid="espace-chargement" />
+          ) : (
+          <>
           <AFaireMaintenant candidatures={liste} />
           <ChiffresCandidat
             candidatures={{ nombre: liste.length, chargement: candidatures.isLoading, erreur: candidatures.isError }}
@@ -126,6 +156,8 @@ export default function EspaceCandidatPage() {
               nbSauvegardees={savedJobIds.size}
             />
           </div>
+          </>
+          )}
         </div>
       </main>
       <MobileBottomNav userType={user.userType} />

@@ -34,6 +34,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+declare global {
+  interface Window { __sessionPrechargee?: Promise<unknown> }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
 
@@ -41,9 +45,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include" });
-        if (!res.ok) return null;
-        const raw = await res.json();
+        // Premier chargement : la requête lancée par index.html, une seule
+        // fois (après une connexion ou une déconnexion, requête neuve).
+        const prechargee = window.__sessionPrechargee;
+        window.__sessionPrechargee = undefined;
+        let raw: unknown;
+        if (prechargee) {
+          raw = await prechargee;
+        } else {
+          const res = await fetch("/api/auth/me", { credentials: "include" });
+          if (!res.ok) return null;
+          raw = await res.json();
+        }
         // null = visiteur sans session (voir GET /api/auth/me).
         return raw ? normalizeAuthUser(raw) : null;
       } catch {

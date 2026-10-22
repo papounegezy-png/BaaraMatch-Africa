@@ -40,6 +40,12 @@
           window[cle] = p;
         }
         var chemin = location.pathname;
+        // Session (lib/auth.tsx la reprend au premier chargement) : toutes
+        // les pages en ont besoin pour l'en-tête, et l'espace candidat
+        // n'affiche rien avant elle.
+        window.__sessionPrechargee = fetch("/api/auth/me", { credentials: "include" })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; });
         if (chemin === "/jobs" || chemin === "/candidate/jobs") precharger("__offresPrechargees", "/api/offres" + location.search);
         // 12 premiers employeurs (TAILLE_PAGE de lib/etat-employeurs.ts).
         if (chemin === "/agencies") precharger("__employeursPrecharges", "/api/employeurs" + (location.search ? location.search + "&" : "?") + "taille=12");
@@ -47,6 +53,17 @@
         var morceaux = chemin.split("/");
         if (morceaux.length === 3 && (morceaux[1] === "agencies" || morceaux[1] === "companies") && morceaux[2]) {
           precharger("__profilPrecharge", "/api/employeurs/" + morceaux[2]);
+        }
+        // Espace candidat : ses quatre requêtes (pages/espace-candidat.tsx
+        // les reprend). taille=50 : TAILLE_MAX de shared/recherche-offres.ts.
+        if (chemin === "/espace-personnel") {
+          var espace = {};
+          ["/api/applications", "/api/profile", "/api/offres?taille=50", "/api/saved-jobs"].forEach(function (url) {
+            espace[url] = fetch(url, { credentials: "include" })
+              .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
+            espace[url].catch(function () {});
+          });
+          window.__espacePrecharge = espace;
         }
       })();
     </script>

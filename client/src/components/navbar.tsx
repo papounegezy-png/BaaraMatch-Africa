@@ -36,7 +36,9 @@ export function Navbar({ user, onLogout }: NavbarProps) {
         ? "/company/dashboard"
         : user?.userType === "candidate"
           ? "/espace-personnel"
-          : "/dashboard";
+          : user?.userType === "admin"
+            ? "/admin/dashboard"
+            : "/";
 
   // "Services" (BaaraMatch's offer for recruiters) is hidden from a
   // logged-in candidate; "Employeurs" stays: candidates follow employers and

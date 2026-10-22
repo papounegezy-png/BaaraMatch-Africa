@@ -46,7 +46,8 @@ export function EnteteAccueil() {
     user?.userType === "agency" ? "/agency/dashboard"
       : user?.userType === "company" ? "/company/dashboard"
         : user?.userType === "candidate" ? "/espace-personnel"
-          : "/dashboard";
+          : user?.userType === "admin" ? "/admin/dashboard"
+            : "/";
 
   // Même règle que la Navbar : un candidat connecté voit Offres et
   // Employeurs (suivre un employeur, lire ou laisser un avis) ; Services,
