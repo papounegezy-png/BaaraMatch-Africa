@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -6,10 +6,15 @@ import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { AFaireMaintenant } from "@/components/espace/a-faire-maintenant";
 import { ChiffresCandidat } from "@/components/espace/chiffres-candidat";
 import { CandidaturesRecentes } from "@/components/espace/candidatures-recentes";
+import { OffresRecommandees } from "@/components/espace/offres-recommandees";
+import { useSavedJobs } from "@/hooks/use-saved-jobs";
+import { recommander } from "@/lib/recommandations";
+import { TAILLE_MAX } from "@shared/recherche-offres";
+import type { Offre } from "@/types/offre";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
-import type { Application } from "@shared/schema";
+import type { Application, CandidateProfile, JobPosting, User } from "@shared/schema";
 
 // Contenu provisoire : l'ancien tableau de bord, en attendant les sections
 // de la refonte (prompts 2 à 6).
@@ -45,8 +50,27 @@ export default function EspaceCandidatPage() {
   const entretiens = liste.filter((a) => ENTRETIEN.includes(a.status ?? "")).length;
   const enAttente = liste.filter((a) => EN_ATTENTE.includes(a.status ?? "pending")).length;
   const offresRecues = liste.filter((a) => OFFRE_RECUE.includes(a.status ?? "")).length;
-  // Même total que la page Offres (/jobs).
-  const offres = useQuery<{ total: number }>({ queryKey: ["/api/offres?taille=1"], enabled: user?.userType === "candidate" });
+  // Offres visibles (même total que la page Offres, /jobs). Les compétences
+  // requises, absentes de ce modèle, viennent de /api/jobs.
+  const estCandidat = user?.userType === "candidate";
+  const offres = useQuery<{ total: number; offres: Offre[] }>({ queryKey: [`/api/offres?taille=${TAILLE_MAX}`], enabled: estCandidat });
+  const annonces = useQuery<JobPosting[]>({ queryKey: ["/api/jobs"], enabled: estCandidat });
+  const profil = useQuery<{ user: User; profile: CandidateProfile | null }>({ queryKey: ["/api/profile"], enabled: estCandidat });
+  const { savedJobIds, toggleSave } = useSavedJobs();
+  const recommandees = useMemo(() => {
+    if (!offres.data || !profil.data) return [];
+    const competences = new Map((annonces.data ?? []).map((j) => [j.id, j.requiredSkills]));
+    return recommander(
+      {
+        ville: profil.data.user.city,
+        metier: profil.data.profile?.title,
+        competences: profil.data.profile?.skills,
+        experienceAnnees: profil.data.profile?.experienceYears,
+      },
+      offres.data.offres.map((o) => ({ ...o, competencesRequises: competences.get(o.id) })),
+      new Set(liste.map((a) => a.jobId)),
+    );
+  }, [offres.data, annonces.data, profil.data, liste]);
 
   if (!user || user.userType !== "candidate") return null;
 
@@ -86,6 +110,14 @@ export default function EspaceCandidatPage() {
             chargement={candidatures.isLoading}
             erreur={candidatures.isError}
             onReessayer={() => candidatures.refetch()}
+          />
+          <OffresRecommandees
+            offres={recommandees}
+            chargement={offres.isLoading || profil.isLoading || annonces.isLoading}
+            erreur={offres.isError || profil.isError}
+            onReessayer={() => { offres.refetch(); profil.refetch(); }}
+            enregistrees={savedJobIds}
+            onEnregistrer={toggleSave}
           />
           <AncienTableauDeBord integre />
         </div>

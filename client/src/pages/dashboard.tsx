@@ -1004,12 +1004,12 @@ function DesktopDashboard({ user, stats, jobs, applications, profile, profileCom
           </div>
           )}
 
-          {user.userType === "candidate" && (
+          {/* Dans l'espace candidat, remplacé par CandidaturesRecentes et
+              OffresRecommandees. */}
+          {user.userType === "candidate" && !integre && (
             // "Candidatures récentes" first (left, and first in reading
             // order): it's what the candidate acts on; recommendations second.
-            <div className={integre ? "" : "grid lg:grid-cols-2 gap-6 items-start"}>
-              {/* Dans l'espace candidat, remplacée par CandidaturesRecentes. */}
-              {!integre && (
+            <div className="grid lg:grid-cols-2 gap-6 items-start">
               <Card className="rounded-2xl border-border/70" data-testid="card-recent-applications">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-center">
@@ -1080,7 +1080,6 @@ function DesktopDashboard({ user, stats, jobs, applications, profile, profileCom
                   </div>
                 </CardContent>
               </Card>
-              )}
 
               <Card className="rounded-2xl border-border/70" data-testid="card-recommended-jobs">
                 <CardHeader className="pb-2">

@@ -24,27 +24,44 @@ export function useSavedJobs() {
     [savedQuery.data],
   );
 
+  // Mise à jour optimiste : le bouton change tout de suite ; en cas
+  // d'erreur, la liste d'avant revient.
+  const optimiste = async (modifier: (lignes: SavedJobRow[]) => SavedJobRow[]) => {
+    await queryClient.cancelQueries({ queryKey: ["/api/saved-jobs"] });
+    const avant = queryClient.getQueryData<SavedJobRow[]>(["/api/saved-jobs"]);
+    queryClient.setQueryData<SavedJobRow[]>(["/api/saved-jobs"], modifier(avant ?? []));
+    return { avant };
+  };
+  const revenir = (contexte?: { avant?: SavedJobRow[] }) => {
+    if (contexte) queryClient.setQueryData(["/api/saved-jobs"], contexte.avant);
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (jobId: string) => {
       await apiRequest("POST", "/api/saved-jobs", { jobId });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/saved-jobs"] }),
-    onError: (error: Error) => {
+    onMutate: (jobId) => optimiste((lignes) => [...lignes, { jobId }]),
+    onError: (error: Error, _jobId, contexte) => {
+      revenir(contexte);
       toast({ title: "Erreur", description: error.message || "Impossible de sauvegarder l'offre.", variant: "destructive" });
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/saved-jobs"] }),
   });
 
   const unsaveMutation = useMutation({
     mutationFn: async (jobId: string) => {
       await apiRequest("DELETE", `/api/saved-jobs/${jobId}`);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/saved-jobs"] }),
-    onError: (error: Error) => {
+    onMutate: (jobId) => optimiste((lignes) => lignes.filter((l) => l.jobId !== jobId)),
+    onError: (error: Error, _jobId, contexte) => {
+      revenir(contexte);
       toast({ title: "Erreur", description: error.message || "Impossible de retirer l'offre.", variant: "destructive" });
     },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/saved-jobs"] }),
   });
 
-  const toggleSave = (jobId: string) => {
+  // surSucces(enregistree) : appelé une fois le serveur d'accord.
+  const toggleSave = (jobId: string, surSucces?: (enregistree: boolean) => void) => {
     if (!user) {
       toast({
         title: "Connexion requise",
@@ -62,9 +79,9 @@ export function useSavedJobs() {
       return;
     }
     if (savedJobIds.has(jobId)) {
-      unsaveMutation.mutate(jobId);
+      unsaveMutation.mutate(jobId, { onSuccess: () => surSucces?.(false) });
     } else {
-      saveMutation.mutate(jobId);
+      saveMutation.mutate(jobId, { onSuccess: () => surSucces?.(true) });
     }
   };
 
