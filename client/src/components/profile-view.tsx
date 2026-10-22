@@ -4,14 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import {
   Award,
   Briefcase,
   Building2,
   Calendar,
-  Camera,
   CheckCircle2,
   DollarSign,
   Download,
@@ -20,8 +18,6 @@ import {
   FileText,
   GraduationCap,
   Lightbulb,
-  Loader2,
-  MapPin,
   Mic,
   Phone,
   Sparkles,
@@ -30,6 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { User as AppUser, CandidateProfile } from "@shared/schema";
+import { CarteIdentite } from "@/components/profil/carte-identite";
 
 interface ProfileViewProps {
   user: AppUser;
@@ -204,14 +201,6 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     reader.readAsDataURL(file);
   };
 
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-
   const handleViewResume = () => {
     if (!profile?.resumeUrl) return;
     window.open(profile.resumeUrl, "_blank", "noopener,noreferrer");
@@ -292,88 +281,22 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
           quand la place manque (flex-wrap). */}
       <div className="flex flex-wrap gap-8">
         <div className="min-w-0 space-y-5 [flex:999_1_620px]">
-          <Card className="overflow-hidden border-border/70 shadow-sm">
-            <div className="bg-gradient-to-r from-primary/15 via-accent/10 to-transparent px-6 pt-6 pb-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Avatar className="h-20 w-20 ring-4 ring-background shadow-sm">
-                      <AvatarImage src={currentUser.avatarUrl || undefined} />
-                      <AvatarFallback className="text-xl bg-primary/10 text-primary">
-                        {getInitials(currentUser.fullName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <Button
-                      size="icon"
-                      className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary shadow-lg"
-                      onClick={handlePhotoClick}
-                      disabled={isUploading || uploadAvatarMutation.isPending}
-                      data-testid="button-upload-avatar"
-                    >
-                      {isUploading || uploadAvatarMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Camera className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold tracking-tight" data-testid="text-profile-name">
-                      {currentUser.fullName}
-                    </h2>
-                    {profile?.title ? (
-                      <p className="text-sm text-muted-foreground" data-testid="text-profile-title">
-                        {profile.title}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Ajoutez un titre professionnel</p>
-                    )}
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {currentUser.city ? (
-                        <Badge variant="secondary" className="gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {currentUser.city}
-                        </Badge>
-                      ) : null}
-                      {currentUser.isVerified ? (
-                        <Badge className="gap-1 bg-accent">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Verifie
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" className="gap-2" onClick={onEdit} data-testid="button-edit-profile-top">
-                  <Edit className="h-4 w-4" />
-                  Modifier
-                </Button>
-              </div>
-            </div>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Profil complete</span>
-                  <span className="font-medium">{profileCompletion}%</span>
-                </div>
-                <Progress value={profileCompletion} className="h-2.5" />
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  <div className="rounded-lg border border-border/70 bg-muted/30 p-2 text-center">
-                    <p className="text-[11px] text-muted-foreground">Experiences</p>
-                    <p className="text-sm font-semibold">{experienceCount}</p>
-                  </div>
-                  <div className="rounded-lg border border-border/70 bg-muted/30 p-2 text-center">
-                    <p className="text-[11px] text-muted-foreground">Formations</p>
-                    <p className="text-sm font-semibold">{educationCount}</p>
-                  </div>
-                  <div className="rounded-lg border border-border/70 bg-muted/30 p-2 text-center">
-                    <p className="text-[11px] text-muted-foreground">Certifications</p>
-                    <p className="text-sm font-semibold">{certificationCount}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <CarteIdentite
+            nom={currentUser.fullName}
+            titre={profile?.title}
+            ville={currentUser.city}
+            avatarUrl={currentUser.avatarUrl}
+            verifie={!!currentUser.isVerified}
+            complet={profileCompletion >= 100}
+            tuiles={[
+              { ancre: "experiences", libelle: "Expériences", singulier: "Expérience", nombre: experienceCount },
+              { ancre: "formations", libelle: "Formations", singulier: "Formation", nombre: educationCount },
+              { ancre: "certifications", libelle: "Certifications", singulier: "Certification", nombre: certificationCount },
+            ]}
+            envoiPhoto={isUploading || uploadAvatarMutation.isPending}
+            onChangerPhoto={handlePhotoClick}
+            onModifier={() => openEditorSection("personal")}
+          />
 
           <Card className="rounded-2xl border-border/70 shadow-sm">
             <CardHeader className="pb-2">
@@ -472,7 +395,7 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-border/70 shadow-sm">
+          <Card id="experiences" className="scroll-mt-24 rounded-2xl border-border/70 shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -554,7 +477,7 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-border/70 shadow-sm">
+          <Card id="formations" className="scroll-mt-24 rounded-2xl border-border/70 shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -607,7 +530,7 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl border-border/70 shadow-sm">
+          <Card id="certifications" className="scroll-mt-24 rounded-2xl border-border/70 shadow-sm">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2">
