@@ -26,9 +26,9 @@ export function BlocCompetences({ competences, onModifier }: { competences: stri
   );
 }
 
-export function BlocCvVocal({ cvVocal }: { cvVocal: CvVocal }) {
+export function BlocCvVocal({ cvVocal, taille }: { cvVocal: CvVocal; taille?: "principal" | "lateral" }) {
   return (
-    <BlocProfil id="cv-vocal" titre="CV vocal" Icone={Mic}>
+    <BlocProfil id="cv-vocal" titre="CV vocal" Icone={Mic} taille={taille}>
       <GestionCvVocal cvVocal={cvVocal} />
     </BlocProfil>
   );
@@ -51,6 +51,7 @@ export function ColonneSuivi({
   nbExperiences,
   onCompleter,
   onMettreAJour,
+  children,
 }: {
   completion: number;
   miseAJour?: Date | string | null;
@@ -58,6 +59,8 @@ export function ColonneSuivi({
   nbExperiences: number;
   onCompleter: () => void;
   onMettreAJour: () => void;
+  /** Blocs affichés sous « Activité » (CV, CV vocal). */
+  children?: ReactNode;
 }) {
   const idNiveau = useId();
   const complet = completion >= 100;
@@ -110,6 +113,8 @@ export function ColonneSuivi({
           <ul className="space-y-3" data-testid="liste-activite">{activites}</ul>
         </BlocProfil>
       )}
+
+      {children}
     </aside>
   );
 }

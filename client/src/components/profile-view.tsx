@@ -268,17 +268,6 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
 
           <BlocAPropos presentation={profile?.bio} onModifier={() => openEditorSection("professional")} />
 
-          <BlocCv
-            nomFichier={profile?.resumeFileName}
-            typeMime={profile?.resumeMimeType}
-            disponible={!!profile?.resumeUrl}
-            onOuvrir={handleViewResume}
-            onTelecharger={handleDownloadResume}
-            onModifier={() => openEditorSection("cv")}
-          />
-
-          <BlocCvVocal cvVocal={(profile as (CandidateProfile & { cvVocal?: CvVocal }) | null | undefined)?.cvVocal} />
-
           <BlocExperiences
             experiences={sortedExperienceEntries}
             plusieursEnCours={hasMultipleCurrent}
@@ -313,7 +302,18 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
           nbExperiences={experienceEntries.length}
           onCompleter={() => openEditorSection(nextProfileStep(currentUser, profile ?? undefined)?.section as EditorSection ?? "personal")}
           onMettreAJour={onEdit}
-        />
+        >
+          <BlocCv
+            nomFichier={profile?.resumeFileName}
+            typeMime={profile?.resumeMimeType}
+            disponible={!!profile?.resumeUrl}
+            onOuvrir={handleViewResume}
+            onTelecharger={handleDownloadResume}
+            onModifier={() => openEditorSection("cv")}
+            taille="lateral"
+          />
+          <BlocCvVocal cvVocal={(profile as (CandidateProfile & { cvVocal?: CvVocal }) | null | undefined)?.cvVocal} taille="lateral" />
+        </ColonneSuivi>
       </div>
     </div>
   );

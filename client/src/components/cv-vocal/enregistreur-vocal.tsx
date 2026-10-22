@@ -136,7 +136,7 @@ export function EnregistreurVocal({ onEnvoyer, onAnnuler }: { onEnvoyer: (e: Enr
           <div className="flex flex-wrap gap-3">
             <button type="button" onClick={demarrer} className={boutonPlein} data-testid="bouton-demarrer-vocal">
               <Mic className="h-5 w-5" aria-hidden="true" />
-              Commencer l'enregistrement
+              Enregistrer
             </button>
             {onAnnuler && (
               <button type="button" onClick={onAnnuler} className={boutonContour}>

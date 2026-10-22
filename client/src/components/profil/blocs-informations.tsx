@@ -71,6 +71,7 @@ export function BlocCv({
   onOuvrir,
   onTelecharger,
   onModifier,
+  taille,
 }: {
   nomFichier?: string | null;
   typeMime?: string | null;
@@ -78,9 +79,10 @@ export function BlocCv({
   onOuvrir: () => void;
   onTelecharger: () => void;
   onModifier: () => void;
+  taille?: "principal" | "lateral";
 }) {
   return (
-    <BlocProfil id="cv" titre="CV du candidat" Icone={FileText} libelleModifier="Modifier le CV" onModifier={onModifier}>
+    <BlocProfil id="cv" titre="CV du candidat" Icone={FileText} libelleModifier="Modifier le CV" onModifier={onModifier} taille={taille}>
       {disponible ? (
         <div className="space-y-4">
           <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-baara-moyen bg-baara-clair p-4 dark:border-white/15 dark:bg-white/5">
@@ -94,7 +96,7 @@ export function BlocCv({
               <p className="font-texte text-[14.5px] text-baara-texte dark:text-slate-300" data-testid="type-cv">{libelleTypeFichier(typeMime, nomFichier)}</p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 max-[639px]:flex-col">
+          <div className={`flex flex-wrap gap-3 max-[639px]:flex-col ${taille === "lateral" ? "flex-col" : ""}`}>
             <button type="button" onClick={onOuvrir} className={`${boutonPlein} flex-1`} data-testid="button-view-resume">
               <Eye className="h-5 w-5" aria-hidden="true" />
               Ouvrir le CV
