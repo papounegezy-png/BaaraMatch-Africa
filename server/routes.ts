@@ -53,9 +53,9 @@ import {
   getMessagesFromWebhook,
   processVoiceCVMessage,
   sendWhatsAppMessage,
-  calculateProfileCompleteness,
   type WhatsAppMessage,
 } from "./whatsapp";
+import { cvVocalPourReponse, registerCvVocalRoutes } from "./cv-vocal";
 import { handleIncomingWhatsAppMessage, isAwaitingApplicationVoiceNote, deliverPendingWhatsAppNotifications, notifyApplicationStatusChange } from "./whatsapp-bot";
 
 const BCRYPT_SALT_ROUNDS = 12;
@@ -182,6 +182,8 @@ function profilCandidatPourLui(utilisateur: UtilisateurBrut, profil: ProfilCandi
   return {
     ...profil,
     resumeUrl: profil.resumeUrl ? "/api/profile/cv" : null,
+    voiceCvUrl: cvVocalPourReponse(profil, "/api/profile/cv-vocal")?.url ?? null,
+    cvVocal: cvVocalPourReponse(profil, "/api/profile/cv-vocal"),
     profileEmbedding: undefined,
     pretentions: pretentionsStructurees(profil.salaryExpectation),
     completion: {
@@ -2736,8 +2738,12 @@ export async function registerRoutes(
 
       const profile = await storage.getCandidateProfile(candidateId);
       const { password: _, ...candidateWithoutPassword } = candidate;
+      // CV vocal : jamais l'audio dans la réponse ; son adresse d'écoute
+      // seulement pour un recruteur qui a reçu une candidature du candidat.
+      const peutEcouter = await storage.hasApplicationToOrganization(candidateId, requester.id);
+      const cvVocal = peutEcouter ? cvVocalPourReponse(profile, `/api/candidates/${candidateId}/cv-vocal`) : null;
 
-      res.json({ ...candidateWithoutPassword, profile });
+      res.json({ ...candidateWithoutPassword, profile: profile ? { ...profile, voiceCvUrl: cvVocal?.url ?? null, cvVocal, profileEmbedding: undefined } : profile });
     } catch (error) {
       console.error("Error fetching candidate:", error);
       res.status(500).json({ message: "Erreur lors de la récupération du candidat" });
@@ -3295,6 +3301,9 @@ export async function registerRoutes(
                   title: candidateProfile?.title ?? null,
                   resumeUrl: candidateProfile?.resumeUrl ?? null,
                   resumeFileName: candidateProfile?.resumeFileName ?? null,
+                  // Le recruteur a reçu cette candidature : il peut écouter le
+                  // CV vocal actuel du candidat (route, pas l'audio).
+                  cvVocal: cvVocalPourReponse(candidateProfile, `/api/candidates/${candidate.id}/cv-vocal`),
                 }
               : null,
           };
@@ -4433,7 +4442,8 @@ export async function registerRoutes(
             skills: c.skills,
             experienceYears: c.experienceYears,
             salaryExpectation: c.salaryExpectation,
-            voiceCvUrl: c.voiceCvUrl,
+            // Décision du 22/10/2026 : écoute réservée aux recruteurs qui ont reçu une candidature.
+            voiceCvUrl: null,
           },
           matchScore: c.matchScore,
         }));
@@ -4458,7 +4468,9 @@ export async function registerRoutes(
             return {
               id: candidate.id,
               user: userWithoutPassword,
-              profile,
+              // Sans l'audio du CV vocal : écoute réservée aux recruteurs qui
+              // ont reçu une candidature (décision du 22/10/2026).
+              profile: profile ? { ...profile, voiceCvUrl: null, profileEmbedding: undefined } : profile,
               matchScore: 50, // Default score when no embedding
             };
           })
@@ -4804,71 +4816,10 @@ export async function registerRoutes(
     }
   });
 
-  // Manual voice CV upload endpoint (for web app)
-  app.post("/api/voice-cv/upload", requireRole("candidate"), async (req, res) => {
-    try {
-      const { audioBase64, mimeType } = req.body;
-      
-      if (!audioBase64 || !mimeType) {
-        return res.status(400).json({ message: "Audio data required" });
-      }
-
-      const audioBuffer = Buffer.from(audioBase64, "base64");
-
-      const { transcribeAudio, extractProfileFromTranscription } = await import("./whatsapp");
-      const { generateCandidateEmbedding } = await import("./embeddings");
-
-      const transcription = await transcribeAudio(audioBuffer, mimeType);
-      const extractedProfile = await extractProfileFromTranscription(transcription);
-
-      let voiceCvUrl = `data:${mimeType};base64,${audioBase64}`;
-      try {
-        voiceCvUrl = await uploadToObjectStorage("voice-cv", req.session.userId!, audioBuffer, mimeType);
-      } catch (err) {
-        console.warn("Object storage unavailable, storing voice CV inline:", (err as Error).message);
-      }
-
-      const profileData = {
-        skills: extractedProfile.skills,
-        experienceYears: extractedProfile.experienceYears,
-        voiceCvUrl,
-        voiceCvTranscript: transcription,
-      };
-
-      let profile = await storage.getCandidateProfile(req.session.userId!);
-      
-      if (profile) {
-        await storage.updateCandidateProfile(req.session.userId!, profileData);
-        profile = { ...profile, ...profileData };
-      } else {
-        profile = await storage.createCandidateProfile({
-          userId: req.session.userId!,
-          ...profileData,
-        });
-      }
-
-      if (extractedProfile.skills.length > 0) {
-        try {
-          const embedding = await generateCandidateEmbedding(profile);
-          await storage.updateCandidateProfile(req.session.userId!, { profileEmbedding: embedding });
-        } catch (err) {
-          console.error("Failed to generate candidate embedding:", err);
-        }
-      }
-
-      const completenessScore = calculateProfileCompleteness(profile);
-
-      res.json({
-        success: true,
-        transcription,
-        extractedProfile,
-        completenessScore,
-      });
-    } catch (error) {
-      console.error("Error processing voice CV upload:", error);
-      res.status(500).json({ message: "Erreur lors du traitement du CV vocal" });
-    }
-  });
+  // CV vocal : envoi (l'audio d'abord, la transcription ensuite si OpenAI
+  // répond), écoute par le candidat, suppression, écoute par un recruteur
+  // qui a reçu sa candidature (server/cv-vocal.ts).
+  registerCvVocalRoutes(app, { requireAuth, requireRole });
 
   app.get("/api/notifications", requireAuth, async (req, res) => {
     try {
