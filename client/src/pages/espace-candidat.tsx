@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { AFaireMaintenant } from "@/components/espace/a-faire-maintenant";
 import { ChiffresCandidat } from "@/components/espace/chiffres-candidat";
+import { CandidaturesRecentes } from "@/components/espace/candidatures-recentes";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
@@ -79,6 +80,12 @@ export default function EspaceCandidatPage() {
             offresDisponibles={{ nombre: offres.data?.total, chargement: offres.isLoading, erreur: offres.isError }}
             offresRecues={{ nombre: offresRecues, chargement: candidatures.isLoading, erreur: candidatures.isError }}
             enAttente={enAttente}
+          />
+          <CandidaturesRecentes
+            candidatures={liste}
+            chargement={candidatures.isLoading}
+            erreur={candidatures.isError}
+            onReessayer={() => candidatures.refetch()}
           />
           <AncienTableauDeBord integre />
         </div>
