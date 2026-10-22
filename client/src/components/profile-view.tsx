@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Award,
-  Briefcase,
-  Building2,
   Calendar,
   CheckCircle2,
-  DollarSign,
   Edit,
-  GraduationCap,
   Lightbulb,
   Mic,
   Sparkles,
@@ -23,6 +18,8 @@ import { apiRequest } from "@/lib/queryClient";
 import type { User as AppUser, CandidateProfile } from "@shared/schema";
 import { CarteIdentite } from "@/components/profil/carte-identite";
 import { BlocAPropos, BlocCv, BlocInfosPersonnelles } from "@/components/profil/blocs-informations";
+import { BlocCertifications, BlocExperiences, BlocFormations } from "@/components/profil/chronologies";
+import { libelleAnneesExperience, libelleDisponibilite, libelleSalaire, lirePretentions } from "@/utils/profil";
 
 interface ProfileViewProps {
   user: AppUser;
@@ -131,6 +128,16 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     return String(b?.startDate || "").localeCompare(String(a?.startDate || ""));
   });
 
+  // Formations (fin, puis début) et certifications (date d'obtention) : la
+  // plus récente d'abord. Ancienne formation en texte libre : une entrée.
+  const sortedEducationEntries = (educationEntries.length > 0
+    ? [...educationEntries]
+    : profile?.education?.trim()
+      ? [{ id: "formation-texte", level: "", institution: "", degree: profile.education.trim(), startYear: "", endYear: "" }]
+      : []
+  ).sort((a, b) => (b.endYear || b.startYear).localeCompare(a.endYear || a.startYear));
+  const sortedCertificationEntries = [...certificationEntries].sort((a, b) => b.obtainedDate.localeCompare(a.obtainedDate));
+
   const uploadAvatarMutation = useMutation({
     mutationFn: async (imageBase64: string) => {
       const response = await apiRequest("POST", "/api/avatar/upload", { imageBase64 });
@@ -228,14 +235,6 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
     document.body.removeChild(link);
   };
 
-  const formatDate = (value?: string | null) => {
-    if (!value) return "-";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return new Date(`${value}T00:00:00`).toLocaleDateString("fr-FR");
-    }
-    return value;
-  };
-
   const completionChecks = [
     !!currentUser.fullName,
     !!currentUser.phone,
@@ -329,175 +328,18 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             onModifier={() => openEditorSection("cv")}
           />
 
-          <Card id="experiences" className="scroll-mt-24 rounded-2xl border-border/70 shadow-sm">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  Experience professionnelle
-                </CardTitle>
-                {hasMultipleCurrent && (
-                  <span className="ml-2 text-xs text-red-600 font-semibold" data-testid="warning-multiple-current-experience">
-                    ⚠️ Plusieurs postes marqués "En cours". Veuillez corriger.
-                  </span>
-                )}
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEditorSection("experiences")}>
-                  <Edit className="h-3.5 w-3.5" />
-                  Modifier
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {sortedExperienceEntries.length > 0 ? (
-                <div className="relative pl-7">
-                  <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
-                  <div className="space-y-3">
-                    {sortedExperienceEntries.map((experience) => (
-                      <div key={experience.id} className="relative rounded-xl border border-border/70 p-4 space-y-2 bg-muted/20">
-                        <span className="absolute -left-[22px] top-5 h-3 w-3 rounded-full border-2 border-primary bg-background" />
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-sm" data-testid={`text-experience-position-${experience.id}`}>
-                              {experience.position || "Poste"}
-                            </p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Building2 className="h-3 w-3" />
-                              {experience.company || "Entreprise"}
-                            </p>
-                          </div>
-                          {experience.contractType ? <Badge className="bg-secondary/15 text-secondary border border-secondary/25 text-xs">{experience.contractType}</Badge> : null}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(experience.startDate) || "-"} - {experience.isCurrent ? "En cours" : formatDate(experience.endDate) || "-"}
-                        </p>
-                        {experience.missionDescription ? (
-                          <div className="rounded-lg border border-border/70 bg-background/70 p-2.5">
-                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Missions</p>
-                            <p className="text-sm text-muted-foreground">{experience.missionDescription}</p>
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                profile?.experience ? (
-                  <div className="relative pl-7">
-                    <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
-                    <div className="relative rounded-xl border border-border/70 p-4 bg-muted/20">
-                      <span className="absolute -left-[22px] top-5 h-3 w-3 rounded-full border-2 border-primary bg-background" />
-                      <p className="font-semibold text-sm">Experience professionnelle</p>
-                      <p className="text-xs text-muted-foreground mt-1">Niveau d'experience: {profile.experience}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Aucune experience renseignee</p>
-                )
-              )}
+          <BlocExperiences
+            experiences={sortedExperienceEntries}
+            plusieursEnCours={hasMultipleCurrent}
+            anneesExperience={libelleAnneesExperience(profile?.experience)}
+            pretentions={(() => { const p = lirePretentions(profile?.salaryExpectation); return p ? libelleSalaire(p.min, p.max) : undefined; })()}
+            disponibilite={libelleDisponibilite(profile?.availableFrom)}
+            onModifier={() => openEditorSection("experiences")}
+          />
 
-              {profile?.salaryExpectation ? (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/10">
-                  <DollarSign className="h-4 w-4 text-accent" />
-                  <span data-testid="text-salary">{profile.salaryExpectation} FCFA/mois</span>
-                </div>
-              ) : null}
+          <BlocFormations formations={sortedEducationEntries} onModifier={() => openEditorSection("education")} />
 
-              {profile?.availableFrom ? (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  <span data-testid="text-available">Disponible a partir du {profile.availableFrom}</span>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card id="formations" className="scroll-mt-24 rounded-2xl border-border/70 shadow-sm">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4" />
-                  Formations
-                </CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEditorSection("education")}>
-                  <Edit className="h-3.5 w-3.5" />
-                  Modifier
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {educationEntries.length > 0 ? (
-                <div className="relative pl-7">
-                  <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
-                  <div className="space-y-3">
-                    {educationEntries.map((education) => (
-                      <div key={education.id} className="relative rounded-xl border border-border/70 p-4 space-y-2 bg-muted/20">
-                        <span className="absolute -left-[22px] top-5 h-3 w-3 rounded-full border-2 border-accent bg-background" />
-                        <p className="font-semibold text-sm" data-testid={`text-education-level-${education.id}`}>
-                          {education.level || "Niveau non renseigne"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{education.institution || "Etablissement non renseigne"}</p>
-                        {education.degree ? (
-                          <p className="text-sm">{education.degree}</p>
-                        ) : null}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{education.startYear || "-"} - {education.endYear || "-"}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                profile?.education ? (
-                  <div className="relative pl-7">
-                    <div className="absolute left-2.5 top-1 bottom-1 w-px bg-border" />
-                    <div className="relative rounded-xl border border-border/70 p-4 bg-muted/20">
-                      <span className="absolute -left-[22px] top-5 h-3 w-3 rounded-full border-2 border-accent bg-background" />
-                      <p className="font-semibold text-sm">Formation</p>
-                      <p className="text-xs text-muted-foreground mt-1">{profile.education}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">Aucune formation renseignee</p>
-                )
-              )}
-            </CardContent>
-          </Card>
-
-          <Card id="certifications" className="scroll-mt-24 rounded-2xl border-border/70 shadow-sm">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Award className="h-4 w-4" />
-                  Certifications professionnelles
-                </CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => openEditorSection("certifications")}>
-                  <Edit className="h-3.5 w-3.5" />
-                  Modifier
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {certificationEntries.length > 0 ? (
-                certificationEntries.map((certification) => (
-                  <div key={certification.id} className="rounded-xl border border-border/70 p-4 space-y-2 bg-muted/20">
-                    <p className="font-semibold text-sm" data-testid={`text-certification-name-${certification.id}`}>
-                      {certification.name || "Certification"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{certification.issuer || "Organisme non renseigne"}</p>
-                    {certification.obtainedDate ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>Obtenue le {formatDate(certification.obtainedDate)}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground text-sm">Aucune certification renseignee</p>
-              )}
-            </CardContent>
-          </Card>
+          <BlocCertifications certifications={sortedCertificationEntries} onModifier={() => openEditorSection("certifications")} />
 
           {profile?.skills && profile.skills.length > 0 ? (
             <Card className="rounded-2xl border-border/70 shadow-sm">

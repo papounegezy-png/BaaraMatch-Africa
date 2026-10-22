@@ -57,3 +57,135 @@ export function libelleTypeFichier(typeMime?: string | null, nomFichier?: string
   }
   return "Fichier";
 }
+
+const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+type DatePartielle = { annee: number; mois?: number; jour?: number };
+
+/** « 2021-03-02 », « 2021-03 » ou « 2021 » ; autre chose → null. */
+function lireDate(valeur: string | null | undefined): DatePartielle | null {
+  const m = (valeur ?? "").trim().match(/^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?/);
+  if (!m) return null;
+  const mois = m[2] ? Number(m[2]) : undefined;
+  const jour = m[3] ? Number(m[3]) : undefined;
+  if (mois !== undefined && (mois < 1 || mois > 12)) return { annee: Number(m[1]) };
+  return { annee: Number(m[1]), mois, jour };
+}
+
+const rang = (d: DatePartielle) => d.annee * 10000 + (d.mois ?? 0) * 100 + (d.jour ?? 0);
+const moisAnnee = (d: DatePartielle) => (d.mois ? `${MOIS[d.mois - 1]} ${d.annee}` : String(d.annee));
+const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * Période lisible : « Mars 2021 – en cours », « 2020 – 2023 »,
+ * « Mars 2018 – fin non renseignée ». Dates inversées : remises dans
+ * l'ordre. Rien d'exploitable → null.
+ */
+export function libellePeriode(debut?: string | null, fin?: string | null, enCours = false): string | null {
+  let d = lireDate(debut);
+  let f = enCours ? null : lireDate(fin);
+  if (d && f && rang(f) < rang(d)) [d, f] = [f, d];
+  if (!d) {
+    if (enCours) return "En cours";
+    return f ? `Jusqu'en ${moisAnnee(f)}` : null;
+  }
+  if (enCours) return majuscule(`${moisAnnee(d)} – en cours`);
+  if (!f) return majuscule(`${moisAnnee(d)} – fin non renseignée`);
+  const a = moisAnnee(d);
+  const b = moisAnnee(f);
+  return majuscule(a === b ? a : `${a} – ${b}`);
+}
+
+/** « 2021-03-02 » → « 2 mars 2021 » (« 1er » le premier du mois) ; sinon null. */
+export function libelleDateLongue(valeur: string | Date | null | undefined): string | null {
+  if (!valeur) return null;
+  if (valeur instanceof Date || /T/.test(valeur)) {
+    const date = new Date(valeur);
+    if (Number.isNaN(date.getTime())) return null;
+    return libelleDateLongue(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+  }
+  const d = lireDate(valeur);
+  if (!d) return null;
+  if (!d.mois) return String(d.annee);
+  if (!d.jour) return `${MOIS[d.mois - 1]} ${d.annee}`;
+  return `${d.jour === 1 ? "1er" : d.jour} ${MOIS[d.mois - 1]} ${d.annee}`;
+}
+
+// Valeurs de l'éditeur de profil (mobile-profile-editor.tsx, « Disponibilité »).
+const DISPONIBILITES: Record<string, string> = {
+  immediate: "Disponible immédiatement",
+  "1-week": "Disponible sous 1 semaine",
+  "2-weeks": "Disponible sous 2 semaines",
+  "1-month": "Disponible sous 1 mois",
+  "3-months": "Disponible sous 3 mois",
+};
+
+/** « 1-month » → « Disponible sous 1 mois » ; une date → « Disponible à partir du … » ; inconnu → undefined. */
+export function libelleDisponibilite(valeur: string | null | undefined): string | undefined {
+  const v = (valeur ?? "").trim();
+  if (!v) return undefined;
+  if (DISPONIBILITES[v]) return DISPONIBILITES[v];
+  const date = /^\d{4}-\d{2}-\d{2}/.test(v) ? libelleDateLongue(v) : null;
+  return date ? `Disponible à partir du ${date}` : undefined;
+}
+
+/**
+ * Prétentions enregistrées par l'éditeur, en milliers de francs (libellés
+ * « 600K - 800K FCFA ») : « 600-800 » → 600 000 à 800 000 ; « 800-1M » ;
+ * « 1M+ » → à partir de 1 000 000. Inconnu → undefined.
+ */
+export function lirePretentions(valeur: string | null | undefined): { min?: number; max?: number } | undefined {
+  const montant = (texte: string) => {
+    const m = texte.trim().match(/^(\d+(?:[.,]\d+)?)\s*(k|m)?$/i);
+    if (!m) return undefined;
+    const n = Number(m[1].replace(",", "."));
+    const unite = m[2]?.toLowerCase();
+    // Sans unité, l'éditeur compte en milliers.
+    return Math.round(n * (unite === "m" ? 1_000_000 : 1_000));
+  };
+  const v = (valeur ?? "").trim();
+  if (!v) return undefined;
+  const plus = v.match(/^(.+)\+$/);
+  if (plus) { const min = montant(plus[1]); return min ? { min } : undefined; }
+  const [a, b] = v.split("-");
+  const min = montant(a ?? "");
+  const max = b !== undefined ? montant(b) : undefined;
+  if (min === undefined || (b !== undefined && max === undefined)) return undefined;
+  return max !== undefined ? { min, max } : { min, max: min };
+}
+
+// Espace insécable (U+00A0) entre les milliers : « 600 000 » ne se coupe pas.
+const montantLisible = (n: number) => n.toLocaleString("fr-FR").replace(/\s/g, "\u00A0");
+
+/**
+ * « 600 000 – 800 000 FCFA / mois » (espaces insécables entre les
+ * milliers). Sans montant → undefined.
+ */
+export function libelleSalaire(min?: number, max?: number, devise = "FCFA", periode = "mois"): string | undefined {
+  const fin = `${devise} / ${periode}`;
+  if (min && max && max !== min) return `${montantLisible(Math.min(min, max))} – ${montantLisible(Math.max(min, max))} ${fin}`;
+  if (min && max) return `${montantLisible(min)} ${fin}`;
+  if (min) return `À partir de ${montantLisible(min)} ${fin}`;
+  if (max) return `Jusqu'à ${montantLisible(max)} ${fin}`;
+  return undefined;
+}
+
+// Années d'expérience de l'éditeur (« Expérience », sélection).
+const ANNEES_EXPERIENCE: Record<string, string> = {
+  "0-1": "Moins d'un an d'expérience",
+  "1-3": "1 à 3 ans d'expérience",
+  "3-5": "3 à 5 ans d'expérience",
+  "5-10": "5 à 10 ans d'expérience",
+  "10+": "Plus de 10 ans d'expérience",
+};
+
+export function libelleAnneesExperience(valeur: string | null | undefined): string | undefined {
+  return ANNEES_EXPERIENCE[(valeur ?? "").trim()];
+}
+
+// Types de contrat : « Interim » (sans accent) vient de l'éditeur.
+export function libelleContrat(valeur: string | null | undefined): string | undefined {
+  const v = (valeur ?? "").trim();
+  if (!v) return undefined;
+  return v.toLowerCase() === "interim" ? "Intérim" : v;
+}
