@@ -110,6 +110,8 @@ export default {
           // « Urgent » (rouge sur rouge clair, ≈ 5,5:1) et employeur vérifié.
           urgent: { DEFAULT: "#B91C1C", fond: "#FEE2E2" },
           verifie: "#15803D",
+          // Bandeau « Profil complet » de l'espace candidat (≈ 8,9:1).
+          complet: { fond: "#E3F5E9", texte: "#14532D" },
           trait: "rgba(13, 41, 87, 0.14)",
         },
       },

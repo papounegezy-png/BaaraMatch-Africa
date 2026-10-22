@@ -8,7 +8,7 @@ import { joursEcoules, libelleDuree } from "@/lib/duree";
 export type StyleStatut = { libelle: string; Icone: LucideIcon; classes: string };
 
 const ENTRETIEN = "bg-baara-moyen text-baara-marine dark:bg-baara-bleu/30 dark:text-white";
-const ATTENTE = "bg-[#FBF2DC] text-[#7A5A0C] dark:bg-[#7A5A0C]/30 dark:text-[#FBF2DC]";
+const ATTENTE = "bg-baara-or-pale text-baara-or-fonce dark:bg-baara-or-fonce/30 dark:text-baara-or-pale";
 const AVANCEE = "bg-baara-clair text-baara-bleu dark:bg-white/10 dark:text-white";
 const DECISION = "bg-baara-marine text-white dark:bg-white dark:text-baara-marine";
 const CLOSE = "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200";

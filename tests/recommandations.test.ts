@@ -4,13 +4,14 @@ import { correspondance, raisonCorrespondance, recommander } from "../client/src
 const offre = (id: string, o: Record<string, unknown> = {}) => ({ id, titre: "Technicien réseau", ville: "Bamako", ...o });
 
 describe("correspondance", () => {
-  it("ne donne aucun score sans critère comparable", () => {
+  it("ne donne aucun score avec moins de deux critères comparables", () => {
     expect(correspondance({}, offre("a"))).toBeNull();
     expect(correspondance({ competences: ["Excel"] }, offre("a"))).toBeNull();
+    // La ville seule mettrait toutes les offres de Bamako à 100 %.
+    expect(correspondance({ ville: "Bamako" }, offre("a"))).toBeNull();
   });
   it("ne compte que les critères renseignés des deux côtés", () => {
-    expect(correspondance({ ville: "Bamako" }, offre("a"))).toEqual({ score: 100, correspondent: ["ville"] });
-    expect(correspondance({ ville: "Dakar" }, offre("a"))).toEqual({ score: 0, correspondent: [] });
+    expect(correspondance({ ville: "Dakar", metier: "Comptable" }, offre("a"))).toEqual({ score: 0, correspondent: [] });
     expect(correspondance({ ville: "bamako", metier: "Technicienne réseaux" }, offre("a", { ville: "Goulamina / Bamako" }))?.correspondent).toEqual(["ville"]);
     expect(correspondance({ ville: "Bamako", metier: "Ingénieur réseau" }, offre("a"))).toEqual({ score: 100, correspondent: ["ville", "metier"] });
   });
@@ -20,7 +21,7 @@ describe("correspondance", () => {
     expect(c).toEqual({ score: 50, correspondent: [] });
   });
   it("ignore les mots trop généraux pour le métier", () => {
-    expect(correspondance({ metier: "Chef de projet" }, offre("a", { titre: "Chef de chantier" }))).toEqual({ score: 0, correspondent: [] });
+    expect(correspondance({ metier: "Chef de projet", ville: "Kayes" }, offre("a", { titre: "Chef de chantier" }))).toEqual({ score: 0, correspondent: [] });
   });
 });
 

@@ -7,6 +7,7 @@ import { AFaireMaintenant } from "@/components/espace/a-faire-maintenant";
 import { ChiffresCandidat } from "@/components/espace/chiffres-candidat";
 import { CandidaturesRecentes } from "@/components/espace/candidatures-recentes";
 import { OffresRecommandees } from "@/components/espace/offres-recommandees";
+import { ColonneProfil } from "@/components/espace/colonne-profil";
 import { useSavedJobs } from "@/hooks/use-saved-jobs";
 import { recommander } from "@/lib/recommandations";
 import { TAILLE_MAX } from "@shared/recherche-offres";
@@ -15,10 +16,6 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
 import type { Application, CandidateProfile, JobPosting, User } from "@shared/schema";
-
-// Contenu provisoire : l'ancien tableau de bord, en attendant les sections
-// de la refonte (prompts 2 à 6).
-import AncienTableauDeBord from "@/pages/dashboard";
 
 type Candidature = Application & { jobTitle?: string; location?: string; organizationName?: string | null };
 
@@ -105,21 +102,32 @@ export default function EspaceCandidatPage() {
             offresRecues={{ nombre: offresRecues, chargement: candidatures.isLoading, erreur: candidatures.isError }}
             enAttente={enAttente}
           />
-          <CandidaturesRecentes
-            candidatures={liste}
-            chargement={candidatures.isLoading}
-            erreur={candidatures.isError}
-            onReessayer={() => candidatures.refetch()}
-          />
-          <OffresRecommandees
-            offres={recommandees}
-            chargement={offres.isLoading || profil.isLoading || annonces.isLoading}
-            erreur={offres.isError || profil.isError}
-            onReessayer={() => { offres.refetch(); profil.refetch(); }}
-            enregistrees={savedJobIds}
-            onEnregistrer={toggleSave}
-          />
-          <AncienTableauDeBord integre />
+          {/* Contenu principal et colonne profil : la colonne passe dessous
+              quand la place manque (flex-wrap). */}
+          <div className="flex flex-wrap gap-x-8">
+            <div className="min-w-0 [flex:999_1_600px]">
+              <CandidaturesRecentes
+                candidatures={liste}
+                chargement={candidatures.isLoading}
+                erreur={candidatures.isError}
+                onReessayer={() => candidatures.refetch()}
+              />
+              <OffresRecommandees
+                offres={recommandees}
+                chargement={offres.isLoading || profil.isLoading || annonces.isLoading}
+                erreur={offres.isError || profil.isError}
+                onReessayer={() => { offres.refetch(); profil.refetch(); }}
+                enregistrees={savedJobIds}
+                onEnregistrer={toggleSave}
+              />
+            </div>
+            <ColonneProfil
+              utilisateur={profil.data?.user}
+              profil={profil.data?.profile}
+              chargement={profil.isLoading}
+              nbSauvegardees={savedJobIds.size}
+            />
+          </div>
         </div>
       </main>
       <MobileBottomNav userType={user.userType} />

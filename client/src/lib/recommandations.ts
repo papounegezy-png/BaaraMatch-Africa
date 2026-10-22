@@ -1,6 +1,7 @@
 // Offres recommandées de l'espace candidat. Le score ne porte que sur les
-// critères réellement comparables (les deux côtés renseignés) : aucun
-// critère comparable, aucun pourcentage. Contrairement à shared/matching,
+// critères réellement comparables (les deux côtés renseignés), et il faut
+// au moins MIN_CRITERES critères : un seul (la ville) donnerait « 100 % »
+// à toutes les offres de la ville. Contrairement à shared/matching,
 // une donnée absente ne vaut pas « 50 % ».
 
 export type ProfilCandidat = {
@@ -21,6 +22,8 @@ export type OffreAComparer = {
 export type Critere = "ville" | "metier" | "competences" | "experience";
 
 export type Correspondance = { score: number; correspondent: Critere[] };
+
+export const MIN_CRITERES = 2;
 
 const POIDS: Record<Critere, number> = { competences: 0.35, metier: 0.25, ville: 0.2, experience: 0.2 };
 const ORDRE: Critere[] = ["ville", "metier", "competences", "experience"];
@@ -59,7 +62,7 @@ export function correspondance(profil: ProfilCandidat, offre: OffreAComparer): C
     resultats.experience = Math.min(1, profil.experienceAnnees / offre.experienceMin);
   }
   const criteres = ORDRE.filter((c) => resultats[c] !== undefined);
-  if (criteres.length === 0) return null;
+  if (criteres.length < MIN_CRITERES) return null;
   const total = criteres.reduce((s, c) => s + POIDS[c], 0);
   const score = Math.round((criteres.reduce((s, c) => s + POIDS[c] * resultats[c]!, 0) / total) * 100);
   return { score, correspondent: criteres.filter((c) => resultats[c] === 1) };

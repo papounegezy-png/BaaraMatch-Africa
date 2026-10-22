@@ -19,7 +19,8 @@ describe("statuts de candidature", () => {
     expect(statutCandidature("interview")).toMatchObject({ libelle: "Entretien" });
     expect(statutCandidature("interview").classes).toContain("bg-baara-moyen");
     expect(statutCandidature(null)).toMatchObject({ libelle: "En attente" });
-    expect(statutCandidature("pending").classes).toContain("bg-[#FBF2DC] text-[#7A5A0C]");
+    // baara.or-pale #FBF2DC, baara.or-fonce #7A5A0C (tailwind.config.ts).
+    expect(statutCandidature("pending").classes).toContain("bg-baara-or-pale text-baara-or-fonce");
   });
 });
 
