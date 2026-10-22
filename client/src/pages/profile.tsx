@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Eye, Pencil } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { MobileProfileEditor } from "@/components/mobile-profile-editor";
 import { ProfileView } from "@/components/profile-view";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, Edit } from "lucide-react";
 import type { User, CandidateProfile } from "@shared/schema";
 
 const EDITOR_SECTIONS = [
@@ -25,6 +25,17 @@ type EditorSection = (typeof EDITOR_SECTIONS)[number];
 const isEditorSection = (value: string | null): value is EditorSection =>
   Boolean(value && EDITOR_SECTIONS.includes(value as EditorSection));
 
+const boutonRond =
+  "inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[1.5px] border-baara-trait bg-white text-baara-marine hover:border-baara-marine hover:bg-baara-clair focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:border-white/20 dark:bg-white/5 dark:text-white";
+const boutonPlein =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-baara-bleu px-6 font-texte font-semibold text-white hover:bg-baara-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2";
+const boutonContour =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full border-[1.5px] border-baara-marine bg-white px-6 font-texte font-semibold text-baara-marine hover:bg-baara-clair focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:border-white dark:bg-transparent dark:text-white dark:hover:bg-white/10";
+
+/**
+ * « Mon profil » (/profile/view) et sa modification (/profile?section=…),
+ * même page : la vue et l'éditeur se remplacent sur place.
+ */
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
@@ -38,7 +49,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!isLoading && !user) {
-      setLocation("/login");
+      setLocation(`/login?retour=${encodeURIComponent("/profile/view")}`);
     }
   }, [user, isLoading, setLocation]);
 
@@ -58,124 +69,75 @@ export default function ProfilePage() {
     }
   }, [location]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background p-4 pb-20">
-        <Skeleton className="h-32 w-full rounded-xl mb-4" />
-        <Skeleton className="h-48 w-full rounded-xl mb-4" />
-        <Skeleton className="h-64 w-full rounded-xl" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  const handleSave = () => {
+  const voirProfil = () => {
     setIsEditing(false);
+    setLocation("/profile/view");
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="lg:hidden">
-        <div className="sticky top-0 z-40 bg-background border-b px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => isEditing ? setIsEditing(false) : setLocation("/espace-personnel")}
-              data-testid="button-back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="font-semibold" data-testid="text-profile-title">
-              {isEditing ? "Modifier le profil" : "Mon Profil"}
-            </h1>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsEditing(!isEditing)}
-            data-testid="button-toggle-mode"
-          >
-            {isEditing ? <Eye className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
-          </Button>
-        </div>
-        <div className="p-4">
-          {isEditing ? (
-            <MobileProfileEditor 
-              user={profileData?.user || user} 
-              profile={profileData?.profile || undefined}
-              initialSection={targetSection}
-              onSave={handleSave} 
-            />
-          ) : (
-            <ProfileView 
-              user={profileData?.user || user} 
-              onEdit={() => setIsEditing(true)} 
-            />
-          )}
-        </div>
-        <MobileBottomNav userType={user.userType} />
-      </div>
-
-      <div className="hidden lg:block">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setLocation("/espace-personnel")}
-                data-testid="button-back-desktop"
-                className="mr-2"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold" data-testid="text-profile-title">
-                  {isEditing ? "Modifier le profil" : "Mon Profil"}
-                </h1>
-                <p className="text-muted-foreground">
-                  {isEditing ? "Modifiez vos informations personnelles" : "Consultez vos informations"}
-                </p>
-              </div>
+    <div className="min-h-screen bg-baara-papier pb-20 dark:bg-baara-profond lg:pb-0">
+      <EnteteAccueil />
+      <main id="contenu" tabIndex={-1} className="focus:outline-none">
+        <div className="mx-auto w-full max-w-[1240px] px-6 pb-16 pt-10 max-[639px]:px-4">
+          {isLoading || !user ? (
+            <div className="space-y-4" aria-hidden="true">
+              <Skeleton className="h-12 w-64 rounded-xl" />
+              <Skeleton className="h-48 w-full rounded-3xl" />
+              <Skeleton className="h-64 w-full rounded-3xl" />
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditing(!isEditing)}
-              className="gap-2"
-              data-testid="button-toggle-mode-desktop"
-            >
-              {isEditing ? (
-                <>
-                  <Eye className="h-4 w-4" />
-                  Voir le profil
-                </>
-              ) : (
-                <>
-                  <Edit className="h-4 w-4" />
-                  Modifier
-                </>
-              )}
-            </Button>
-          </div>
-          {isEditing ? (
-            <MobileProfileEditor 
-              user={profileData?.user || user} 
-              profile={profileData?.profile || undefined}
-              initialSection={targetSection}
-              onSave={handleSave} 
-            />
           ) : (
-            <ProfileView 
-              user={profileData?.user || user} 
-              onEdit={() => setIsEditing(true)} 
-            />
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-5">
+                <div className="flex min-w-0 items-center gap-4">
+                  {isEditing ? (
+                    <button type="button" onClick={voirProfil} className={boutonRond} aria-label="Retour à mon profil" data-testid="button-back">
+                      <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => setLocation("/espace-personnel")} className={boutonRond} aria-label="Retour au tableau de bord" data-testid="button-back">
+                      <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                    </button>
+                  )}
+                  <div className="min-w-0">
+                    <h1 className="font-titre text-[clamp(30px,3.4vw,40px)] font-extrabold leading-tight tracking-[-0.02em] text-baara-marine [overflow-wrap:anywhere] dark:text-white" data-testid="text-profile-title">
+                      {isEditing ? "Modifier mon profil" : "Mon profil"}
+                    </h1>
+                    <p className="mt-1 font-texte text-[17px] text-baara-texte dark:text-slate-300">
+                      {isEditing ? "Modifiez vos informations" : "Consultez vos informations"}
+                    </p>
+                  </div>
+                </div>
+                {isEditing ? (
+                  <button type="button" onClick={voirProfil} className={boutonContour} data-testid="button-toggle-mode-desktop">
+                    <Eye className="h-5 w-5" aria-hidden="true" />
+                    Voir mon profil
+                  </button>
+                ) : (
+                  // Sous 900 px, ce bouton est en bas de la page (ProfileView).
+                  <button type="button" onClick={() => setIsEditing(true)} className={`${boutonPlein} max-[899px]:hidden`} data-testid="button-toggle-mode-desktop">
+                    <Pencil className="h-5 w-5" aria-hidden="true" />
+                    Modifier mon profil
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-8">
+                {isEditing ? (
+                  <MobileProfileEditor
+                    user={profileData?.user || user}
+                    profile={profileData?.profile || undefined}
+                    initialSection={targetSection}
+                    onSave={() => setIsEditing(false)}
+                  />
+                ) : (
+                  <ProfileView user={profileData?.user || user} onEdit={() => setIsEditing(true)} />
+                )}
+              </div>
+            </>
           )}
         </div>
-      </div>
+      </main>
+      {user && <MobileBottomNav userType={user.userType} />}
     </div>
   );
 }

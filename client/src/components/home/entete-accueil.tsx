@@ -49,6 +49,11 @@ export function EnteteAccueil() {
           : user?.userType === "admin" ? "/admin/dashboard"
             : "/";
 
+  // « Mon espace » actif : l'espace lui-même et, pour un candidat, son profil.
+  const espaceActif =
+    location === espacePersonnel ||
+    (user?.userType === "candidate" && ["/profile", "/candidate/profile"].some((p) => location === p || location.startsWith(`${p}/`)));
+
   // Même règle que la Navbar : un candidat connecté voit Offres et
   // Employeurs (suivre un employeur, lire ou laisser un avis) ; Services,
   // l'offre BaaraMatch pour les recruteurs, lui est masqué. Le menu
@@ -103,7 +108,7 @@ export function EnteteAccueil() {
             <>
               <Link
                 href={espacePersonnel}
-                aria-current={location === espacePersonnel ? "page" : undefined}
+                aria-current={espaceActif ? "page" : undefined}
                 className="inline-flex h-11 items-center rounded-lg bg-baara-marine px-5 font-texte text-sm font-semibold text-white hover:bg-baara-profond focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:bg-white dark:text-baara-marine dark:hover:bg-baara-clair"
                 data-testid="link-accueil-espace"
               >
@@ -163,8 +168,8 @@ export function EnteteAccueil() {
               <Link
                 href={espacePersonnel}
                 onClick={fermerMenu}
-                aria-current={location === espacePersonnel ? "page" : undefined}
-                className={`${lienMenuMobile} ${location === espacePersonnel ? "border-l-4 border-baara-or bg-baara-clair font-bold dark:bg-white/10" : ""}`}
+                aria-current={espaceActif ? "page" : undefined}
+                className={`${lienMenuMobile} ${espaceActif ? "border-l-4 border-baara-or bg-baara-clair font-bold dark:bg-white/10" : ""}`}
               >
                 Mon espace
               </Link>

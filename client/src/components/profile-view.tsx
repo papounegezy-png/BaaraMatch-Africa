@@ -278,7 +278,7 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
   };
 
   return (
-    <div className="space-y-5 pb-24">
+    <div className="pb-4">
       <input
         type="file"
         ref={fileInputRef}
@@ -288,8 +288,10 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
         data-testid="input-avatar-upload"
       />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
-        <section className="space-y-5">
+      {/* Colonne principale et colonne de suivi : celle-ci passe dessous
+          quand la place manque (flex-wrap). */}
+      <div className="flex flex-wrap gap-8">
+        <div className="min-w-0 space-y-5 [flex:999_1_620px]">
           <Card className="overflow-hidden border-border/70 shadow-sm">
             <div className="bg-gradient-to-r from-primary/15 via-accent/10 to-transparent px-6 pt-6 pb-4">
               <div className="flex items-start justify-between gap-4">
@@ -683,13 +685,14 @@ export function ProfileView({ user, onEdit }: ProfileViewProps) {
             </Card>
           ) : null}
 
-          <Button size="lg" className="w-full gap-2" onClick={onEdit} data-testid="button-edit-profile">
+          {/* Sur ordinateur, ce bouton est dans le titre de la page. */}
+          <Button size="lg" className="w-full gap-2 min-[900px]:hidden" onClick={onEdit} data-testid="button-edit-profile">
             <Edit className="h-4 w-4" />
             Modifier mon profil
           </Button>
-        </section>
+        </div>
 
-        <aside className="space-y-5">
+        <aside aria-label="Suivi du profil" className="min-w-0 space-y-5 [flex:1_1_320px]">
           <Card className="border-border/70 shadow-sm xl:sticky xl:top-6">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Progression du profil</CardTitle>

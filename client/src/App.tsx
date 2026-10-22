@@ -85,7 +85,7 @@ function RequireRole({ role, children }: { role: UserType; children: React.React
 // Hauteur d'un écran : le pied de page reste hors de vue au lieu d'apparaître
 // en haut puis d'être repoussé (décalage de mise en page).
 // Pages qui affichent leur propre en-tête (EnteteAccueil) au lieu de la Navbar.
-const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs", "/agencies", "/espace-personnel"];
+const PAGES_AVEC_ENTETE = ["/", "/services", "/jobs", "/candidate/jobs", "/agencies", "/espace-personnel", "/profile", "/profile/view", "/candidate/profile", "/candidate/profile/view"];
 // …et les profils d'employeur (/agencies/:id, /companies/:id).
 const aSonEntete = (location: string) => {
   const morceaux = location.split("/");
