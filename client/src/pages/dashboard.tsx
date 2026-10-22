@@ -982,6 +982,8 @@ function DesktopDashboard({ user, stats, jobs, applications, profile, profileCom
             </div>
           </div>
 
+          {/* Dans l'espace candidat, remplacés par ChiffresCandidat. */}
+          {!integre && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((stat) => (
               <Card key={stat.label} className="rounded-2xl border-border/70">
@@ -1000,6 +1002,7 @@ function DesktopDashboard({ user, stats, jobs, applications, profile, profileCom
               </Card>
             ))}
           </div>
+          )}
 
           {user.userType === "candidate" && (
             // "Candidatures récentes" first (left, and first in reading

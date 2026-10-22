@@ -20,3 +20,21 @@ export function phraseResume(entretiens: number, enAttente: number): string {
   if (morceaux.length === 0) return "Prêt à trouver votre prochaine offre ?";
   return `Vous avez ${morceaux.join(" et ")}.`;
 }
+
+export type MotsChiffre = { aucun: string; un: string; plusieurs: string };
+
+/** Chiffres de l'espace : jamais « 0 », un mot à la place (« Aucune »). */
+export const MOTS_CHIFFRES = {
+  candidatures: { aucun: "Aucune", un: "candidature", plusieurs: "candidatures" },
+  entretiens: { aucun: "Aucun", un: "entretien", plusieurs: "entretiens" },
+  offresDisponibles: { aucun: "Aucune", un: "offre disponible", plusieurs: "offres disponibles" },
+  offresRecues: { aucun: "Aucune", un: "offre reçue", plusieurs: "offres reçues" },
+} satisfies Record<string, MotsChiffre>;
+
+export function chiffre(n: number, mots: MotsChiffre): { valeur: string; libelle: string; vide: boolean } {
+  return {
+    valeur: n === 0 ? mots.aucun : n.toLocaleString("fr-FR"),
+    libelle: n > 1 ? mots.plusieurs : mots.un,
+    vide: n === 0,
+  };
+}

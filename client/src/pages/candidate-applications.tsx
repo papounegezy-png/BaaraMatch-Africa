@@ -17,7 +17,7 @@ type TabKey = "all" | "active" | "entretiens" | "offres" | "accepted" | "closed"
 
 const activeStatuses = ["pending", "reviewing", "shortlisted", "interview_proposed", "interview", "offered"];
 const interviewStatuses = ["interview_proposed", "interview"];
-const offerStatuses = ["offered"];
+const offerStatuses = ["offered", "hired"];
 const acceptedStatuses = ["hired"];
 const closedStatuses = ["rejected", "withdrawn"];
 

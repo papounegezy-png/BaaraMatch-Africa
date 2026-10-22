@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
 import { AFaireMaintenant } from "@/components/espace/a-faire-maintenant";
+import { ChiffresCandidat } from "@/components/espace/chiffres-candidat";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { useAuth } from "@/lib/auth";
 import { phraseResume, prenom } from "@/lib/espace-candidat";
@@ -18,6 +19,9 @@ type Candidature = Application & { jobTitle?: string; location?: string; organiz
 // Statuts comptés comme « entretien » et « en attente de réponse ».
 const ENTRETIEN = ["interview", "interview_proposed"];
 const EN_ATTENTE = ["pending", "reviewing"];
+// Offres reçues : proposition faite, ou acceptée (même liste que l'onglet
+// « Offres reçues » de Mes candidatures).
+const OFFRE_RECUE = ["offered", "hired"];
 
 /**
  * Espace candidat (/espace-personnel), refonte d'après la maquette « Espace
@@ -39,6 +43,9 @@ export default function EspaceCandidatPage() {
   const liste = candidatures.data ?? [];
   const entretiens = liste.filter((a) => ENTRETIEN.includes(a.status ?? "")).length;
   const enAttente = liste.filter((a) => EN_ATTENTE.includes(a.status ?? "pending")).length;
+  const offresRecues = liste.filter((a) => OFFRE_RECUE.includes(a.status ?? "")).length;
+  // Même total que la page Offres (/jobs).
+  const offres = useQuery<{ total: number }>({ queryKey: ["/api/offres?taille=1"], enabled: user?.userType === "candidate" });
 
   if (!user || user.userType !== "candidate") return null;
 
@@ -66,6 +73,13 @@ export default function EspaceCandidatPage() {
             </Link>
           </div>
           <AFaireMaintenant candidatures={liste} />
+          <ChiffresCandidat
+            candidatures={{ nombre: liste.length, chargement: candidatures.isLoading, erreur: candidatures.isError }}
+            entretiens={{ nombre: entretiens, chargement: candidatures.isLoading, erreur: candidatures.isError }}
+            offresDisponibles={{ nombre: offres.data?.total, chargement: offres.isLoading, erreur: offres.isError }}
+            offresRecues={{ nombre: offresRecues, chargement: candidatures.isLoading, erreur: candidatures.isError }}
+            enAttente={enAttente}
+          />
           <AncienTableauDeBord integre />
         </div>
       </main>
