@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { EnteteAccueil } from "@/components/home/entete-accueil";
-import { AFaireMaintenant } from "@/components/espace/a-faire-maintenant";
 import { ChiffresCandidat } from "@/components/espace/chiffres-candidat";
 import { CandidaturesRecentes } from "@/components/espace/candidatures-recentes";
 import { OffresRecommandees } from "@/components/espace/offres-recommandees";
@@ -104,7 +103,6 @@ export default function EspaceCandidatPage() {
             <div className="mt-10 min-h-[100vh] animate-pulse rounded-[20px] bg-baara-clair/60 motion-reduce:animate-none dark:bg-white/5" aria-hidden="true" data-testid="espace-chargement" />
           ) : (
           <>
-          <AFaireMaintenant candidatures={liste} />
           <ChiffresCandidat
             candidatures={{ nombre: liste.length, chargement: candidatures.isLoading, erreur: candidatures.isError }}
             entretiens={{ nombre: entretiens, chargement: candidatures.isLoading, erreur: candidatures.isError }}
