@@ -109,7 +109,8 @@ export function EnteteAccueil() {
               <Link
                 href={espacePersonnel}
                 aria-current={espaceActif ? "page" : undefined}
-                className="inline-flex h-11 items-center rounded-lg bg-baara-marine px-5 font-texte text-sm font-semibold text-white hover:bg-baara-profond focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:bg-white dark:text-baara-marine dark:hover:bg-baara-clair"
+                // Actif : même trait or que les liens de la navigation (or sur marine : 6:1).
+                className="relative inline-flex h-11 items-center rounded-lg bg-baara-marine px-5 after:absolute after:inset-x-5 after:bottom-1.5 after:hidden after:h-0.5 after:rounded-full after:bg-baara-or aria-[current=page]:after:block dark:after:bg-baara-marine font-texte text-sm font-semibold text-white hover:bg-baara-profond focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-baara-bleu focus-visible:ring-offset-2 dark:bg-white dark:text-baara-marine dark:hover:bg-baara-clair"
                 data-testid="link-accueil-espace"
               >
                 Mon espace
